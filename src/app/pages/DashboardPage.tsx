@@ -257,6 +257,7 @@ Provide a cohesive overall summary of the company's financial health based on th
                           <td className="py-3.5 px-5 text-right">
                             <Link
                               to={calculator?.path || "/calculators"}
+                              state={{ calculation: calc }}
                               className="inline-flex items-center gap-1.5 text-xs text-[#2563EB] hover:text-white border border-[#2563EB]/30 hover:border-[#2563EB] hover:bg-[#2563EB] px-3 py-1.5 rounded-lg transition-all"
                             >
                               Open

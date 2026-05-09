@@ -1,10 +1,23 @@
 import { useState, useEffect } from "react"
+import { useLocation } from "react-router"
 import { CalculatorShell } from "../../components/calculators/CalculatorShell"
 import { calculateDrawingPower, CalculationResult } from "../../../lib/financialCalculations"
 import { ResultCard } from "../../components/calculators/ResultCard"
 import { CurrencyInput } from "../../components/ui/CurrencyInput"
 
+type SavedDrawingPowerCalculation = {
+  calculatorType?: string
+  inputs?: {
+    eligibleStock?: number
+    eligibleReceivables?: number
+    marginPercent?: number
+  }
+  results?: CalculationResult & Record<string, unknown>
+}
+
 export default function DrawingPowerPage() {
+  const location = useLocation()
+  const savedCalculation = (location.state as { calculation?: SavedDrawingPowerCalculation } | null)?.calculation
   const [eligibleStock, setEligibleStock] = useState("")
   const [eligibleReceivables, setEligibleReceivables] = useState("")
   const [marginPercent, setMarginPercent] = useState("25")
@@ -12,6 +25,31 @@ export default function DrawingPowerPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!savedCalculation || savedCalculation.calculatorType !== "drawing-power") {
+      return
+    }
+
+    const inputs = savedCalculation.inputs
+    if (inputs?.eligibleStock !== undefined) {
+      setEligibleStock(String(inputs.eligibleStock))
+    }
+    if (inputs?.eligibleReceivables !== undefined) {
+      setEligibleReceivables(String(inputs.eligibleReceivables))
+    }
+    if (inputs?.marginPercent !== undefined) {
+      setMarginPercent(String(inputs.marginPercent))
+    }
+
+    if (savedCalculation.results) {
+      setResult(savedCalculation.results as CalculationResult)
+    }
+  }, [savedCalculation])
+
+  useEffect(() => {
+    if (savedCalculation?.results && savedCalculation.calculatorType === "drawing-power") {
+      return
+    }
+
     const stock = parseFloat(eligibleStock)
     const receivables = parseFloat(eligibleReceivables)
     const margin = parseFloat(marginPercent)
@@ -28,7 +66,7 @@ export default function DrawingPowerPage() {
       setResult(null)
       setError(null)
     }
-  }, [eligibleStock, eligibleReceivables, marginPercent])
+  }, [eligibleStock, eligibleReceivables, marginPercent, savedCalculation])
 
   return (
     <CalculatorShell
