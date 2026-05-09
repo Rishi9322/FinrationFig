@@ -73,8 +73,12 @@ app.post("/make-server-bd792702/auth/signup", async (c) => {
     await kv.set(`user:${email}`, user);
 
     console.log(`[OTP] Email: ${email}, OTP: ${otp}`);
+    await sendOtpEmail(email, otp);
 
-    return c.json({ message: "OTP sent to your email (check server logs)" }, 201);
+    return c.json({ 
+      message: "OTP sent to your email", 
+      user: { id: user.id, email: user.email, name: user.name, isVerified: false, createdAt: user.createdAt }
+    }, 201);
   } catch (error) {
     console.error("[signup]", error);
     return c.json({ error: "An error occurred. Please try again." }, 500);
@@ -187,8 +191,9 @@ app.post("/make-server-bd792702/auth/resend-otp", async (c) => {
     await kv.set(`user:${email}`, user);
 
     console.log(`[OTP RESEND] Email: ${email}, OTP: ${otp}`);
+    await sendOtpEmail(email, otp);
 
-    return c.json({ message: "New OTP sent to your email (check server logs)" });
+    return c.json({ message: "New OTP sent to your email" });
   } catch (error) {
     console.error("[resend-otp]", error);
     return c.json({ error: "An error occurred. Please try again." }, 500);
