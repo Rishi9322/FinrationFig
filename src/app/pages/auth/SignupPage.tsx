@@ -71,7 +71,7 @@ export default function SignupPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <img src="/logoo.png" alt="FinRatio" className="h-12 w-auto" />
+            <img src="/logoo.png" alt="FinRatio" className="h-14 w-auto sm:h-16" />
             <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#2563EB] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">β</span>
           </Link>
           <p className="text-sm text-[#64748B] mt-3">Create your account</p>

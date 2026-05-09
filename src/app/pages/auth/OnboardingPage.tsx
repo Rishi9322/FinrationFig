@@ -73,7 +73,7 @@ export default function OnboardingPage() {
 
       <div className="relative w-full max-w-sm">
         <div className="text-center mb-8">
-          <img src="/logoo.png" alt="FinRatio" className="h-12 w-auto mx-auto" />
+          <img src="/logoo.png" alt="FinRatio" className="h-14 w-auto mx-auto sm:h-16" />
           <span className="ml-2 text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#2563EB] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">β</span>
         </div>
 

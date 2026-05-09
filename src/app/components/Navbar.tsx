@@ -40,7 +40,7 @@ export function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex items-center justify-between">
           {/* Wordmark */}
           <Link to="/dashboard" className="flex items-center gap-2">
-            <img src="/logoo.png" alt="FinRatio" className="h-8 w-auto" />
+            <img src="/logoo.png" alt="FinRatio" className="h-20 w-auto sm:h-11" />
             <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#2563EB] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">
               β
             </span>
