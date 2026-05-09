@@ -22,6 +22,26 @@ function generateOTP(): string {
   return Math.floor(Math.random() * 1000000).toString().padStart(6, "0");
 }
 
+type StoredCalculation = {
+  id: string;
+  userId: string;
+  calculatorType: string;
+  inputs: Record<string, unknown>;
+  results: Record<string, unknown>;
+  createdAt: string;
+};
+
+async function getCalculationsForUser(userId: string): Promise<StoredCalculation[]> {
+  const calculations = await kv.get(`calculations:${userId}`);
+  return Array.isArray(calculations) ? calculations : [];
+}
+
+async function saveCalculationRecord(calculation: StoredCalculation): Promise<void> {
+  const calculations = await getCalculationsForUser(calculation.userId);
+  calculations.unshift(calculation);
+  await kv.set(`calculations:${calculation.userId}`, calculations.slice(0, 200));
+}
+
 async function sendOtpEmail(email: string, otp: string) {
   const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
   if (!RESEND_API_KEY) {
@@ -256,6 +276,17 @@ app.get("/make-server-bd792702/health", (c) => {
   return c.json({ status: "ok" });
 });
 
+app.get("/make-server-bd792702/calculations/:userId", async (c) => {
+  try {
+    const userId = c.req.param("userId");
+    const calculations = await getCalculationsForUser(userId);
+    return c.json({ calculations });
+  } catch (error) {
+    console.error("[calculations:get]", error);
+    return c.json({ error: "An error occurred. Please try again." }, 500);
+  }
+});
+
 app.post("/make-server-bd792702/auth/signup", async (c) => {
   try {
     const body = await c.req.json();
@@ -422,6 +453,33 @@ app.post("/make-server-bd792702/auth/onboarding", async (c) => {
   }
 });
 
+app.post("/make-server-bd792702/calculations", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { userId, calculatorType, inputs, results } = body;
+
+    if (!userId || !calculatorType) {
+      return c.json({ error: "userId and calculatorType are required" }, 400);
+    }
+
+    const record: StoredCalculation = {
+      id: crypto.randomUUID(),
+      userId,
+      calculatorType,
+      inputs: inputs ?? {},
+      results: results ?? {},
+      createdAt: new Date().toISOString(),
+    };
+
+    await saveCalculationRecord(record);
+
+    return c.json(record, 201);
+  } catch (error) {
+    console.error("[calculations:post]", error);
+    return c.json({ error: "An error occurred. Please try again." }, 500);
+  }
+});
+
 app.post("/make-server-bd792702/auth/resend-otp", async (c) => {
   try {
     const body = await c.req.json();
@@ -452,14 +510,6 @@ app.post("/make-server-bd792702/auth/resend-otp", async (c) => {
     console.error("[resend-otp]", error);
     return c.json({ error: "An error occurred. Please try again." }, 500);
   }
-});
-
-app.get("/make-server-bd792702/calculations", (c) => {
-  return c.json([]);
-});
-
-app.post("/make-server-bd792702/calculations", (c) => {
-  return c.json({ success: true });
 });
 
 app.get("/make-server-bd792702/resend/api-keys", (c) => {

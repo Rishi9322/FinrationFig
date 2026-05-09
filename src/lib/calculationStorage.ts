@@ -22,13 +22,22 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
     },
   })
 
-  const data = await response.json()
+  const raw = await response.text()
+  let data: any = null
 
-  if (!response.ok) {
-    throw new Error(data.error || "Request failed")
+  if (raw) {
+    try {
+      data = JSON.parse(raw)
+    } catch {
+      data = { message: raw }
+    }
   }
 
-  return data
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || "Request failed")
+  }
+
+  return data ?? {}
 }
 
 export async function saveCalculation(
