@@ -87,6 +87,7 @@ export default function PidPage() {
       title="Purchase Invoice Discounting"
       description="Calculate the net benefit of purchase invoice discounting facility."
       explainerText="Purchase Invoice Discounting helps bridge the gap between purchase payments and customer collections. The calculation estimates the annual benefit from accelerated cash conversion versus the facility cost and any cash discounts earned. It is most useful when the business can finance receivables efficiently and the sales-credit period is materially longer than the purchase-credit period."
+      videoUrl="/pid-calc.mp4"
       result={
         result ? (
           <ResultCard

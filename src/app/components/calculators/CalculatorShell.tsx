@@ -6,11 +6,12 @@ interface CalculatorShellProps {
   title: string
   description: string
   explainerText?: string
+  videoUrl?: string
   children: ReactNode
   result?: ReactNode
 }
 
-export function CalculatorShell({ title, description, explainerText, children, result }: CalculatorShellProps) {
+export function CalculatorShell({ title, description, explainerText, videoUrl, children, result }: CalculatorShellProps) {
   const [videoOpen, setVideoOpen] = useState(false)
 
   return (
@@ -95,7 +96,7 @@ export function CalculatorShell({ title, description, explainerText, children, r
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
                 <div>
                   <p className="text-sm font-medium text-white">{title} — Explainer</p>
-                  <p className="text-xs text-[#64748B] mt-0.5">Video coming soon</p>
+                  <p className="text-xs text-[#64748B] mt-0.5">{videoUrl ? "Explainer Video" : "Video coming soon"}</p>
                 </div>
                 <button
                   onClick={() => setVideoOpen(false)}
@@ -104,24 +105,35 @@ export function CalculatorShell({ title, description, explainerText, children, r
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              {/* 16:9 placeholder */}
-              <div className="relative aspect-video bg-[#070e1c] flex flex-col items-center justify-center gap-4">
-                <div
-                  className="absolute inset-0 opacity-[0.035] pointer-events-none"
-                  style={{
-                    backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
-                    backgroundSize: "40px 40px",
-                    position: "absolute",
-                  }}
-                />
-                <div className="w-16 h-16 rounded-full border-2 border-[#2563EB]/40 bg-[#2563EB]/8 flex items-center justify-center">
-                  <PlayCircle className="w-8 h-8 text-[#2563EB]/60" />
-                </div>
-                <p className="text-sm text-[#64748B] text-center px-8">
-                  Explainer video for <span className="text-[#F1F5F9]">{title}</span> will appear here.
-                  <br />
-                  <span className="text-xs text-[#64748B]/70 mt-1 block">Upload a video URL to enable playback.</span>
-                </p>
+              {/* Video player or placeholder */}
+              <div className="relative aspect-video bg-[#070e1c]">
+                {videoUrl ? (
+                  <video
+                    src={videoUrl}
+                    controls
+                    className="w-full h-full"
+                    style={{ backgroundColor: "#070e1c" }}
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-4 h-full">
+                    <div
+                      className="absolute inset-0 opacity-[0.035] pointer-events-none"
+                      style={{
+                        backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
+                        backgroundSize: "40px 40px",
+                        position: "absolute",
+                      }}
+                    />
+                    <div className="w-16 h-16 rounded-full border-2 border-[#2563EB]/40 bg-[#2563EB]/8 flex items-center justify-center relative z-10">
+                      <PlayCircle className="w-8 h-8 text-[#2563EB]/60" />
+                    </div>
+                    <p className="text-sm text-[#64748B] text-center px-8 relative z-10">
+                      Explainer video for <span className="text-[#F1F5F9]">{title}</span> will appear here.
+                      <br />
+                      <span className="text-xs text-[#64748B]/70 mt-1 block">Upload a video URL to enable playback.</span>
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
