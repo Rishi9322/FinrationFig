@@ -47,10 +47,28 @@ supabase/functions/**/.env
 # Temporary files
 *.zip
 *.tmp
+*.log
 src.zip
 supabase.zip
 utils.zip
 guidelines.zip
+
+# Office/data files
+*.xls
+*.xlsx
+*.xlsm
+*.xlsb
+*.csv
+*.pdf
+*.doc
+*.docx
+*.ppt
+*.pptx
+
+# Generated outputs / local runtime artifacts
+supabase/.temp/
+tools/ocr/out/
+vite-dev*.log
 
 # Node version manager
 .nvmrc
