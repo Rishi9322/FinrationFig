@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { Link, useLocation, useNavigate } from "react-router"
 import { CALCULATORS } from "../../lib/calculatorConfig"
-import { getCurrentUser, clearCurrentUser } from "../../lib/auth"
+import { getCurrentUser, signout } from "../../lib/auth"
 import { Menu, X, ChevronDown, LogOut } from "lucide-react"
 import * as Icons from "lucide-react"
 import { toast } from "sonner"
@@ -20,14 +20,25 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", fn)
   }, [])
 
-  function handleSignOut() {
-    clearCurrentUser()
+  async function handleSignOut() {
+    try {
+      await signout()
+    } catch {
+      // Ignore logout API failures and force local logout UX.
+    }
     toast.success("Signed out successfully")
     navigate("/auth/signin")
   }
 
+  const visibleCalculators = CALCULATORS.filter((calc) => {
+    if (!user) return false
+    if (user.role === "SUPER_ADMIN" || user.role === "ADMIN") return true
+    return user.calculatorAccess?.includes(calc.id)
+  })
+
   const isActive = (path: string) => location.pathname === path
   const calcActive = location.pathname.startsWith("/calculators")
+  const adminActive = location.pathname.startsWith("/admin")
 
   return (
     <>
@@ -74,7 +85,7 @@ export function Navbar() {
 
               {calcOpen && (
                 <div className="absolute top-full left-0 mt-2 w-80 bg-[#0D1726] border border-white/10 rounded-xl shadow-2xl py-2 max-h-[480px] overflow-y-auto">
-                  {CALCULATORS.map((calc) => {
+                  {visibleCalculators.map((calc) => {
                     const Icon = Icons[calc.icon as keyof typeof Icons] as React.ComponentType<{ className?: string }>
                     return (
                       <Link
@@ -101,6 +112,18 @@ export function Navbar() {
 
             {user && (
               <>
+                {user.role === "SUPER_ADMIN" && (
+                  <Link
+                    to="/admin"
+                    className={`text-sm px-4 py-2 rounded-lg transition-colors ${
+                      adminActive
+                        ? "text-white bg-white/8"
+                        : "text-[#64748B] hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    Admin
+                  </Link>
+                )}
                 <div className="h-4 w-px bg-white/10 mx-2" />
                 <span className="text-sm text-[#64748B]">{user.name || user.email}</span>
                 <button
@@ -136,7 +159,7 @@ export function Navbar() {
               </Link>
               <div className="pt-2 pb-1">
                 <p className="text-xs font-['Geist_Mono'] text-[#64748B] uppercase tracking-widest px-3 mb-2">Calculators</p>
-                {CALCULATORS.map((calc) => {
+                {visibleCalculators.map((calc) => {
                   const Icon = Icons[calc.icon as keyof typeof Icons] as React.ComponentType<{ className?: string }>
                   return (
                     <Link
@@ -153,6 +176,15 @@ export function Navbar() {
               </div>
               {user && (
                 <div className="pt-3 border-t border-white/8 mt-2">
+                  {user.role === "SUPER_ADMIN" && (
+                    <Link
+                      to="/admin"
+                      className="block text-sm text-[#F1F5F9] px-3 py-2.5 rounded-lg hover:bg-white/5"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      Admin
+                    </Link>
+                  )}
                   <p className="text-sm text-[#64748B] px-3 py-1.5">{user.name || user.email}</p>
                   <button
                     onClick={handleSignOut}

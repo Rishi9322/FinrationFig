@@ -4,22 +4,47 @@ import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { signupSchema } from "../../../lib/validations"
 import { signup } from "../../../lib/auth"
 import { toast } from "sonner"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select"
+
+const COUNTRY_CODES = [
+  { country: "India", code: "+91", flag: "IN" },
+  { country: "United States / Canada", code: "+1", flag: "US/CA" },
+  { country: "United Kingdom", code: "+44", flag: "GB" },
+  { country: "United Arab Emirates", code: "+971", flag: "AE" },
+  { country: "Singapore", code: "+65", flag: "SG" },
+  { country: "Australia", code: "+61", flag: "AU" },
+  { country: "Germany", code: "+49", flag: "DE" },
+  { country: "France", code: "+33", flag: "FR" },
+  { country: "Japan", code: "+81", flag: "JP" },
+]
 
 export default function SignupPage() {
   const navigate = useNavigate()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
+  const [countryCode, setCountryCode] = useState("+91")
+  const [phoneNumber, setPhoneNumber] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   function getPasswordStrength(): "weak" | "medium" | "strong" {
-    if (password.length < 8) return "weak"
+    if (password.length < 10) return "weak"
     const hasUpper = /[A-Z]/.test(password)
+    const hasLower = /[a-z]/.test(password)
     const hasNumber = /[0-9]/.test(password)
-    if (hasUpper && hasNumber) return "strong"
-    if (hasUpper || hasNumber) return "medium"
+    const hasSpecial = /[^A-Za-z0-9]/.test(password)
+    if (hasUpper && hasLower && hasNumber && hasSpecial) return "strong"
+    if ((hasUpper || hasLower) && hasNumber) return "medium"
     return "weak"
   }
 
@@ -28,7 +53,14 @@ export default function SignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErrors({})
-    const result = signupSchema.safeParse({ name, email, password })
+    const phoneNumberWithCountryCode = `${countryCode}${phoneNumber.replace(/[^\d]/g, "")}`
+    const result = signupSchema.safeParse({
+      name,
+      email,
+      phoneNumber: phoneNumberWithCountryCode,
+      password,
+      confirmPassword,
+    })
     if (!result.success) {
       const fieldErrors: Record<string, string> = {}
       result.error.issues.forEach((err) => {
@@ -39,8 +71,8 @@ export default function SignupPage() {
     }
     setIsLoading(true)
     try {
-      await signup(name, email, password)
-      toast.success("Account created! Check the server logs for your OTP.")
+      await signup({ name, email, phoneNumber: phoneNumberWithCountryCode, password, confirmPassword })
+      toast.success("Account created. Check your email for the OTP.")
       navigate(`/auth/verify-otp?email=${encodeURIComponent(email)}`)
     } catch (error: any) {
       const message = error.message || "An error occurred. Please try again."
@@ -114,6 +146,50 @@ export default function SignupPage() {
               {errors.email && <p className="text-xs text-[#ef4444]">{errors.email}</p>}
             </div>
 
+            {/* Phone */}
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-[#F1F5F9]">Phone Number</label>
+              <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-2">
+                <Select value={countryCode} onValueChange={setCountryCode}>
+                  <SelectTrigger
+                    className={`h-auto px-3 py-2.5 bg-[#050A14] border rounded-lg text-[#F1F5F9] text-sm focus:ring-1 focus:ring-[#2563EB]/20 ${
+                      errors.phoneNumber
+                        ? "border-[#ef4444]/50 focus:border-[#ef4444]"
+                        : "border-white/10 focus:border-[#2563EB]/60"
+                    }`}
+                    aria-label="Country code"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#0D1726] border-white/10 text-[#F1F5F9]">
+                    {COUNTRY_CODES.map((option) => (
+                      <SelectItem
+                        key={option.code}
+                        value={option.code}
+                        className="focus:bg-[#2563EB]/20 focus:text-white"
+                      >
+                        {option.flag} {option.code}
+                        <span className="sr-only">{option.country}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="98765 43210"
+                  className={`w-full min-w-0 px-4 py-2.5 bg-[#050A14] border rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#64748B]/50 focus:outline-none transition-colors ${
+                    errors.phoneNumber
+                      ? "border-[#ef4444]/50 focus:border-[#ef4444]"
+                      : "border-white/10 focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20"
+                  }`}
+                />
+              </div>
+              {errors.phoneNumber && <p className="text-xs text-[#ef4444]">{errors.phoneNumber}</p>}
+            </div>
+
             {/* Password */}
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-[#F1F5F9]">Password</label>
@@ -155,6 +231,32 @@ export default function SignupPage() {
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* Confirm Password */}
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-[#F1F5F9]">Confirm Password</label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className={`w-full px-4 py-2.5 pr-10 bg-[#050A14] border rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#64748B]/50 focus:outline-none transition-colors ${
+                    errors.confirmPassword
+                      ? "border-[#ef4444]/50 focus:border-[#ef4444]"
+                      : "border-white/10 focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] hover:text-white transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              {errors.confirmPassword && <p className="text-xs text-[#ef4444]">{errors.confirmPassword}</p>}
             </div>
 
             <button

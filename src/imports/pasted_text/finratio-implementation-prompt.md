@@ -119,7 +119,7 @@ JWT_SECRET="REPLACE_WITH_64_CHAR_RANDOM_HEX_STRING"
 RESEND_API_KEY="re_REPLACE_WITH_YOUR_KEY"
 
 # The email address OTPs will be sent from — must be verified in Resend dashboard
-RESEND_FROM_EMAIL="noreply@yourdomain.com"
+RESEND_FROM_EMAIL="deepak.poddar@finratio.sbs"
 
 # Base URL of this application
 NEXTAUTH_URL="http://localhost:3000"

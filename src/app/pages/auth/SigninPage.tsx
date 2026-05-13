@@ -32,12 +32,8 @@ export default function SigninPage() {
         return
       }
       toast.success("Signed in successfully")
-      
-      if (!data.user.businessConstitution) {
-        navigate("/auth/onboarding")
-      } else {
-        navigate(redirect)
-      }
+      const destination = redirect === "/dashboard" && data.user?.role === "SUPER_ADMIN" ? "/admin" : redirect
+      navigate(destination)
     } catch (err: any) {
       setError(err.message || "Invalid credentials")
     } finally {
@@ -97,6 +93,11 @@ export default function SigninPage() {
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
+              </div>
+              <div className="text-right pt-1">
+                <Link to="/auth/forgot-password" className="text-xs text-[#2563EB] hover:text-white transition-colors">
+                  Forgot password?
+                </Link>
               </div>
             </div>
 

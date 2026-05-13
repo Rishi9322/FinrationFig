@@ -5,8 +5,12 @@ import HomePage from "./pages/HomePage"
 import SignupPage from "./pages/auth/SignupPage"
 import SigninPage from "./pages/auth/SigninPage"
 import VerifyOtpPage from "./pages/auth/VerifyOtpPage"
+import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage"
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage"
 import OnboardingPage from "./pages/auth/OnboardingPage"
 import DashboardPage from "./pages/DashboardPage"
+import AccessDeniedPage from "./pages/AccessDeniedPage"
+import UsersAdminPage from "./pages/admin/UsersAdminPage"
 import CalculatorsIndexPage from "./pages/calculators/CalculatorsIndexPage"
 import DebtEquityPage from "./pages/calculators/DebtEquityPage"
 import QuasiDebtEquityPage from "./pages/calculators/QuasiDebtEquityPage"
@@ -21,9 +25,17 @@ import PidPage from "./pages/calculators/PidPage"
 import BusinessValuationPage from "./pages/calculators/BusinessValuationPage"
 import WorkingCapitalCyclePage from "./pages/calculators/WorkingCapitalCyclePage"
 
-function ProtectedLayout({ children }: { children: React.ReactNode }) {
+function ProtectedLayout({
+  children,
+  requiredRole,
+  requiredFeature,
+}: {
+  children: React.ReactNode
+  requiredRole?: "SUPER_ADMIN" | "ADMIN" | "USER"
+  requiredFeature?: string
+}) {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requiredRole={requiredRole} requiredFeature={requiredFeature}>
       <Navbar />
       {children}
     </ProtectedRoute>
@@ -48,8 +60,20 @@ export const router = createBrowserRouter([
     element: <VerifyOtpPage />,
   },
   {
+    path: "/auth/forgot-password",
+    element: <ForgotPasswordPage />,
+  },
+  {
+    path: "/auth/reset-password",
+    element: <ResetPasswordPage />,
+  },
+  {
     path: "/auth/onboarding",
     element: <OnboardingPage />,
+  },
+  {
+    path: "/access-denied",
+    element: <AccessDeniedPage />,
   },
   {
     path: "/dashboard",
@@ -68,9 +92,13 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/calculator",
+    element: <Navigate to="/calculators" replace />,
+  },
+  {
     path: "/calculators/debt-equity",
     element: (
-      <ProtectedLayout>
+      <ProtectedLayout requiredFeature="debt-equity">
         <DebtEquityPage />
       </ProtectedLayout>
     ),
@@ -78,7 +106,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/quasi-debt-equity",
     element: (
-      <ProtectedLayout>
+      <ProtectedLayout requiredFeature="quasi-debt-equity">
         <QuasiDebtEquityPage />
       </ProtectedLayout>
     ),
@@ -86,7 +114,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/current-ratio",
     element: (
-      <ProtectedLayout>
+      <ProtectedLayout requiredFeature="current-ratio">
         <CurrentRatioPage />
       </ProtectedLayout>
     ),
@@ -94,7 +122,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/dscr",
     element: (
-      <ProtectedLayout>
+      <ProtectedLayout requiredFeature="dscr">
         <DscrPage />
       </ProtectedLayout>
     ),
@@ -102,7 +130,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/ebitda",
     element: (
-      <ProtectedLayout>
+      <ProtectedLayout requiredFeature="ebitda">
         <EbitdaPage />
       </ProtectedLayout>
     ),
@@ -110,7 +138,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/iscr",
     element: (
-      <ProtectedLayout>
+      <ProtectedLayout requiredFeature="iscr">
         <IscrPage />
       </ProtectedLayout>
     ),
@@ -118,7 +146,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/net-working-capital",
     element: (
-      <ProtectedLayout>
+      <ProtectedLayout requiredFeature="net-working-capital">
         <NetWorkingCapitalPage />
       </ProtectedLayout>
     ),
@@ -126,7 +154,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/drawing-power",
     element: (
-      <ProtectedLayout>
+      <ProtectedLayout requiredFeature="drawing-power">
         <DrawingPowerPage />
       </ProtectedLayout>
     ),
@@ -134,7 +162,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/ageing",
     element: (
-      <ProtectedLayout>
+      <ProtectedLayout requiredFeature="ageing">
         <AgeingPage />
       </ProtectedLayout>
     ),
@@ -142,7 +170,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/pid",
     element: (
-      <ProtectedLayout>
+      <ProtectedLayout requiredFeature="pid">
         <PidPage />
       </ProtectedLayout>
     ),
@@ -150,7 +178,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/valuation",
     element: (
-      <ProtectedLayout>
+      <ProtectedLayout requiredFeature="valuation">
         <BusinessValuationPage />
       </ProtectedLayout>
     ),
@@ -158,10 +186,22 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/working-capital-cycle",
     element: (
-      <ProtectedLayout>
+      <ProtectedLayout requiredFeature="working-capital-cycle">
         <WorkingCapitalCyclePage />
       </ProtectedLayout>
     ),
+  },
+  {
+    path: "/admin",
+    element: (
+      <ProtectedLayout requiredRole="SUPER_ADMIN">
+        <UsersAdminPage />
+      </ProtectedLayout>
+    ),
+  },
+  {
+    path: "/admin/users",
+    element: <Navigate to="/admin" replace />,
   },
   {
     path: "*",

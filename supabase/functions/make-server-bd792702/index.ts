@@ -1,26 +1,47 @@
 import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
+import { getCookie, setCookie, deleteCookie } from "npm:hono/cookie";
+import { sign, verify } from "npm:hono/jwt";
+import bcrypt from "npm:bcryptjs";
+import { parsePhoneNumberFromString } from "npm:libphonenumber-js";
 import * as kv from "./kv_store.tsx";
 
-const app = new Hono();
+type Role = "SUPER_ADMIN" | "ADMIN" | "USER";
+type AccountStatus = "ACTIVE" | "SUSPENDED";
 
-app.use('*', logger(console.log));
+type UserRecord = {
+  id: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  passwordHash: string;
+  role: Role;
+  status: AccountStatus;
+  isVerified: boolean;
+  otpCode: string | null;
+  otpExpiry: string | null;
+  otpAttempts: number;
+  resetTokenHash: string | null;
+  resetTokenExpiry: string | null;
+  createdAt: string;
+  updatedAt: string;
+  businessConstitution?: string;
+};
 
-app.use(
-  "/*",
-  cors({
-    origin: "*",
-    allowHeaders: ["Content-Type", "Authorization"],
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    exposeHeaders: ["Content-Length"],
-    maxAge: 600,
-  }),
-);
+type SessionRecord = {
+  sessionId: string;
+  userId: string;
+  csrfTokenHash: string;
+  expiresAt: string;
+};
 
-function generateOTP(): string {
-  return Math.floor(Math.random() * 1000000).toString().padStart(6, "0");
-}
+type CalculatorFeature = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string;
+};
 
 type StoredCalculation = {
   id: string;
@@ -30,6 +51,506 @@ type StoredCalculation = {
   results: Record<string, unknown>;
   createdAt: string;
 };
+
+type RateLimitState = {
+  count: number;
+  windowStart: string;
+};
+
+type AuthClaims = {
+  sub: string;
+  sid: string;
+  role: Role;
+  exp: number;
+};
+
+const app = new Hono();
+
+const API_PREFIX = "/make-server-bd792702";
+const OTP_TTL_MS = 5 * 60 * 1000;
+const RESET_TTL_MS = 15 * 60 * 1000;
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+const OTP_MAX_ATTEMPTS = 5;
+const DEFAULT_FEATURE_SLUG = "pid";
+
+const JWT_SECRET = Deno.env.get("JWT_SECRET") ?? "change-me-in-production";
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "deepak.poddar@finratio.sbs";
+const APP_ORIGIN = Deno.env.get("APP_ORIGIN");
+const ADMIN_EMAIL = lowerEmail(Deno.env.get("ADMIN_EMAIL") ?? "");
+const ADMIN_PASSWORD = Deno.env.get("ADMIN_PASSWORD") ?? "";
+const ADMIN_NAME = Deno.env.get("ADMIN_NAME") ?? "FinRatio Admin";
+const ADMIN_PHONE_NUMBER = Deno.env.get("ADMIN_PHONE_NUMBER") ?? "";
+const ALLOWED_ORIGINS = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  ...(APP_ORIGIN ? APP_ORIGIN.split(",").map((origin) => origin.trim()).filter(Boolean) : []),
+];
+const secureCookies = (Deno.env.get("COOKIE_SECURE") ?? "true") === "true";
+const sessionCookieName = secureCookies ? "__Host-finratio_session" : "finratio_session";
+const csrfCookieName = secureCookies ? "__Host-finratio_csrf" : "finratio_csrf";
+
+const CALCULATOR_FEATURES: CalculatorFeature[] = [
+  { id: crypto.randomUUID(), slug: "debt-equity", name: "Debt-to-Equity Ratio" },
+  { id: crypto.randomUUID(), slug: "quasi-debt-equity", name: "Quasi Debt-to-Equity Ratio" },
+  { id: crypto.randomUUID(), slug: "current-ratio", name: "Current Ratio" },
+  { id: crypto.randomUUID(), slug: "dscr", name: "Debt Service Coverage Ratio" },
+  { id: crypto.randomUUID(), slug: "ebitda", name: "EBITDA" },
+  { id: crypto.randomUUID(), slug: "iscr", name: "Interest Service Coverage Ratio" },
+  { id: crypto.randomUUID(), slug: "net-working-capital", name: "Net Working Capital" },
+  { id: crypto.randomUUID(), slug: "drawing-power", name: "Drawing Power" },
+  { id: crypto.randomUUID(), slug: "ageing", name: "Receivables Ageing Analysis" },
+  { id: crypto.randomUUID(), slug: "pid", name: "Purchase Invoice Discounting" },
+  { id: crypto.randomUUID(), slug: "valuation", name: "Business Valuation" },
+  { id: crypto.randomUUID(), slug: "working-capital-cycle", name: "Working Capital Cycle" },
+];
+
+app.use("*", logger(console.log));
+app.use(
+  "/*",
+  cors({
+    origin: (origin) => {
+      if (!origin) return ALLOWED_ORIGINS[0];
+      return ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+    },
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-Session-Token"],
+    exposeHeaders: ["Content-Length"],
+    credentials: true,
+    maxAge: 600,
+  }),
+);
+
+function getClientIpHeader(forwardedFor: string | undefined): string {
+  if (!forwardedFor) return "unknown";
+  const [first] = forwardedFor.split(",");
+  return first.trim() || "unknown";
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function lowerEmail(email: string): string {
+  return email.trim().toLowerCase();
+}
+
+function randomSixDigitOtp(): string {
+  return Math.floor(Math.random() * 1_000_000).toString().padStart(6, "0");
+}
+
+function randomTokenHex(byteLength = 32): string {
+  const bytes = new Uint8Array(byteLength);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function sha256Hex(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function isBcryptHash(hash: string): boolean {
+  return /^\$2[aby]\$\d{2}\$/.test(hash);
+}
+
+async function verifyPassword(password: string, hash: string): Promise<boolean> {
+  if (isBcryptHash(hash)) {
+    return bcrypt.compare(password, hash);
+  }
+
+  return sha256Hex(password).then((legacyHash) => legacyHash === hash);
+}
+
+function isStrongPassword(password: string): boolean {
+  return (
+    password.length >= 10
+    && /[A-Z]/.test(password)
+    && /[a-z]/.test(password)
+    && /\d/.test(password)
+    && /[^A-Za-z0-9]/.test(password)
+  );
+}
+
+function normalizePhoneNumber(input: string): string | null {
+  const parsed = parsePhoneNumberFromString(input);
+  if (!parsed || !parsed.isValid()) return null;
+  return parsed.number;
+}
+
+async function getUserByEmail(email: string): Promise<UserRecord | null> {
+  const normalizedEmail = lowerEmail(email);
+  const user = await kv.get(`user:by-email:${normalizedEmail}`);
+  if (user) return normalizeUserRecord(user, normalizedEmail);
+
+  const legacyUser = await kv.get(`user:${normalizedEmail}`);
+  if (!legacyUser) return null;
+
+  const migratedUser = normalizeUserRecord(legacyUser, normalizedEmail);
+  await saveUser(migratedUser);
+  const access = await getUserFeatureAccess(migratedUser.id);
+  if (access.length === 0) await applyDefaultCalculatorAccess(migratedUser.id);
+  return migratedUser;
+}
+
+async function getUserById(userId: string): Promise<UserRecord | null> {
+  const email = await kv.get(`user:by-id:${userId}`);
+  if (!email) return null;
+  return getUserByEmail(email);
+}
+
+async function saveUser(user: UserRecord): Promise<void> {
+  const keys = [`user:by-email:${user.email}`, `user:by-id:${user.id}`];
+  const values: unknown[] = [user, user.email];
+
+  if (user.phoneNumber) {
+    keys.push(`user:by-phone:${user.phoneNumber}`);
+    values.push(user.email);
+  }
+
+  await kv.mset(keys, values);
+}
+
+function normalizeUserRecord(value: any, fallbackEmail = ""): UserRecord {
+  const email = lowerEmail(value?.email || fallbackEmail);
+  const createdAt = value?.createdAt || nowIso();
+
+  return {
+    id: value?.id || crypto.randomUUID(),
+    name: value?.name || email,
+    email,
+    phoneNumber: value?.phoneNumber || "",
+    passwordHash: value?.passwordHash || "",
+    role: ["SUPER_ADMIN", "ADMIN", "USER"].includes(value?.role) ? value.role : "USER",
+    status: ["ACTIVE", "SUSPENDED"].includes(value?.status) ? value.status : "ACTIVE",
+    isVerified: Boolean(value?.isVerified),
+    otpCode: value?.otpCode ?? null,
+    otpExpiry: value?.otpExpiry ?? null,
+    otpAttempts: Number.isFinite(value?.otpAttempts) ? value.otpAttempts : 0,
+    resetTokenHash: value?.resetTokenHash ?? null,
+    resetTokenExpiry: value?.resetTokenExpiry ?? null,
+    createdAt,
+    updatedAt: value?.updatedAt || createdAt,
+    businessConstitution: value?.businessConstitution,
+  };
+}
+
+async function ensureFeaturesCatalog(): Promise<void> {
+  const existing = await kv.get("feature:catalog");
+  if (!Array.isArray(existing) || existing.length === 0) {
+    await kv.set("feature:catalog", CALCULATOR_FEATURES);
+  }
+}
+
+async function ensureBootstrapAdmin(): Promise<void> {
+  if (!ADMIN_EMAIL || !ADMIN_PASSWORD) return;
+
+  if (!isStrongPassword(ADMIN_PASSWORD)) {
+    console.error("[bootstrap-admin] ADMIN_PASSWORD does not meet password policy");
+    return;
+  }
+
+  const existing = await getUserByEmail(ADMIN_EMAIL);
+  const now = nowIso();
+  const user: UserRecord = existing
+    ? {
+        ...existing,
+        name: existing.name || ADMIN_NAME,
+        phoneNumber: existing.phoneNumber || ADMIN_PHONE_NUMBER,
+        role: "SUPER_ADMIN",
+        status: "ACTIVE",
+        isVerified: true,
+        updatedAt: now,
+      }
+    : {
+        id: crypto.randomUUID(),
+        name: ADMIN_NAME,
+        email: ADMIN_EMAIL,
+        phoneNumber: ADMIN_PHONE_NUMBER,
+        passwordHash: "",
+        role: "SUPER_ADMIN",
+        status: "ACTIVE",
+        isVerified: true,
+        otpCode: null,
+        otpExpiry: null,
+        otpAttempts: 0,
+        resetTokenHash: null,
+        resetTokenExpiry: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+  if (!existing || !isBcryptHash(user.passwordHash) || !(await bcrypt.compare(ADMIN_PASSWORD, user.passwordHash))) {
+    user.passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 12);
+  }
+
+  await ensureFeaturesCatalog();
+  await saveUser(user);
+  await setUserFeatureAccess(user.id, CALCULATOR_FEATURES.map((feature) => feature.slug));
+}
+
+async function getUserFeatureAccess(userId: string): Promise<string[]> {
+  const access = await kv.get(`user:calculator-access:${userId}`);
+  if (!Array.isArray(access)) return [];
+  return access.filter((slug: unknown) => typeof slug === "string");
+}
+
+async function setUserFeatureAccess(userId: string, slugs: string[]): Promise<void> {
+  await kv.set(`user:calculator-access:${userId}`, Array.from(new Set(slugs)).sort());
+}
+
+async function applyDefaultCalculatorAccess(userId: string): Promise<void> {
+  await setUserFeatureAccess(userId, [DEFAULT_FEATURE_SLUG]);
+}
+
+function authCookieOptions(maxAgeMs = SESSION_TTL_MS) {
+  return {
+    path: "/",
+    secure: secureCookies,
+    httpOnly: true,
+    sameSite: (secureCookies ? "None" : "Lax") as "None" | "Lax",
+    maxAge: Math.floor(maxAgeMs / 1000),
+  };
+}
+
+function csrfCookieOptions(maxAgeMs = SESSION_TTL_MS) {
+  return {
+    path: "/",
+    secure: secureCookies,
+    httpOnly: false,
+    sameSite: (secureCookies ? "None" : "Lax") as "None" | "Lax",
+    maxAge: Math.floor(maxAgeMs / 1000),
+  };
+}
+
+type AuthSessionResult = {
+  sessionToken: string;
+  csrfToken: string;
+};
+
+async function setAuthSessionCookies(c: any, user: UserRecord): Promise<AuthSessionResult> {
+  const sessionId = crypto.randomUUID();
+  const csrfToken = randomTokenHex(24);
+  const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();
+
+  const claims: AuthClaims = {
+    sub: user.id,
+    sid: sessionId,
+    role: user.role,
+    exp: Math.floor(Date.now() / 1000) + Math.floor(SESSION_TTL_MS / 1000),
+  };
+
+  const jwt = await sign(claims, JWT_SECRET);
+  const sessionRecord: SessionRecord = {
+    sessionId,
+    userId: user.id,
+    csrfTokenHash: await sha256Hex(csrfToken),
+    expiresAt,
+  };
+
+  await kv.set(`auth:session:${sessionId}`, sessionRecord);
+
+  setCookie(c, sessionCookieName, jwt, authCookieOptions());
+  setCookie(c, csrfCookieName, csrfToken, csrfCookieOptions());
+
+  return { sessionToken: jwt, csrfToken };
+}
+
+async function clearAuthSessionCookies(c: any): Promise<void> {
+  const cookieToken = getCookie(c, sessionCookieName) || getSessionTokenFromRequest(c);
+  if (cookieToken) {
+    try {
+      const claims = await verify(cookieToken, JWT_SECRET, "HS256") as AuthClaims;
+      await kv.del(`auth:session:${claims.sid}`);
+    } catch {
+      // ignore bad token on logout
+    }
+  }
+
+  deleteCookie(c, sessionCookieName, { path: "/" });
+  deleteCookie(c, csrfCookieName, { path: "/" });
+}
+
+async function validateRateLimit(key: string, limit: number, windowMs: number): Promise<boolean> {
+  const state = await kv.get(`rate:${key}`) as RateLimitState | null;
+  const now = Date.now();
+
+  if (!state) {
+    await kv.set(`rate:${key}`, { count: 1, windowStart: nowIso() });
+    return true;
+  }
+
+  const start = new Date(state.windowStart).getTime();
+  if (now - start > windowMs) {
+    await kv.set(`rate:${key}`, { count: 1, windowStart: nowIso() });
+    return true;
+  }
+
+  if (state.count >= limit) {
+    return false;
+  }
+
+  await kv.set(`rate:${key}`, { count: state.count + 1, windowStart: state.windowStart });
+  return true;
+}
+
+function getSessionTokenFromRequest(c: any): string | undefined {
+  const queryToken = c.req.query("sessionToken");
+  if (queryToken) return queryToken;
+
+  const explicitToken = c.req.header("X-Session-Token") || c.req.header("x-session-token");
+  if (explicitToken) return explicitToken;
+
+  const authorization = c.req.header("Authorization") || c.req.header("authorization") || "";
+  const bearerToken = authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  if (bearerToken && bearerToken !== publicAnonAuthorizationToken()) return bearerToken;
+  return undefined;
+}
+
+function publicAnonAuthorizationToken(): string {
+  return Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+}
+
+async function requireAuth(c: any): Promise<{ user: UserRecord; claims: AuthClaims } | null> {
+  const token = getCookie(c, sessionCookieName) || getSessionTokenFromRequest(c);
+  if (!token) {
+    c.status(401);
+    c.json({ error: "Unauthorized" });
+    return null;
+  }
+
+  let claims: AuthClaims;
+  try {
+    claims = await verify(token, JWT_SECRET, "HS256") as AuthClaims;
+  } catch {
+    c.status(401);
+    c.json({ error: "Invalid session" });
+    return null;
+  }
+
+  const session = await kv.get(`auth:session:${claims.sid}`) as SessionRecord | null;
+  if (session && new Date(session.expiresAt) < new Date()) {
+    c.status(401);
+    c.json({ error: "Session expired" });
+    return null;
+  }
+
+  const user = await getUserById(claims.sub);
+  if (!user) {
+    c.status(401);
+    c.json({ error: "User not found" });
+    return null;
+  }
+
+  if (user.status === "SUSPENDED") {
+    c.status(403);
+    c.json({ error: "Account suspended" });
+    return null;
+  }
+
+  return { user, claims };
+}
+
+async function requireCsrfForMutation(c: any, auth: { claims: AuthClaims }): Promise<boolean> {
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(c.req.method)) return true;
+
+  const session = await kv.get(`auth:session:${auth.claims.sid}`) as SessionRecord | null;
+  const csrfCookie = getCookie(c, csrfCookieName);
+  const csrfHeader = c.req.header("X-CSRF-Token") || c.req.header("x-csrf-token") || c.req.query("csrfToken");
+
+  if (!csrfHeader) {
+    c.status(403);
+    c.json({ error: "CSRF validation failed" });
+    return false;
+  }
+
+  if (csrfCookie && csrfCookie !== csrfHeader) {
+    c.status(403);
+    c.json({ error: "CSRF validation failed" });
+    return false;
+  }
+
+  const tokenHash = await sha256Hex(csrfHeader);
+  if (session && tokenHash !== session.csrfTokenHash) {
+    c.status(403);
+    c.json({ error: "CSRF validation failed" });
+    return false;
+  }
+
+  return true;
+}
+
+function publicUserView(user: UserRecord, featureAccess: string[]) {
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phoneNumber: user.phoneNumber,
+    role: user.role,
+    status: user.status,
+    isVerified: user.isVerified,
+    createdAt: user.createdAt,
+    calculatorAccess: featureAccess,
+    businessConstitution: user.businessConstitution,
+  };
+}
+
+async function sendEmail(params: { to: string; subject: string; html: string }): Promise<void> {
+  if (!RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY is not configured");
+  }
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: `FinRatio <${RESEND_FROM_EMAIL}>`,
+      to: params.to,
+      subject: params.subject,
+      html: params.html,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Email send failed: ${body}`);
+  }
+}
+
+async function sendVerificationOtpEmail(email: string, otp: string): Promise<void> {
+  const html = `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:auto">
+    <h2 style="color:#0b3b86">FinRatio Email Verification</h2>
+    <p>Your one-time verification code is:</p>
+    <p style="font-size:34px;letter-spacing:8px;font-weight:700;color:#0b3b86">${otp}</p>
+    <p>This code expires in 5 minutes.</p>
+    <p>If you did not request this, please ignore this email.</p>
+  </div>`;
+  await sendEmail({ to: email, subject: `FinRatio verification code: ${otp}`, html });
+}
+
+async function sendPasswordResetEmail(email: string, resetUrl: string): Promise<void> {
+  const html = `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:auto">
+    <h2 style="color:#0b3b86">Reset your FinRatio password</h2>
+    <p>Use the link below to reset your password. It expires in 15 minutes.</p>
+    <p><a href="${resetUrl}" style="display:inline-block;background:#0b3b86;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Reset Password</a></p>
+    <p>If you did not request a password reset, you can ignore this email.</p>
+  </div>`;
+  await sendEmail({ to: email, subject: "FinRatio password reset", html });
+}
+
+async function sendAccessGrantedEmail(email: string, grantedFeatures: string[]): Promise<void> {
+  const html = `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:auto">
+    <h2 style="color:#0b3b86">New FinRatio calculator access granted</h2>
+    <p>Your account now has access to:</p>
+    <ul>${grantedFeatures.map((f) => `<li>${f}</li>`).join("")}</ul>
+    <p>Sign in to use your newly enabled calculators.</p>
+  </div>`;
+  await sendEmail({ to: email, subject: "FinRatio calculator access updated", html });
+}
 
 async function getCalculationsForUser(userId: string): Promise<StoredCalculation[]> {
   const calculations = await kv.get(`calculations:${userId}`);
@@ -42,244 +563,319 @@ async function saveCalculationRecord(calculation: StoredCalculation): Promise<vo
   await kv.set(`calculations:${calculation.userId}`, calculations.slice(0, 200));
 }
 
-async function sendOtpEmail(email: string, otp: string) {
-  const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-  if (!RESEND_API_KEY) {
-    console.error("RESEND_API_KEY is not set");
-    return { error: "API key not configured" };
-  }
-
-  try {
-    const otpDigits = otp.split('').join(' ');
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        * {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
-        }
-        body {
-            background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-        .header {
-            background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
-            padding: 40px 20px;
-            text-align: center;
-            color: white;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 700;
-        }
-        .header p {
-            margin: 10px 0 0 0;
-            font-size: 14px;
-            opacity: 0.9;
-        }
-        .content {
-            padding: 40px;
-        }
-        .greeting {
-            font-size: 16px;
-            color: #1f2937;
-            margin-bottom: 30px;
-            line-height: 1.6;
-        }
-        .otp-section {
-            text-align: center;
-            background: #f9fafb;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            padding: 30px;
-            margin: 30px 0;
-        }
-        .otp-label {
-            font-size: 13px;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 12px;
-            font-weight: 600;
-        }
-        .otp-code {
-            font-size: 36px;
-            font-weight: 700;
-            color: #2563eb;
-            letter-spacing: 8px;
-            font-family: 'Monaco', 'Courier New', monospace;
-            margin: 15px 0;
-            word-spacing: 12px;
-        }
-        .otp-expiry {
-            font-size: 12px;
-            color: #ef4444;
-            margin-top: 15px;
-            font-weight: 500;
-        }
-        .instructions {
-            background: #dbeafe;
-            border-left: 4px solid #2563eb;
-            padding: 15px;
-            border-radius: 4px;
-            margin: 25px 0;
-        }
-        .instructions p {
-            margin: 8px 0;
-            font-size: 14px;
-            color: #1e40af;
-        }
-        .instructions ul {
-            margin: 10px 0;
-            padding-left: 20px;
-            font-size: 14px;
-            color: #1e40af;
-        }
-        .instructions li {
-            margin: 5px 0;
-        }
-        .security-note {
-            background: #fef3c7;
-            border-left: 4px solid #f59e0b;
-            padding: 15px;
-            border-radius: 4px;
-            margin: 20px 0;
-        }
-        .security-note p {
-            margin: 0;
-            font-size: 13px;
-            color: #b45309;
-            font-weight: 500;
-        }
-        .footer {
-            text-align: center;
-            padding: 20px;
-            background: #f9fafb;
-            border-top: 1px solid #e5e7eb;
-            font-size: 12px;
-            color: #6b7280;
-        }
-        .footer p {
-            margin: 5px 0;
-        }
-        .divider {
-            height: 1px;
-            background: #e5e7eb;
-            margin: 20px 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>FinRatio</h1>
-            <p>Verify Your Email</p>
-        </div>
-        
-        <div class="content">
-            <div class="greeting">
-                <p>Hi there,</p>
-                <p>Welcome to FinRatio! We're excited to have you on board. To complete your email verification, please use the code below:</p>
-            </div>
-            
-            <div class="otp-section">
-                <div class="otp-label">Your Verification Code</div>
-                <div class="otp-code">${otpDigits}</div>
-                <div class="otp-expiry">⏱️ This code expires in 5 minutes</div>
-            </div>
-            
-            <div class="instructions">
-                <p><strong>How to use this code:</strong></p>
-                <ul>
-                    <li>Enter this 6-digit code in the verification field</li>
-                    <li>Do not share this code with anyone</li>
-                    <li>Code is valid for 5 minutes only</li>
-                </ul>
-            </div>
-            
-            <div class="security-note">
-                <p>🔒 <strong>Security Reminder:</strong> FinRatio will never ask you to share this code via email, phone, or message. If you didn't request this code, please ignore this email.</p>
-            </div>
-            
-            <div class="divider"></div>
-            
-            <p style="font-size: 13px; color: #6b7280; margin-top: 20px;">
-                Need help? If you didn't sign up for FinRatio, you can safely ignore this email.
-            </p>
-        </div>
-        
-        <div class="footer">
-            <p>© 2026 FinRatio. All rights reserved.</p>
-            <p>FinRatio | Financial Ratio Calculator</p>
-        </div>
-    </div>
-</body>
-</html>`;
-
-    console.log("Sending email to:", email, "OTP:", otp);
-
-    const response = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${RESEND_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "FinRatio <noreply@finratio.sbs>",
-        to: email,
-        subject: `Your FinRatio Verification Code: ${otp}`,
-        html,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      console.error("Email sending failed:", result);
-      return { error: result };
-    }
-
-    console.log("Email sent successfully to", email, "ID:", result.id);
-    return { success: true, id: result.id };
-  } catch (error) {
-    console.error("Error sending email:", error);
-    return { error: String(error) };
-  }
-}
-
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  const inputHash = await hashPassword(password);
-  return inputHash === hash;
-}
-
-app.get("/make-server-bd792702/health", (c) => {
+app.get(`${API_PREFIX}/health`, async (c) => {
+  await ensureFeaturesCatalog();
+  await ensureBootstrapAdmin();
   return c.json({ status: "ok" });
 });
 
-app.get("/make-server-bd792702/calculations/:userId", async (c) => {
+app.post(`${API_PREFIX}/auth/signup`, async (c) => {
   try {
-    const userId = c.req.param("userId");
-    const calculations = await getCalculationsForUser(userId);
+    const ip = getClientIpHeader(c.req.header("x-forwarded-for"));
+    const allowed = await validateRateLimit(`signup:${ip}`, 10, 15 * 60 * 1000);
+    if (!allowed) return c.json({ error: "Too many signup attempts" }, 429);
+
+    const body = await c.req.json();
+    const name = (body.name || "").trim();
+    const email = lowerEmail(body.email || "");
+    const phoneRaw = (body.phoneNumber || "").trim();
+    const password = body.password || "";
+    const confirmPassword = body.confirmPassword || "";
+
+    if (!name || !email || !phoneRaw || !password || !confirmPassword) {
+      return c.json({ error: "All fields are required" }, 400);
+    }
+
+    if (!isStrongPassword(password)) {
+      return c.json({ error: "Password must be 10+ chars with upper/lower/number/symbol" }, 400);
+    }
+
+    if (password !== confirmPassword) {
+      return c.json({ error: "Passwords do not match" }, 400);
+    }
+
+    const phoneNumber = normalizePhoneNumber(phoneRaw);
+    if (!phoneNumber) {
+      return c.json({ error: "Invalid phone number" }, 400);
+    }
+
+    if (await getUserByEmail(email)) {
+      return c.json({ error: "Email already registered" }, 409);
+    }
+
+    const existingPhoneOwner = await kv.get(`user:by-phone:${phoneNumber}`);
+    if (existingPhoneOwner) {
+      return c.json({ error: "Phone number already registered" }, 409);
+    }
+
+    const otp = randomSixDigitOtp();
+    const user: UserRecord = {
+      id: crypto.randomUUID(),
+      name,
+      email,
+      phoneNumber,
+      passwordHash: await bcrypt.hash(password, 12),
+      role: "USER",
+      status: "ACTIVE",
+      isVerified: false,
+      otpCode: otp,
+      otpExpiry: new Date(Date.now() + OTP_TTL_MS).toISOString(),
+      otpAttempts: 0,
+      resetTokenHash: null,
+      resetTokenExpiry: null,
+      createdAt: nowIso(),
+      updatedAt: nowIso(),
+    };
+
+    await ensureFeaturesCatalog();
+    await saveUser(user);
+    await applyDefaultCalculatorAccess(user.id);
+
+    await sendVerificationOtpEmail(user.email, otp);
+
+    return c.json({ message: "Signup successful. Verify your email OTP.", email: user.email }, 201);
+  } catch (error) {
+    console.error("[auth/signup]", error);
+    return c.json({ error: "An error occurred. Please try again." }, 500);
+  }
+});
+
+app.post(`${API_PREFIX}/auth/verify-otp`, async (c) => {
+  try {
+    const body = await c.req.json();
+    const email = lowerEmail(body.email || "");
+    const otp = String(body.otp || "").trim();
+
+    const user = await getUserByEmail(email);
+    if (!user) return c.json({ error: "User not found" }, 404);
+    if (user.status === "SUSPENDED") return c.json({ error: "Account suspended" }, 403);
+
+    if (user.isVerified) {
+      const access = await getUserFeatureAccess(user.id);
+      const session = await setAuthSessionCookies(c, user);
+      return c.json({ message: "Already verified", user: publicUserView(user, access), session });
+    }
+
+    if (!/^\d{6}$/.test(otp)) {
+      return c.json({ error: "OTP must be 6 digits" }, 400);
+    }
+
+    if (user.otpAttempts >= OTP_MAX_ATTEMPTS) {
+      return c.json({ error: "Too many attempts. Request a new OTP." }, 429);
+    }
+
+    if (!user.otpExpiry || new Date(user.otpExpiry) < new Date()) {
+      return c.json({ error: "OTP expired. Request a new OTP." }, 400);
+    }
+
+    if (user.otpCode !== otp) {
+      user.otpAttempts += 1;
+      user.updatedAt = nowIso();
+      await saveUser(user);
+      return c.json({ error: "Invalid OTP" }, 400);
+    }
+
+    user.isVerified = true;
+    user.otpCode = null;
+    user.otpExpiry = null;
+    user.otpAttempts = 0;
+    user.updatedAt = nowIso();
+    await saveUser(user);
+
+    const access = await getUserFeatureAccess(user.id);
+    const session = await setAuthSessionCookies(c, user);
+
+    return c.json({ message: "Email verified", user: publicUserView(user, access), session });
+  } catch (error) {
+    console.error("[auth/verify-otp]", error);
+    return c.json({ error: "An error occurred. Please try again." }, 500);
+  }
+});
+
+app.post(`${API_PREFIX}/auth/resend-otp`, async (c) => {
+  try {
+    const ip = getClientIpHeader(c.req.header("x-forwarded-for"));
+    const allowed = await validateRateLimit(`resend-otp:${ip}`, 8, 15 * 60 * 1000);
+    if (!allowed) return c.json({ error: "Too many OTP requests" }, 429);
+
+    const body = await c.req.json();
+    const email = lowerEmail(body.email || "");
+    const user = await getUserByEmail(email);
+
+    if (!user) return c.json({ error: "User not found" }, 404);
+    if (user.isVerified) return c.json({ message: "Already verified" });
+
+    const otp = randomSixDigitOtp();
+    user.otpCode = otp;
+    user.otpExpiry = new Date(Date.now() + OTP_TTL_MS).toISOString();
+    user.otpAttempts = 0;
+    user.updatedAt = nowIso();
+    await saveUser(user);
+
+    await sendVerificationOtpEmail(user.email, otp);
+
+    return c.json({ message: "OTP resent" });
+  } catch (error) {
+    console.error("[auth/resend-otp]", error);
+    return c.json({ error: "An error occurred. Please try again." }, 500);
+  }
+});
+
+app.post(`${API_PREFIX}/auth/signin`, async (c) => {
+  try {
+    await ensureBootstrapAdmin();
+
+    const ip = getClientIpHeader(c.req.header("x-forwarded-for"));
+    const body = await c.req.json();
+    const email = lowerEmail(body.email || "");
+    const password = body.password || "";
+
+    const loginKey = `signin:${ip}:${email}`;
+    const attemptsAllowed = await validateRateLimit(loginKey, 10, 15 * 60 * 1000);
+    if (!attemptsAllowed) return c.json({ error: "Too many attempts. Try again later." }, 429);
+
+    const user = await getUserByEmail(email);
+    if (!user) return c.json({ error: "Invalid email or password" }, 401);
+
+    const isPasswordValid = await verifyPassword(password, user.passwordHash);
+    if (!isPasswordValid) {
+      return c.json({ error: "Invalid email or password" }, 401);
+    }
+
+    if (!isBcryptHash(user.passwordHash)) {
+      user.passwordHash = await bcrypt.hash(password, 12);
+      user.updatedAt = nowIso();
+      await saveUser(user);
+    }
+
+    if (user.status === "SUSPENDED") return c.json({ error: "Account suspended" }, 403);
+
+    if (!user.isVerified) {
+      return c.json({ error: "Please verify your email first", needsVerification: true }, 403);
+    }
+
+    const access = await getUserFeatureAccess(user.id);
+    const session = await setAuthSessionCookies(c, user);
+
+    return c.json({ message: "Signin successful", user: publicUserView(user, access), session });
+  } catch (error) {
+    console.error("[auth/signin]", error);
+    return c.json({ error: "An error occurred. Please try again." }, 500);
+  }
+});
+
+app.post(`${API_PREFIX}/auth/forgot-password`, async (c) => {
+  try {
+    const ip = getClientIpHeader(c.req.header("x-forwarded-for"));
+    const allowed = await validateRateLimit(`forgot:${ip}`, 8, 15 * 60 * 1000);
+    if (!allowed) return c.json({ error: "Too many requests" }, 429);
+
+    const body = await c.req.json();
+    const email = lowerEmail(body.email || "");
+    const user = await getUserByEmail(email);
+
+    // Always return success-like response to avoid account enumeration.
+    if (!user) {
+      return c.json({ message: "If this email is registered, a reset link has been sent." });
+    }
+
+    const resetToken = randomTokenHex(32);
+    user.resetTokenHash = await sha256Hex(resetToken);
+    user.resetTokenExpiry = new Date(Date.now() + RESET_TTL_MS).toISOString();
+    user.updatedAt = nowIso();
+    await saveUser(user);
+
+    const appBaseUrl = Deno.env.get("APP_BASE_URL") || "http://localhost:5173";
+    const resetUrl = `${appBaseUrl}/auth/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
+    await sendPasswordResetEmail(user.email, resetUrl);
+
+    return c.json({ message: "If this email is registered, a reset link has been sent." });
+  } catch (error) {
+    console.error("[auth/forgot-password]", error);
+    return c.json({ error: "An error occurred. Please try again." }, 500);
+  }
+});
+
+app.post(`${API_PREFIX}/auth/reset-password`, async (c) => {
+  try {
+    const body = await c.req.json();
+    const email = lowerEmail(body.email || "");
+    const token = String(body.token || "");
+    const password = body.password || "";
+    const confirmPassword = body.confirmPassword || "";
+
+    if (!token || !password || !confirmPassword) {
+      return c.json({ error: "Invalid request" }, 400);
+    }
+
+    if (!isStrongPassword(password)) {
+      return c.json({ error: "Password must be 10+ chars with upper/lower/number/symbol" }, 400);
+    }
+
+    if (password !== confirmPassword) {
+      return c.json({ error: "Passwords do not match" }, 400);
+    }
+
+    const user = await getUserByEmail(email);
+    if (!user || !user.resetTokenHash || !user.resetTokenExpiry) {
+      return c.json({ error: "Invalid or expired reset token" }, 400);
+    }
+
+    if (new Date(user.resetTokenExpiry) < new Date()) {
+      return c.json({ error: "Reset token expired" }, 400);
+    }
+
+    const tokenHash = await sha256Hex(token);
+    if (tokenHash !== user.resetTokenHash) {
+      return c.json({ error: "Invalid or expired reset token" }, 400);
+    }
+
+    user.passwordHash = await bcrypt.hash(password, 12);
+    user.resetTokenHash = null;
+    user.resetTokenExpiry = null;
+    user.updatedAt = nowIso();
+    await saveUser(user);
+
+    await clearAuthSessionCookies(c);
+
+    return c.json({ message: "Password reset successful" });
+  } catch (error) {
+    console.error("[auth/reset-password]", error);
+    return c.json({ error: "An error occurred. Please try again." }, 500);
+  }
+});
+
+app.post(`${API_PREFIX}/auth/logout`, async (c) => {
+  await clearAuthSessionCookies(c);
+  return c.json({ message: "Signed out" });
+});
+
+app.get(`${API_PREFIX}/auth/me`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.body(null, 401);
+
+  const access = await getUserFeatureAccess(auth.user.id);
+  return c.json({ user: publicUserView(auth.user, access) });
+});
+
+app.get(`${API_PREFIX}/features`, async (c) => {
+  await ensureFeaturesCatalog();
+  const features = await kv.get("feature:catalog");
+  return c.json({ features: Array.isArray(features) ? features : [] });
+});
+
+app.get(`${API_PREFIX}/calculations/:userId`, async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    if (!auth) return c.body(null, 401);
+
+    const targetUserId = c.req.param("userId");
+    const isPrivileged = auth.user.role === "SUPER_ADMIN" || auth.user.role === "ADMIN";
+    if (!isPrivileged && targetUserId !== auth.user.id) {
+      return c.json({ error: "Forbidden" }, 403);
+    }
+
+    const calculations = await getCalculationsForUser(targetUserId);
     return c.json({ calculations });
   } catch (error) {
     console.error("[calculations:get]", error);
@@ -287,192 +883,37 @@ app.get("/make-server-bd792702/calculations/:userId", async (c) => {
   }
 });
 
-app.post("/make-server-bd792702/auth/signup", async (c) => {
+app.post(`${API_PREFIX}/calculations`, async (c) => {
   try {
+    const auth = await requireAuth(c);
+    if (!auth) return c.body(null, 401);
+    if (!(await requireCsrfForMutation(c, auth))) return c.body(null, 403);
+
     const body = await c.req.json();
-    const { name, email, password } = body;
+    const calculatorType = String(body.calculatorType || "");
+    const inputs = body.inputs ?? {};
+    const results = body.results ?? {};
 
-    const existingUser = await kv.get(`user:${email}`);
-    if (existingUser) {
-      return c.json({ error: "Email already registered" }, 409);
+    if (!calculatorType) {
+      return c.json({ error: "calculatorType is required" }, 400);
     }
 
-    const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-    const user = {
-      id: crypto.randomUUID(),
-      email,
-      name,
-      passwordHash: await hashPassword(password),
-      isVerified: false,
-      otpCode: otp,
-      otpExpiry,
-      otpAttempts: 0,
-      createdAt: new Date().toISOString(),
-    };
-
-    await kv.set(`user:${email}`, user);
-
-    console.log(`[OTP] Email: ${email}, OTP: ${otp}`);
-    const emailResult = await sendOtpEmail(email, otp);
-    if (emailResult?.error) {
-      return c.json({ error: "Unable to send verification email" }, 502);
-    }
-
-    return c.json({
-      message: "OTP sent to your email",
-      emailId: emailResult?.id,
-    }, 201);
-  } catch (error) {
-    console.error("[signup]", error);
-    return c.json({ error: "An error occurred. Please try again." }, 500);
-  }
-});
-
-app.post("/make-server-bd792702/auth/verify-otp", async (c) => {
-  try {
-    const body = await c.req.json();
-    const { email, otp } = body;
-
-    const user = await kv.get(`user:${email}`);
-    if (!user) {
-      return c.json({ error: "User not found" }, 404);
-    }
-
-    if (user.isVerified) {
-      return c.json({
-        message: "Already verified",
-        user: { id: user.id, email: user.email, name: user.name, isVerified: true }
-      });
-    }
-
-    if (user.otpAttempts >= 5) {
-      return c.json({ error: "Too many attempts. Please request a new OTP." }, 429);
-    }
-
-    if (new Date(user.otpExpiry) < new Date()) {
-      return c.json({ error: "OTP has expired. Please request a new one." }, 400);
-    }
-
-    if (user.otpCode !== otp) {
-      user.otpAttempts++;
-      await kv.set(`user:${email}`, user);
-      return c.json({ error: "Invalid OTP. Please check and try again." }, 400);
-    }
-
-    user.isVerified = true;
-    user.otpCode = null;
-    user.otpExpiry = null;
-    user.otpAttempts = 0;
-    await kv.set(`user:${email}`, user);
-
-    return c.json({
-      message: "Email verified successfully",
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        isVerified: true,
-        createdAt: user.createdAt,
-        businessConstitution: user.businessConstitution
-      }
-    });
-  } catch (error) {
-    console.error("[verify-otp]", error);
-    return c.json({ error: "An error occurred. Please try again." }, 500);
-  }
-});
-
-app.post("/make-server-bd792702/auth/signin", async (c) => {
-  try {
-    const body = await c.req.json();
-    const { email, password } = body;
-
-    const user = await kv.get(`user:${email}`);
-    if (!user) {
-      return c.json({ error: "Invalid email or password" }, 401);
-    }
-
-    const passwordValid = await verifyPassword(password, user.passwordHash);
-    if (!passwordValid) {
-      return c.json({ error: "Invalid email or password" }, 401);
-    }
-
-    if (!user.isVerified) {
-      return c.json({ error: "Please verify your email before signing in" }, 403);
-    }
-
-    return c.json({
-      message: "Signin successful",
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        isVerified: true,
-        createdAt: user.createdAt,
-        businessConstitution: user.businessConstitution
-      }
-    });
-  } catch (error) {
-    console.error("[signin]", error);
-    return c.json({ error: "An error occurred. Please try again." }, 500);
-  }
-});
-
-app.post("/make-server-bd792702/auth/onboarding", async (c) => {
-  try {
-    const body = await c.req.json();
-    const { email, businessConstitution } = body;
-
-    if (!businessConstitution) {
-      return c.json({ error: "Business constitution is required" }, 400);
-    }
-
-    const user = await kv.get(`user:${email}`);
-    if (!user) {
-      return c.json({ error: "User not found" }, 404);
-    }
-
-    user.businessConstitution = businessConstitution;
-    await kv.set(`user:${email}`, user);
-
-    return c.json({
-      message: "Onboarding completed successfully",
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        isVerified: user.isVerified,
-        createdAt: user.createdAt,
-        businessConstitution: user.businessConstitution
-      }
-    });
-  } catch (error) {
-    console.error("[onboarding]", error);
-    return c.json({ error: "An error occurred. Please try again." }, 500);
-  }
-});
-
-app.post("/make-server-bd792702/calculations", async (c) => {
-  try {
-    const body = await c.req.json();
-    const { userId, calculatorType, inputs, results } = body;
-
-    if (!userId || !calculatorType) {
-      return c.json({ error: "userId and calculatorType are required" }, 400);
+    const access = await getUserFeatureAccess(auth.user.id);
+    const isPrivileged = auth.user.role === "SUPER_ADMIN" || auth.user.role === "ADMIN";
+    if (!isPrivileged && !access.includes(calculatorType)) {
+      return c.json({ error: "Access restricted" }, 403);
     }
 
     const record: StoredCalculation = {
       id: crypto.randomUUID(),
-      userId,
+      userId: auth.user.id,
       calculatorType,
-      inputs: inputs ?? {},
-      results: results ?? {},
-      createdAt: new Date().toISOString(),
+      inputs,
+      results,
+      createdAt: nowIso(),
     };
 
     await saveCalculationRecord(record);
-
     return c.json(record, 201);
   } catch (error) {
     console.error("[calculations:post]", error);
@@ -480,48 +921,167 @@ app.post("/make-server-bd792702/calculations", async (c) => {
   }
 });
 
-app.post("/make-server-bd792702/auth/resend-otp", async (c) => {
+app.post(`${API_PREFIX}/auth/onboarding`, async (c) => {
   try {
+    const auth = await requireAuth(c);
+    if (!auth) return c.body(null, 401);
+    if (!(await requireCsrfForMutation(c, auth))) return c.body(null, 403);
+
     const body = await c.req.json();
-    const { email } = body;
+    const businessConstitution = (body.businessConstitution || "").trim();
 
-    const user = await kv.get(`user:${email}`);
-    if (!user) {
-      return c.json({ error: "User not found" }, 404);
+    if (!businessConstitution) {
+      return c.json({ error: "Business constitution is required" }, 400);
     }
 
-    const otp = generateOTP();
-    user.otpCode = otp;
-    user.otpExpiry = new Date(Date.now() + 5 * 60 * 1000).toISOString();
-    user.otpAttempts = 0;
-    await kv.set(`user:${email}`, user);
+    auth.user.businessConstitution = businessConstitution;
+    auth.user.updatedAt = nowIso();
+    await saveUser(auth.user);
 
-    console.log(`[OTP RESEND] Email: ${email}, OTP: ${otp}`);
-    const emailResult = await sendOtpEmail(email, otp);
-    if (emailResult?.error) {
-      return c.json({ error: "Unable to send verification email" }, 502);
-    }
-
-    return c.json({
-      message: "New OTP sent to your email",
-      emailId: emailResult?.id,
-    });
+    const access = await getUserFeatureAccess(auth.user.id);
+    return c.json({ message: "Onboarding completed", user: publicUserView(auth.user, access) });
   } catch (error) {
-    console.error("[resend-otp]", error);
+    console.error("[auth/onboarding]", error);
     return c.json({ error: "An error occurred. Please try again." }, 500);
   }
 });
 
-app.get("/make-server-bd792702/resend/api-keys", (c) => {
-  return c.json([]);
+app.get(`${API_PREFIX}/admin/users`, async (c) => {
+  await ensureBootstrapAdmin();
+
+  const auth = await requireAuth(c);
+  if (!auth) return c.body(null, 401);
+  if (auth.user.role !== "SUPER_ADMIN") return c.json({ error: "Forbidden" }, 403);
+
+  const users = await kv.getByPrefix("user:by-email:") as UserRecord[];
+  const rows = await Promise.all(users.map(async (user) => {
+    const access = await getUserFeatureAccess(user.id);
+    return publicUserView(user, access);
+  }));
+
+  return c.json({ users: rows.sort((a, b) => a.createdAt > b.createdAt ? -1 : 1) });
 });
 
-app.post("/make-server-bd792702/resend/api-keys", (c) => {
-  return c.json({ success: true });
+app.put(`${API_PREFIX}/admin/users/:id/role`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.body(null, 401);
+  if (!(await requireCsrfForMutation(c, auth))) return c.body(null, 403);
+  if (auth.user.role !== "SUPER_ADMIN") return c.json({ error: "Forbidden" }, 403);
+
+  const user = await getUserById(c.req.param("id"));
+  if (!user) return c.json({ error: "User not found" }, 404);
+
+  const body = await c.req.json();
+  const role = body.role as Role;
+  if (!["SUPER_ADMIN", "ADMIN", "USER"].includes(role)) {
+    return c.json({ error: "Invalid role" }, 400);
+  }
+
+  user.role = role;
+  user.updatedAt = nowIso();
+  await saveUser(user);
+
+  const access = await getUserFeatureAccess(user.id);
+  return c.json({ message: "Role updated", user: publicUserView(user, access) });
 });
 
-app.delete("/make-server-bd792702/resend/api-keys/:id", (c) => {
-  return c.json({ success: true });
+app.put(`${API_PREFIX}/admin/users/:id/suspend`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.body(null, 401);
+  if (!(await requireCsrfForMutation(c, auth))) return c.body(null, 403);
+  if (auth.user.role !== "SUPER_ADMIN") return c.json({ error: "Forbidden" }, 403);
+
+  const user = await getUserById(c.req.param("id"));
+  if (!user) return c.json({ error: "User not found" }, 404);
+
+  const body = await c.req.json();
+  user.status = body.suspended ? "SUSPENDED" : "ACTIVE";
+  user.updatedAt = nowIso();
+  await saveUser(user);
+
+  const access = await getUserFeatureAccess(user.id);
+  return c.json({ message: "Status updated", user: publicUserView(user, access) });
+});
+
+app.put(`${API_PREFIX}/admin/users/:id/calculator-access`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.body(null, 401);
+  if (!(await requireCsrfForMutation(c, auth))) return c.body(null, 403);
+  if (auth.user.role !== "SUPER_ADMIN") return c.json({ error: "Forbidden" }, 403);
+
+  const user = await getUserById(c.req.param("id"));
+  if (!user) return c.json({ error: "User not found" }, 404);
+
+  await ensureFeaturesCatalog();
+  const features = await kv.get("feature:catalog") as CalculatorFeature[];
+  const validSlugs = new Set(features.map((f) => f.slug));
+
+  const body = await c.req.json();
+  const slugs = Array.isArray(body.slugs) ? body.slugs.filter((slug: unknown) => typeof slug === "string") : [];
+  const cleaned = Array.from(new Set(slugs.filter((slug) => validSlugs.has(slug))));
+
+  await setUserFeatureAccess(user.id, cleaned);
+  await sendAccessGrantedEmail(user.email, cleaned);
+
+  const updatedAccess = await getUserFeatureAccess(user.id);
+  return c.json({ message: "Calculator access updated", user: publicUserView(user, updatedAccess) });
+});
+
+app.get(`${API_PREFIX}/resend/api-keys`, (c) => c.json([]));
+app.post(`${API_PREFIX}/resend/api-keys`, (c) => c.json({ success: true }));
+app.delete(`${API_PREFIX}/resend/api-keys/:id`, (c) => c.json({ success: true }));
+
+// Test endpoint for email delivery verification
+app.post(`${API_PREFIX}/test/send-email`, async (c) => {
+  try {
+    const { to } = await c.req.json();
+
+    if (!to || typeof to !== "string" || !to.includes("@")) {
+      return c.json({ error: "Invalid recipient email" }, 400);
+    }
+
+    if (!RESEND_API_KEY) {
+      return c.json({ error: "RESEND_API_KEY not configured" }, 500);
+    }
+
+    const testHtml = `
+      <div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:auto;padding:20px">
+        <h2 style="color:#0b3b86">FinRatio Test Email</h2>
+        <p>This is a test email to verify your Resend integration is working correctly.</p>
+        <div style="background:#f0f0f0;padding:15px;border-radius:5px;margin:20px 0">
+          <p><strong>Sender:</strong> ${RESEND_FROM_EMAIL}</p>
+          <p><strong>Recipient:</strong> ${to}</p>
+          <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+        </div>
+        <p>If you received this email, your email configuration is working correctly!</p>
+      </div>
+    `;
+
+    await sendEmail({
+      to,
+      subject: "FinRatio Test Email Verification",
+      html: testHtml,
+    });
+
+    return c.json({
+      success: true,
+      message: "Test email sent successfully",
+      details: {
+        from: RESEND_FROM_EMAIL,
+        to,
+        subject: "FinRatio Test Email Verification",
+      },
+    });
+  } catch (error) {
+    console.error("Test email error:", error);
+    return c.json(
+      {
+        error: "Failed to send test email",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      500
+    );
+  }
 });
 
 Deno.serve(app.fetch);

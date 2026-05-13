@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  USER
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model User {
+  id               String   @id @default(cuid())
+  name             String
+  email            String   @unique
+  phoneNumber      String   @unique
+  passwordHash     String
+  role             Role     @default(USER)
+  status           AccountStatus @default(ACTIVE)
+
+  isVerified       Boolean  @default(false)
+
+  otpCode          String?
+  otpExpiry        DateTime?
+
+  resetToken       String?
+  resetTokenExpiry DateTime?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  calculations     Calculation[]
+  calculatorAccess UserCalculatorAccess[]
+}
+
+model Calculation {
+  id             String   @id @default(cuid())
+  userId         String
+  calculatorType String
+  inputs         Json
+  results        Json
+  createdAt      DateTime @default(now())
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CalculatorFeature {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+
+  userAccess  UserCalculatorAccess[]
+}
+
+model UserCalculatorAccess {
+  id            String   @id @default(cuid())
+
+  userId        String
+  calculatorId  String
+
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calculator    CalculatorFeature @relation(fields: [calculatorId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, calculatorId])
+}

@@ -4,6 +4,12 @@ import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.tsx";
 
 const app = new Hono();
+const APP_ORIGIN = Deno.env.get("APP_ORIGIN");
+const ALLOWED_ORIGINS = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  ...(APP_ORIGIN ? APP_ORIGIN.split(",").map((origin) => origin.trim()).filter(Boolean) : []),
+];
 
 // Enable logger
 app.use('*', logger(console.log));
@@ -12,10 +18,14 @@ app.use('*', logger(console.log));
 app.use(
   "/*",
   cors({
-    origin: "*",
-    allowHeaders: ["Content-Type", "Authorization"],
+    origin: (origin) => {
+      if (!origin) return ALLOWED_ORIGINS[0];
+      return ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+    },
+    allowHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-Session-Token"],
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
+    credentials: true,
     maxAge: 600,
   }),
 );

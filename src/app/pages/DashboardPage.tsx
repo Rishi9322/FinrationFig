@@ -45,7 +45,11 @@ export default function DashboardPage() {
   }
 
   const mostUsedType = getMostUsedCalculator()
-  const topCalculators = CALCULATORS.slice(0, 3)
+  const topCalculators = CALCULATORS.filter((calc) => {
+    if (!user) return false
+    if (user.role === "SUPER_ADMIN" || user.role === "ADMIN") return true
+    return user.calculatorAccess?.includes(calc.id)
+  }).slice(0, 3)
 
   const handleOverallAnalysis = async () => {
     if (recentCalcs.length === 0) {

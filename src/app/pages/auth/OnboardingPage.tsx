@@ -43,13 +43,11 @@ export default function OnboardingPage() {
       return
     }
 
-    if (!user?.email) return
-
     setIsLoading(true)
     setError("")
 
     try {
-      await submitOnboarding(user.email, constitution)
+      await submitOnboarding(constitution)
       toast.success("Welcome to FinRatio!")
       navigate("/dashboard")
     } catch (err: any) {
