@@ -47,7 +47,6 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
 
   const response = await fetch(url.toString(), {
     ...options,
-    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${sessionToken || publicAnonKey}`,
