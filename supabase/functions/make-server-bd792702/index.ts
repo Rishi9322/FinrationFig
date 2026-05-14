@@ -107,24 +107,29 @@ const CALCULATOR_FEATURES: CalculatorFeature[] = [
 ];
 
 app.use("*", logger(console.log));
-app.use(
-  "/*",
-  cors({
-    origin: (origin) => {
-      // For requests without origin (like simple GET), allow
-      if (!origin) return ALLOWED_ORIGINS[0];
-      // Only return the origin if it's in the whitelist
-      if (ALLOWED_ORIGINS.includes(origin)) return origin;
-      // For non-whitelisted origins, explicitly reject
-      return undefined;
-    },
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-Session-Token"],
-    exposeHeaders: ["Content-Length"],
-    credentials: true,
-    maxAge: 600,
-  }),
-);
+
+// Custom CORS middleware for better control with credentials
+app.use("/*", async (c, next) => {
+  const origin = c.req.header("origin");
+  const method = c.req.method;
+
+  // Only set CORS headers if origin is whitelisted
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    c.header("Access-Control-Allow-Origin", origin);
+    c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    c.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-CSRF-Token, X-Session-Token");
+    c.header("Access-Control-Allow-Credentials", "true");
+    c.header("Access-Control-Max-Age", "600");
+    c.header("Access-Control-Expose-Headers", "Content-Length");
+  }
+
+  // Handle OPTIONS requests
+  if (method === "OPTIONS") {
+    return c.json({}, 200);
+  }
+
+  await next();
+});
 
 function getClientIpHeader(forwardedFor: string | undefined): string {
   if (!forwardedFor) return "unknown";
