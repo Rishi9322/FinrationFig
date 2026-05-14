@@ -49,7 +49,7 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${sessionToken || publicAnonKey}`,
+      Authorization: `Bearer ${publicAnonKey}`,
       ...(sessionToken ? { "X-Session-Token": sessionToken } : {}),
       ...(csrfToken && method !== "GET" ? { "X-CSRF-Token": csrfToken } : {}),
       ...options.headers,
