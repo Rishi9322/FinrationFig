@@ -111,8 +111,12 @@ app.use(
   "/*",
   cors({
     origin: (origin) => {
-      if (!origin) return true;
-      return ALLOWED_ORIGINS.includes(origin) ? origin : false;
+      // For requests without origin (like simple GET), allow
+      if (!origin) return ALLOWED_ORIGINS[0];
+      // Only return the origin if it's in the whitelist
+      if (ALLOWED_ORIGINS.includes(origin)) return origin;
+      // For non-whitelisted origins, explicitly reject
+      return undefined;
     },
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-Session-Token"],
