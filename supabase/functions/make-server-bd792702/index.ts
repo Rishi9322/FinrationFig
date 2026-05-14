@@ -84,6 +84,7 @@ const ADMIN_PHONE_NUMBER = Deno.env.get("ADMIN_PHONE_NUMBER") ?? "";
 const ALLOWED_ORIGINS = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
+  "https://finration-fig.vercel.app",
   ...(APP_ORIGIN ? APP_ORIGIN.split(",").map((origin) => origin.trim()).filter(Boolean) : []),
 ];
 const secureCookies = (Deno.env.get("COOKIE_SECURE") ?? "true") === "true";

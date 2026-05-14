@@ -48,6 +48,14 @@ supabase/functions/**/.env
 *.zip
 *.tmp
 *.log
+
+# Media files (videos, recordings)
+*.mp4
+*.mov
+*.webm
+*.avi
+*.mkv
+*.flv
 src.zip
 supabase.zip
 utils.zip
