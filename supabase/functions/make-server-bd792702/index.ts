@@ -108,23 +108,16 @@ const CALCULATOR_FEATURES: CalculatorFeature[] = [
 
 app.use("*", logger(console.log));
 
-// Custom CORS middleware for better control with credentials
+// Simple CORS middleware - no credentials mode, so wildcard is safe
 app.use("/*", async (c, next) => {
-  const origin = c.req.header("origin");
-  const method = c.req.method;
-
-  // Only set CORS headers if origin is whitelisted
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
-    c.header("Access-Control-Allow-Origin", origin);
-    c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    c.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-CSRF-Token, X-Session-Token");
-    c.header("Access-Control-Allow-Credentials", "true");
-    c.header("Access-Control-Max-Age", "600");
-    c.header("Access-Control-Expose-Headers", "Content-Length");
-  }
+  c.header("Access-Control-Allow-Origin", "*");
+  c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  c.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-CSRF-Token, X-Session-Token");
+  c.header("Access-Control-Max-Age", "600");
+  c.header("Access-Control-Expose-Headers", "Content-Length");
 
   // Handle OPTIONS requests
-  if (method === "OPTIONS") {
+  if (c.req.method === "OPTIONS") {
     return c.json({}, 200);
   }
 
