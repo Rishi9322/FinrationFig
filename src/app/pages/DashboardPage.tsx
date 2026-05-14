@@ -25,6 +25,7 @@ export default function DashboardPage() {
           setCalculations(calcs)
         } catch (error) {
           console.error("Failed to load calculations:", error)
+          toast.error("Could not load your calculations. Please refresh.")
         } finally {
           setIsLoading(false)
         }
