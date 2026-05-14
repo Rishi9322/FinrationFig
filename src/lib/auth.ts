@@ -74,7 +74,7 @@ async function apiCall(endpoint: string, options: RequestInit = {}) {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${sessionToken || publicAnonKey}`,
+      Authorization: `Bearer ${publicAnonKey}`,
       ...(sessionToken ? { "X-Session-Token": sessionToken } : {}),
       ...(csrfToken && method !== "GET" ? { "X-CSRF-Token": csrfToken } : {}),
       ...options.headers,
@@ -106,6 +106,7 @@ export async function signup(params: {
   password: string
   confirmPassword: string
 }) {
+  clearSessionTokens()
   return apiCall("/auth/signup", {
     method: "POST",
     body: JSON.stringify(params),
@@ -113,6 +114,7 @@ export async function signup(params: {
 }
 
 export async function verifyOTP(email: string, otp: string) {
+  clearSessionTokens()
   const data = await apiCall("/auth/verify-otp", {
     method: "POST",
     body: JSON.stringify({ email, otp }),
@@ -124,6 +126,7 @@ export async function verifyOTP(email: string, otp: string) {
 }
 
 export async function signin(email: string, password: string) {
+  clearSessionTokens()
   const data = await apiCall("/auth/signin", {
     method: "POST",
     body: JSON.stringify({ email, password }),
@@ -135,6 +138,7 @@ export async function signin(email: string, password: string) {
 }
 
 export async function resendOTP(email: string) {
+  clearSessionTokens()
   return apiCall("/auth/resend-otp", {
     method: "POST",
     body: JSON.stringify({ email }),
@@ -152,6 +156,7 @@ export async function submitOnboarding(businessConstitution: string) {
 }
 
 export async function forgotPassword(email: string) {
+  clearSessionTokens()
   return apiCall("/auth/forgot-password", {
     method: "POST",
     body: JSON.stringify({ email }),
@@ -164,6 +169,7 @@ export async function resetPassword(params: {
   password: string
   confirmPassword: string
 }) {
+  clearSessionTokens()
   return apiCall("/auth/reset-password", {
     method: "POST",
     body: JSON.stringify(params),

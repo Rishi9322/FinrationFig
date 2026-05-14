@@ -51,6 +51,10 @@ export function ProtectedRoute({ children, requiredRole, requiredFeature }: Prot
     return <Navigate to={`/auth/signin?redirect=${redirect}`} replace />
   }
 
+  if (!user.businessConstitution && location.pathname !== "/auth/onboarding") {
+    return <Navigate to="/auth/onboarding" replace />
+  }
+
   if (requiredRole && user.role !== requiredRole) {
     return <Navigate to="/access-denied" replace />
   }
