@@ -111,8 +111,8 @@ app.use(
   "/*",
   cors({
     origin: (origin) => {
-      if (!origin) return ALLOWED_ORIGINS[0];
-      return ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+      if (!origin) return true;
+      return ALLOWED_ORIGINS.includes(origin) ? origin : false;
     },
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization", "X-CSRF-Token", "X-Session-Token"],
