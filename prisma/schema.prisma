@@ -18,6 +18,13 @@ enum AccountStatus {
   SUSPENDED
 }
 
+enum CalculatorCategory {
+  FINANCIAL
+  ANALYSIS
+  VALUATION
+  GENERAL
+}
+
 model User {
   id               String   @id @default(cuid())
   name             String
@@ -28,29 +35,85 @@ model User {
   status           AccountStatus @default(ACTIVE)
 
   isVerified       Boolean  @default(false)
-
+  
+  organization     String?
+  department       String?
+  
   otpCode          String?
   otpExpiry        DateTime?
 
   resetToken       String?
   resetTokenExpiry DateTime?
 
+  lastLoginAt      DateTime?
+  loginCount       Int      @default(0)
+  
+  preferences      Json     @default("{}")
+  
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   calculations     Calculation[]
   calculatorAccess UserCalculatorAccess[]
+  calculationHistory CalculationHistory[]
+  calculationNotes CalculationNote[]
+
+  @@map("app_users")
 }
 
 model Calculation {
-  id             String   @id @default(cuid())
-  userId         String
-  calculatorType String
-  inputs         Json
-  results        Json
-  createdAt      DateTime @default(now())
+  id                String   @id @default(cuid())
+  userId            String
+  calculatorType    String
+  name              String?
+  description       String?
+  inputs            Json
+  results           Json
+  status            String   @default("completed")
+  isPublic          Boolean  @default(false)
+  isFavorite        Boolean  @default(false)
+  tags              String[] @default([])
+  version           Int      @default(1)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("calculations")
+}
+
+model CalculationHistory {
+  id              String   @id @default(cuid())
+  calculationId   String
+  userId          String
+  previousInputs  Json?
+  previousResults Json?
+  changeReason    String?
+  createdAt       DateTime @default(now())
+
+  calculation     Calculation @relation(fields: [calculationId], references: [id], onDelete: Cascade)
+  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([calculationId])
+  @@index([userId])
+  @@map("calculation_history")
+}
+
+model CalculationNote {
+  id              String   @id @default(cuid())
+  calculationId   String
+  userId          String
+  content         String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  calculation     Calculation @relation(fields: [calculationId], references: [id], onDelete: Cascade)
+  user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([calculationId])
+  @@map("calculation_notes"elation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([calculationId])
 }
 
 model CalculatorFeature {
@@ -58,8 +121,13 @@ model CalculatorFeature {
   slug        String   @unique
   name        String
   description String?
+  icon        String?
+  category    String   @default("general")
+  enabled     Boolean  @default(false)
+  isPublic    Boolean  @default(false)
+  version     String   @default("1.0.0")
 
-  userAccess  UserCalculatorAccess[]
+  @@map("calculator_features")
 }
 
 model UserCalculatorAccess {
@@ -70,6 +138,11 @@ model UserCalculatorAccess {
 
   user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
   calculator    CalculatorFeature @relation(fields: [calculatorId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, calculatorId])
+  @@map("user_calculator_access" @relation(fields: [calculatorId], references: [id], onDelete: Cascade)
 
   createdAt     DateTime @default(now())
 

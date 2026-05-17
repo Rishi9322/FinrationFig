@@ -11,6 +11,12 @@ import OnboardingPage from "./pages/auth/OnboardingPage"
 import DashboardPage from "./pages/DashboardPage"
 import AccessDeniedPage from "./pages/AccessDeniedPage"
 import UsersAdminPage from "./pages/admin/UsersAdminPage"
+import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage"
+import { AdminUsersPage } from "./pages/admin/AdminUsersPage"
+import { AdminCalculatorsPage } from "./pages/admin/AdminCalculatorsPage"
+import { AdminCalculationsPage } from "./pages/admin/AdminCalculationsPage"
+import { AdminPermissionsPage } from "./pages/admin/AdminPermissionsPage"
+import { AdminSettingsPage } from "./pages/admin/AdminSettingsPage"
 import CalculatorsIndexPage from "./pages/calculators/CalculatorsIndexPage"
 import DebtEquityPage from "./pages/calculators/DebtEquityPage"
 import QuasiDebtEquityPage from "./pages/calculators/QuasiDebtEquityPage"
@@ -24,6 +30,8 @@ import AgeingPage from "./pages/calculators/AgeingPage"
 import PidPage from "./pages/calculators/PidPage"
 import BusinessValuationPage from "./pages/calculators/BusinessValuationPage"
 import WorkingCapitalCyclePage from "./pages/calculators/WorkingCapitalCyclePage"
+import CmaGeneratorPage from "../modules/cma/pages/CmaGeneratorPage"
+import TestPdfPage from "./pages/TestPdfPage"
 
 function ProtectedLayout({
   children,
@@ -46,6 +54,10 @@ export const router = createBrowserRouter([
   {
     path: "/",
     element: <HomePage />,
+  },
+  {
+    path: "/test-pdf",
+    element: <TestPdfPage />,
   },
   {
     path: "/auth/signup",
@@ -88,6 +100,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedLayout>
         <CalculatorsIndexPage />
+      </ProtectedLayout>
+    ),
+  },
+  {
+    path: "/dashboard/cma-generator",
+    element: (
+      <ProtectedLayout>
+        <CmaGeneratorPage />
       </ProtectedLayout>
     ),
   },
@@ -200,8 +220,28 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: "/admin/dashboard",
+    element: <AdminDashboardPage />,
+  },
+  {
     path: "/admin/users",
-    element: <Navigate to="/admin" replace />,
+    element: <AdminUsersPage />,
+  },
+  {
+    path: "/admin/calculators",
+    element: <AdminCalculatorsPage />,
+  },
+  {
+    path: "/admin/calculations",
+    element: <AdminCalculationsPage />,
+  },
+  {
+    path: "/admin/permissions",
+    element: <AdminPermissionsPage />,
+  },
+  {
+    path: "/admin/settings",
+    element: <AdminSettingsPage />,
   },
   {
     path: "*",

@@ -70,6 +70,17 @@ export function Navbar() {
               Dashboard
             </Link>
 
+            <Link
+              to="/dashboard/cma-generator"
+              className={`text-sm px-4 py-2 rounded-lg transition-colors ${
+                isActive("/dashboard/cma-generator")
+                  ? "text-white bg-white/8"
+                  : "text-[#64748B] hover:text-white hover:bg-white/5"
+              }`}
+            >
+              CMA Engine
+            </Link>
+
             {/* Calculators dropdown */}
             <div className="relative">
               <button
