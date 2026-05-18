@@ -30,6 +30,7 @@ import AgeingPage from "./pages/calculators/AgeingPage"
 import PidPage from "./pages/calculators/PidPage"
 import BusinessValuationPage from "./pages/calculators/BusinessValuationPage"
 import WorkingCapitalCyclePage from "./pages/calculators/WorkingCapitalCyclePage"
+import BalanceSheetAnalysisPage from "./pages/BalanceSheetAnalysisPage"
 import CmaGeneratorPage from "../modules/cma/pages/CmaGeneratorPage"
 import TestPdfPage from "./pages/TestPdfPage"
 
@@ -108,6 +109,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedLayout>
         <CmaGeneratorPage />
+      </ProtectedLayout>
+    ),
+  },
+  {
+    path: "/doc-parser",
+    element: (
+      <ProtectedLayout>
+        <BalanceSheetAnalysisPage />
       </ProtectedLayout>
     ),
   },

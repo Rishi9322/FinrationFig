@@ -45,8 +45,7 @@ export function Navbar() {
       <nav
         className={`sticky top-0 z-50 h-16 flex items-center transition-all duration-300 ${
           scrolled ? "bg-[#050A14]/95 backdrop-blur-md border-b border-white/8 shadow-lg" : "bg-[#050A14] border-b border-white/8"
-        }`}
-        style={{ fontFamily: "'DM Sans', sans-serif" }}
+        } font-['DM_Sans',sans-serif]`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex items-center justify-between">
           {/* Wordmark */}
@@ -79,6 +78,15 @@ export function Navbar() {
               }`}
             >
               CMA Engine
+            </Link>
+
+            <Link
+              to="/doc-parser"
+              className={`text-sm px-4 py-2 rounded-lg transition-colors ${
+                isActive("/doc-parser") ? "text-white bg-white/8" : "text-[#64748B] hover:text-white hover:bg-white/5"
+              }`}
+            >
+              Doc Parser
             </Link>
 
             {/* Calculators dropdown */}
@@ -167,6 +175,13 @@ export function Navbar() {
                 onClick={() => setMobileOpen(false)}
               >
                 Dashboard
+              </Link>
+              <Link
+                to="/doc-parser"
+                className="block text-sm text-[#F1F5F9] px-3 py-2.5 rounded-lg hover:bg-white/5"
+                onClick={() => setMobileOpen(false)}
+              >
+                Doc Parser
               </Link>
               <div className="pt-2 pb-1">
                 <p className="text-xs font-['Geist_Mono'] text-[#64748B] uppercase tracking-widest px-3 mb-2">Calculators</p>

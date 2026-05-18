@@ -219,7 +219,7 @@ export async function parseFile(file: File): Promise<ParsedBalanceSheet> {
         const confidenceNote = extracted ? 0.5 : 0.2
         return {
           sourceFilename: name,
-          originalFormat: lower.endsWith(".pdf") ? "pdf" : lower.endsWith(".docx") ? "json" : "other",
+          originalFormat: lower.endsWith(".pdf") ? "pdf" : lower.endsWith(".docx") ? "docx" : "other",
           parsedAt,
           accounts: items,
           balanceSheet: { assets: sections.assets, liabilities: sections.liabilities, equity: sections.equity },
