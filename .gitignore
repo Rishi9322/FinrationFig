@@ -80,3 +80,20 @@ vite-dev*.log
 
 # Node version manager
 .nvmrc
+
+# Caches and tooling
+.cache/
+.parcel-cache/
+.pnp*
+.pnp.js
+.turbo/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Serverless / Firebase
+.serverless/
+.firebase/
