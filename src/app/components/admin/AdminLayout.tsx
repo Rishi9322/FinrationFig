@@ -1,10 +1,10 @@
 import React from 'react';
 import { AdminSidebar } from './AdminSidebar';
-import { useAuth } from '../../hooks/useAuth';
-import { Navigate } from 'react-router-dom';
+import { getCurrentUser } from '../../lib/auth';
+import { Navigate } from 'react-router';
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const user = getCurrentUser();
 
   // Check if user has admin role
   if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
