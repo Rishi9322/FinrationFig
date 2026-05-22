@@ -149,7 +149,10 @@ export function mapToCalculator(calculatorType: CalculatorType, parsed: ParsedBa
     }
 
     case "dscr": {
-      const netOperatingIncome = income.netOperatingIncome ?? income.ebit ?? income.revenue && income.operatingExpenses ? (income.revenue - (income.operatingExpenses || 0)) : undefined
+      const netOperatingIncome =
+        income.netOperatingIncome ??
+        income.ebit ??
+        ((income.revenue && income.operatingExpenses) ? (income.revenue - (income.operatingExpenses || 0)) : undefined)
       const totalDebtService = income.totalDebtService ?? income["debt service"] ?? 0
       const conf = netOperatingIncome && totalDebtService ? 0.85 : 0.45
       return { inputs: { netOperatingIncome: netOperatingIncome ?? 0, totalDebtService }, confidence: conf }
@@ -178,7 +181,7 @@ export function mapToCalculator(calculatorType: CalculatorType, parsed: ParsedBa
     }
 
     case "pid": {
-      const ptr = (income.projectedAnnualSales ?? parsed.metadata?.notes && undefined) as number | undefined
+      const ptr = income.projectedAnnualSales as number | undefined
       const inputs = {
         projectedAnnualSales: ptr ?? 0,
         annualPurchase: income.annualPurchase ?? 0,
@@ -194,7 +197,6 @@ export function mapToCalculator(calculatorType: CalculatorType, parsed: ParsedBa
 
     case "valuation":
     case "working-capital-cycle":
-    case "drawing-power":
     default: {
       return { inputs: {}, confidence: 0.2, notes: "No automatic mapping available for this calculator; manual input recommended" }
     }

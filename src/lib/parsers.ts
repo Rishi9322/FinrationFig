@@ -1,4 +1,5 @@
-import type ParsedBalanceSheet, { LineItem, ReceivableItem } from "./parsedBalanceSheet"
+import type ParsedBalanceSheet from "./parsedBalanceSheet"
+import type { LineItem, ReceivableItem } from "./parsedBalanceSheet"
 
 function parseCSVText(text: string): LineItem[] {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)

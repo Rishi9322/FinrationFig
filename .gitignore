@@ -97,3 +97,4 @@ __pycache__/
 # Serverless / Firebase
 .serverless/
 .firebase/
+.vercel

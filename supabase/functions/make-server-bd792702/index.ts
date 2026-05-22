@@ -3,12 +3,14 @@ import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import { getCookie, setCookie, deleteCookie } from "npm:hono/cookie";
 import { sign, verify } from "npm:hono/jwt";
+import { createClient } from "npm:@supabase/supabase-js";
 import bcrypt from "npm:bcryptjs";
 import { parsePhoneNumberFromString } from "npm:libphonenumber-js";
 import * as kv from "./kv_store.tsx";
 
 type Role = "SUPER_ADMIN" | "ADMIN" | "USER";
 type AccountStatus = "ACTIVE" | "SUSPENDED";
+type AccessMode = "FULL" | "CUSTOM";
 
 type UserRecord = {
   id: string;
@@ -19,6 +21,7 @@ type UserRecord = {
   role: Role;
   status: AccountStatus;
   isVerified: boolean;
+  calculatorAccessMode: AccessMode;
   otpCode: string | null;
   otpExpiry: string | null;
   otpAttempts: number;
@@ -74,6 +77,8 @@ const OTP_MAX_ATTEMPTS = 5;
 const DEFAULT_FEATURE_SLUG = "pid";
 
 const JWT_SECRET = Deno.env.get("JWT_SECRET") ?? "change-me-in-production";
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const RESEND_FROM_EMAIL = Deno.env.get("RESEND_FROM_EMAIL") ?? "deepak.poddar@finratio.sbs";
 const APP_ORIGIN = Deno.env.get("APP_ORIGIN");
@@ -176,6 +181,10 @@ function isStrongPassword(password: string): boolean {
   );
 }
 
+function isPrivilegedRole(role: Role): boolean {
+  return role === "SUPER_ADMIN" || role === "ADMIN";
+}
+
 function normalizePhoneNumber(input: string): string | null {
   const parsed = parsePhoneNumberFromString(input);
   if (!parsed || !parsed.isValid()) return null;
@@ -228,6 +237,7 @@ function normalizeUserRecord(value: any, fallbackEmail = ""): UserRecord {
     role: ["SUPER_ADMIN", "ADMIN", "USER"].includes(value?.role) ? value.role : "USER",
     status: ["ACTIVE", "SUSPENDED"].includes(value?.status) ? value.status : "ACTIVE",
     isVerified: Boolean(value?.isVerified),
+    calculatorAccessMode: value?.calculatorAccessMode === "FULL" ? "FULL" : "CUSTOM",
     otpCode: value?.otpCode ?? null,
     otpExpiry: value?.otpExpiry ?? null,
     otpAttempts: Number.isFinite(value?.otpAttempts) ? value.otpAttempts : 0,
@@ -275,6 +285,7 @@ async function ensureBootstrapAdmin(): Promise<void> {
         role: "SUPER_ADMIN",
         status: "ACTIVE",
         isVerified: true,
+        calculatorAccessMode: "FULL",
         otpCode: null,
         otpExpiry: null,
         otpAttempts: 0,
@@ -287,6 +298,8 @@ async function ensureBootstrapAdmin(): Promise<void> {
   if (!existing || !isBcryptHash(user.passwordHash) || !(await bcrypt.compare(ADMIN_PASSWORD, user.passwordHash))) {
     user.passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 12);
   }
+
+  user.calculatorAccessMode = "FULL";
 
   await ensureFeaturesCatalog();
   await saveUser(user);
@@ -305,6 +318,67 @@ async function setUserFeatureAccess(userId: string, slugs: string[]): Promise<vo
 
 async function applyDefaultCalculatorAccess(userId: string): Promise<void> {
   await setUserFeatureAccess(userId, [DEFAULT_FEATURE_SLUG]);
+}
+
+async function getCatalogFeatureSlugs(): Promise<string[]> {
+  await ensureFeaturesCatalog();
+  const features = await kv.get("feature:catalog");
+
+  if (!Array.isArray(features)) {
+    return CALCULATOR_FEATURES.map((feature) => feature.slug);
+  }
+
+  return features
+    .map((feature: any) => feature?.slug)
+    .filter((slug: unknown): slug is string => typeof slug === "string");
+}
+
+async function getPublicCalculatorAccess(user: UserRecord): Promise<string[]> {
+  if (isPrivilegedRole(user.role) || user.calculatorAccessMode === "FULL") {
+    return getCatalogFeatureSlugs();
+  }
+
+  return getUserFeatureAccess(user.id);
+}
+
+async function createUserRecord(params: {
+  name: string;
+  email: string;
+  phoneNumber: string;
+  password: string;
+  role: Role;
+  calculatorAccessMode: AccessMode;
+  calculatorAccess: string[];
+}): Promise<UserRecord> {
+  const now = nowIso();
+  const user: UserRecord = {
+    id: crypto.randomUUID(),
+    name: params.name,
+    email: params.email,
+    phoneNumber: params.phoneNumber,
+    passwordHash: await bcrypt.hash(params.password, 12),
+    role: params.role,
+    status: "ACTIVE",
+    isVerified: true,
+    calculatorAccessMode: params.calculatorAccessMode,
+    otpCode: null,
+    otpExpiry: null,
+    otpAttempts: 0,
+    resetTokenHash: null,
+    resetTokenExpiry: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await saveUser(user);
+
+  if (params.calculatorAccessMode === "FULL" || isPrivilegedRole(params.role)) {
+    await setUserFeatureAccess(user.id, await getCatalogFeatureSlugs());
+  } else {
+    await setUserFeatureAccess(user.id, params.calculatorAccess);
+  }
+
+  return user;
 }
 
 function authCookieOptions(maxAgeMs = SESSION_TTL_MS) {
@@ -415,6 +489,16 @@ function publicAnonAuthorizationToken(): string {
   return Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 }
 
+function getSupabaseAdminClient() {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error("Supabase admin configuration is missing");
+  }
+
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+    auth: { persistSession: false },
+  });
+}
+
 async function requireAuth(c: any): Promise<{ user: UserRecord; claims: AuthClaims } | null> {
   const token = getCookie(c, sessionCookieName) || getSessionTokenFromRequest(c);
   if (!token) {
@@ -493,6 +577,7 @@ function publicUserView(user: UserRecord, featureAccess: string[]) {
     role: user.role,
     status: user.status,
     isVerified: user.isVerified,
+    calculatorAccessMode: user.calculatorAccessMode,
     createdAt: user.createdAt,
     calculatorAccess: featureAccess,
     businessConstitution: user.businessConstitution,
@@ -501,7 +586,10 @@ function publicUserView(user: UserRecord, featureAccess: string[]) {
 
 async function sendEmail(params: { to: string; subject: string; html: string }): Promise<void> {
   if (!RESEND_API_KEY) {
-    throw new Error("RESEND_API_KEY is not configured");
+    console.warn("[sendEmail] RESEND_API_KEY not configured. Email would have been sent to:", params.to);
+    console.warn("[sendEmail] Subject:", params.subject);
+    // Don't throw error - allow the app to work without email in development
+    return;
   }
 
   const response = await fetch("https://api.resend.com/emails", {
@@ -556,14 +644,53 @@ async function sendAccessGrantedEmail(email: string, grantedFeatures: string[]):
 }
 
 async function getCalculationsForUser(userId: string): Promise<StoredCalculation[]> {
+  try {
+    const supabase = getSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("calculations")
+      .select("id, user_id, calculator_type, inputs, results, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (!error && Array.isArray(data)) {
+      return data.map((row: any) => ({
+        id: String(row.id),
+        userId: String(row.user_id),
+        calculatorType: String(row.calculator_type),
+        inputs: (row.inputs ?? {}) as Record<string, unknown>,
+        results: (row.results ?? {}) as Record<string, unknown>,
+        createdAt: String(row.created_at),
+      }));
+    }
+  } catch (error) {
+    console.warn("[calculations:get] falling back to KV storage:", error);
+  }
+
   const calculations = await kv.get(`calculations:${userId}`);
   return Array.isArray(calculations) ? calculations : [];
 }
 
 async function saveCalculationRecord(calculation: StoredCalculation): Promise<void> {
   const calculations = await getCalculationsForUser(calculation.userId);
-  calculations.unshift(calculation);
-  await kv.set(`calculations:${calculation.userId}`, calculations.slice(0, 200));
+  const next = [calculation, ...calculations.filter((item) => item.id !== calculation.id)].slice(0, 200);
+
+  try {
+    const supabase = getSupabaseAdminClient();
+    const { error } = await supabase.from("calculations").upsert({
+      id: calculation.id,
+      user_id: calculation.userId,
+      calculator_type: calculation.calculatorType,
+      inputs: calculation.inputs,
+      results: calculation.results,
+      created_at: calculation.createdAt,
+    }, { onConflict: "id" });
+
+    if (error) throw error;
+  } catch (error) {
+    console.error("[calculations:post] database write failed, falling back to KV:", error);
+  }
+
+  await kv.set(`calculations:${calculation.userId}`, next);
 }
 
 app.get(`${API_PREFIX}/health`, async (c) => {
@@ -621,6 +748,7 @@ app.post(`${API_PREFIX}/auth/signup`, async (c) => {
       role: "USER",
       status: "ACTIVE",
       isVerified: false,
+      calculatorAccessMode: "CUSTOM",
       otpCode: otp,
       otpExpiry: new Date(Date.now() + OTP_TTL_MS).toISOString(),
       otpAttempts: 0,
@@ -654,7 +782,7 @@ app.post(`${API_PREFIX}/auth/verify-otp`, async (c) => {
     if (user.status === "SUSPENDED") return c.json({ error: "Account suspended" }, 403);
 
     if (user.isVerified) {
-      const access = await getUserFeatureAccess(user.id);
+      const access = await getPublicCalculatorAccess(user);
       const session = await setAuthSessionCookies(c, user);
       return c.json({ message: "Already verified", user: publicUserView(user, access), session });
     }
@@ -685,7 +813,7 @@ app.post(`${API_PREFIX}/auth/verify-otp`, async (c) => {
     user.updatedAt = nowIso();
     await saveUser(user);
 
-    const access = await getUserFeatureAccess(user.id);
+    const access = await getPublicCalculatorAccess(user);
     const session = await setAuthSessionCookies(c, user);
 
     return c.json({ message: "Email verified", user: publicUserView(user, access), session });
@@ -757,7 +885,7 @@ app.post(`${API_PREFIX}/auth/signin`, async (c) => {
       return c.json({ error: "Please verify your email first", needsVerification: true }, 403);
     }
 
-    const access = await getUserFeatureAccess(user.id);
+    const access = await getPublicCalculatorAccess(user);
     const session = await setAuthSessionCookies(c, user);
 
     return c.json({ message: "Signin successful", user: publicUserView(user, access), session });
@@ -790,7 +918,15 @@ app.post(`${API_PREFIX}/auth/forgot-password`, async (c) => {
 
     const appBaseUrl = Deno.env.get("APP_BASE_URL") || "http://localhost:5173";
     const resetUrl = `${appBaseUrl}/auth/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
-    await sendPasswordResetEmail(user.email, resetUrl);
+    
+    // Try to send email, but don't fail if it doesn't work
+    try {
+      await sendPasswordResetEmail(user.email, resetUrl);
+    } catch (emailError) {
+      console.warn("[auth/forgot-password] Email send failed:", emailError);
+      // Still store the reset token so user can manually use it if needed
+      console.log("[auth/forgot-password] Reset URL for debugging:", resetUrl);
+    }
 
     return c.json({ message: "If this email is registered, a reset link has been sent." });
   } catch (error) {
@@ -857,7 +993,7 @@ app.get(`${API_PREFIX}/auth/me`, async (c) => {
   const auth = await requireAuth(c);
   if (!auth) return c.body(null, 401);
 
-  const access = await getUserFeatureAccess(auth.user.id);
+  const access = await getPublicCalculatorAccess(auth.user);
   return c.json({ user: publicUserView(auth.user, access) });
 });
 
@@ -924,6 +1060,43 @@ app.post(`${API_PREFIX}/calculations`, async (c) => {
   }
 });
 
+app.post(`${API_PREFIX}/uploads`, async (c) => {
+  try {
+    const auth = await requireAuth(c);
+    if (!auth) return c.body(null, 401);
+    if (!(await requireCsrfForMutation(c, auth))) return c.body(null, 403);
+
+    const body = await c.req.json();
+    const filename = String(body.filename || "").trim();
+    const contentType = typeof body.contentType === "string" ? body.contentType : null;
+    const sizeBytes = Number(body.sizeBytes);
+    const fileBase64 = String(body.fileBase64 || "");
+
+    if (!filename || !fileBase64) {
+      return c.json({ error: "filename and fileBase64 are required" }, 400);
+    }
+
+    const record = {
+      id: crypto.randomUUID(),
+      user_id: auth.user.id,
+      filename,
+      content_type: contentType,
+      size_bytes: Number.isFinite(sizeBytes) ? Math.round(sizeBytes) : null,
+      file_base64: fileBase64,
+      created_at: nowIso(),
+    };
+
+    const supabase = getSupabaseAdminClient();
+    const { error } = await supabase.from("file_uploads").insert(record);
+    if (error) throw error;
+
+    return c.json({ id: record.id }, 201);
+  } catch (error) {
+    console.error("[uploads:post]", error);
+    return c.json({ error: "An error occurred. Please try again." }, 500);
+  }
+});
+
 app.post(`${API_PREFIX}/auth/onboarding`, async (c) => {
   try {
     const auth = await requireAuth(c);
@@ -958,7 +1131,7 @@ app.get(`${API_PREFIX}/admin/users`, async (c) => {
 
   const users = await kv.getByPrefix("user:by-email:") as UserRecord[];
   const rows = await Promise.all(users.map(async (user) => {
-    const access = await getUserFeatureAccess(user.id);
+    const access = await getPublicCalculatorAccess(user);
     return publicUserView(user, access);
   }));
 
@@ -981,11 +1154,78 @@ app.put(`${API_PREFIX}/admin/users/:id/role`, async (c) => {
   }
 
   user.role = role;
+  if (isPrivilegedRole(role)) {
+    user.calculatorAccessMode = "FULL";
+    await setUserFeatureAccess(user.id, await getCatalogFeatureSlugs());
+  }
   user.updatedAt = nowIso();
   await saveUser(user);
 
-  const access = await getUserFeatureAccess(user.id);
+  const access = await getPublicCalculatorAccess(user);
   return c.json({ message: "Role updated", user: publicUserView(user, access) });
+});
+
+app.post(`${API_PREFIX}/admin/users`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.body(null, 401);
+  if (!(await requireCsrfForMutation(c, auth))) return c.body(null, 403);
+  if (auth.user.role !== "SUPER_ADMIN") return c.json({ error: "Forbidden" }, 403);
+
+  const body = await c.req.json();
+  const name = String(body.name || "").trim();
+  const email = lowerEmail(String(body.email || ""));
+  const phoneRaw = String(body.phoneNumber || "").trim();
+  const password = String(body.password || "");
+  const role = ["SUPER_ADMIN", "ADMIN", "USER"].includes(body.role) ? body.role as Role : "USER";
+  const calculatorAccessMode = body.calculatorAccessMode === "FULL" ? "FULL" : "CUSTOM";
+
+  if (!name || !email || !phoneRaw || !password) {
+    return c.json({ error: "Name, email, phone number, and password are required" }, 400);
+  }
+
+  if (!isStrongPassword(password)) {
+    return c.json({ error: "Password must be 10+ chars with upper/lower/number/symbol" }, 400);
+  }
+
+  const phoneNumber = normalizePhoneNumber(phoneRaw);
+  if (!phoneNumber) {
+    return c.json({ error: "Invalid phone number" }, 400);
+  }
+
+  if (await getUserByEmail(email)) {
+    return c.json({ error: "Email already registered" }, 409);
+  }
+
+  const existingPhoneOwner = await kv.get(`user:by-phone:${phoneNumber}`);
+  if (existingPhoneOwner) {
+    return c.json({ error: "Phone number already registered" }, 409);
+  }
+
+  await ensureFeaturesCatalog();
+  const features = await kv.get("feature:catalog") as CalculatorFeature[];
+  const validSlugs = new Set(Array.isArray(features) ? features.map((feature) => feature.slug) : CALCULATOR_FEATURES.map((feature) => feature.slug));
+  const access = Array.isArray(body.calculatorAccess)
+    ? Array.from(new Set(body.calculatorAccess.filter((slug: unknown) => typeof slug === "string" && validSlugs.has(slug))))
+    : [];
+
+  const resolvedAccess = calculatorAccessMode === "FULL"
+    ? await getCatalogFeatureSlugs()
+    : access.length > 0
+      ? access
+      : [DEFAULT_FEATURE_SLUG];
+
+  const user = await createUserRecord({
+    name,
+    email,
+    phoneNumber,
+    password,
+    role,
+    calculatorAccessMode: calculatorAccessMode === "FULL" || isPrivilegedRole(role) ? "FULL" : "CUSTOM",
+    calculatorAccess: resolvedAccess,
+  });
+
+  const publicView = await publicUserView(user, await getPublicCalculatorAccess(user));
+  return c.json({ message: "User created", user: publicView }, 201);
 });
 
 app.put(`${API_PREFIX}/admin/users/:id/suspend`, async (c) => {
@@ -1002,8 +1242,31 @@ app.put(`${API_PREFIX}/admin/users/:id/suspend`, async (c) => {
   user.updatedAt = nowIso();
   await saveUser(user);
 
-  const access = await getUserFeatureAccess(user.id);
+  const access = await getPublicCalculatorAccess(user);
   return c.json({ message: "Status updated", user: publicUserView(user, access) });
+});
+
+app.put(`${API_PREFIX}/admin/users/:id/access-mode`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.body(null, 401);
+  if (!(await requireCsrfForMutation(c, auth))) return c.body(null, 403);
+  if (auth.user.role !== "SUPER_ADMIN") return c.json({ error: "Forbidden" }, 403);
+
+  const user = await getUserById(c.req.param("id"));
+  if (!user) return c.json({ error: "User not found" }, 404);
+
+  const body = await c.req.json();
+  const accessMode: AccessMode = body.accessMode === "FULL" ? "FULL" : "CUSTOM";
+  user.calculatorAccessMode = accessMode;
+  user.updatedAt = nowIso();
+  await saveUser(user);
+
+  if (accessMode === "FULL" || isPrivilegedRole(user.role)) {
+    await setUserFeatureAccess(user.id, await getCatalogFeatureSlugs());
+  }
+
+  const access = await getPublicCalculatorAccess(user);
+  return c.json({ message: "Access mode updated", user: publicUserView(user, access) });
 });
 
 app.put(`${API_PREFIX}/admin/users/:id/calculator-access`, async (c) => {
@@ -1023,10 +1286,14 @@ app.put(`${API_PREFIX}/admin/users/:id/calculator-access`, async (c) => {
   const slugs = Array.isArray(body.slugs) ? body.slugs.filter((slug: unknown) => typeof slug === "string") : [];
   const cleaned = Array.from(new Set(slugs.filter((slug) => validSlugs.has(slug))));
 
+  user.calculatorAccessMode = "CUSTOM";
+  user.updatedAt = nowIso();
+  await saveUser(user);
+
   await setUserFeatureAccess(user.id, cleaned);
   await sendAccessGrantedEmail(user.email, cleaned);
 
-  const updatedAccess = await getUserFeatureAccess(user.id);
+  const updatedAccess = await getPublicCalculatorAccess(user);
   return c.json({ message: "Calculator access updated", user: publicUserView(user, updatedAccess) });
 });
 

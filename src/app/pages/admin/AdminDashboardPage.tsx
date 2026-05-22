@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router';
 import { Users, Calculator, Activity, TrendingUp } from 'lucide-react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 
@@ -113,15 +114,24 @@ export function AdminDashboardPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h3>
             <div className="space-y-3">
-              <button className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              <Link
+                to="/admin/users"
+                className="block w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center"
+              >
                 Create User
-              </button>
-              <button className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+              </Link>
+              <Link
+                to="/admin/calculators"
+                className="block w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-center"
+              >
                 Enable Calculator
-              </button>
-              <button className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+              </Link>
+              <Link
+                to="/admin/permissions"
+                className="block w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-center"
+              >
                 Generate Report
-              </button>
+              </Link>
             </div>
           </div>
         </div>

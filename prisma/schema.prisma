@@ -57,6 +57,8 @@ model User {
   calculatorAccess UserCalculatorAccess[]
   calculationHistory CalculationHistory[]
   calculationNotes CalculationNote[]
+  fileUploads      FileUpload[]
+  authSessions     AuthSession[]
 
   @@map("app_users")
 }
@@ -111,9 +113,8 @@ model CalculationNote {
   user            User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([calculationId])
-  @@map("calculation_notes"elation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([calculationId])
+  @@index([userId])
+  @@map("calculation_notes")
 }
 
 model CalculatorFeature {
@@ -127,6 +128,8 @@ model CalculatorFeature {
   isPublic    Boolean  @default(false)
   version     String   @default("1.0.0")
 
+  userAccesses UserCalculatorAccess[]
+
   @@map("calculator_features")
 }
 
@@ -134,17 +137,49 @@ model UserCalculatorAccess {
   id            String   @id @default(cuid())
 
   userId        String
-  calculatorId  String
+  featureSlug   String
 
   user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  calculator    CalculatorFeature @relation(fields: [calculatorId], references: [id], onDelete: Cascade)
+  calculator    CalculatorFeature @relation(fields: [featureSlug], references: [slug], onDelete: Cascade)
 
   createdAt     DateTime @default(now())
 
-  @@unique([userId, calculatorId])
-  @@map("user_calculator_access" @relation(fields: [calculatorId], references: [id], onDelete: Cascade)
+  @@unique([userId, featureSlug])
+  @@map("user_calculator_access")
+}
 
-  createdAt     DateTime @default(now())
+model FileUpload {
+  id           String   @id @default(cuid())
+  userId       String
+  filename     String
+  contentType  String?
+  sizeBytes    Int?
+  fileBase64   String
+  createdAt    DateTime @default(now())
 
-  @@unique([userId, calculatorId])
+  user         User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("file_uploads")
+}
+
+model AuthSession {
+  sessionId      String   @id
+  userId         String
+  csrfTokenHash  String
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  user           User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("auth_sessions")
+}
+
+model RateLimit {
+  key          String   @id
+  count        Int      @default(0)
+  windowStart  DateTime
+
+  @@map("rate_limits")
 }

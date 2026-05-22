@@ -1,6 +1,6 @@
 import React from 'react';
 import { AdminSidebar } from './AdminSidebar';
-import { getCurrentUser } from '../../lib/auth';
+import { getCurrentUser } from '../../../lib/auth';
 import { Navigate } from 'react-router';
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {

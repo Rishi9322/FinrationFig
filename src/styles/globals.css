@@ -1,0 +1,9 @@
+@layer utilities {
+	.font-dm-sans {
+		font-family: "DM Sans", sans-serif;
+	}
+
+	.font-instrument-serif {
+		font-family: "Instrument Serif", serif;
+	}
+}

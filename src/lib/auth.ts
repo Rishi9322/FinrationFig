@@ -2,6 +2,7 @@ import { projectId, publicAnonKey } from "../../utils/supabase/info"
 
 export type Role = "SUPER_ADMIN" | "ADMIN" | "USER"
 export type AccountStatus = "ACTIVE" | "SUSPENDED"
+export type AccessMode = "FULL" | "CUSTOM"
 
 export interface User {
   id: string
@@ -11,6 +12,7 @@ export interface User {
   role: Role
   status: AccountStatus
   isVerified: boolean
+  calculatorAccessMode?: AccessMode
   createdAt: string
   calculatorAccess: string[]
   businessConstitution?: string
@@ -204,10 +206,32 @@ export async function getAdminUsers(): Promise<User[]> {
   return data.users || []
 }
 
+export async function createAdminUser(params: {
+  name: string
+  email: string
+  phoneNumber: string
+  password: string
+  role: Role
+  calculatorAccessMode: AccessMode
+  calculatorAccess: string[]
+}) {
+  return apiCall("/admin/users", {
+    method: "POST",
+    body: JSON.stringify(params),
+  })
+}
+
 export async function updateUserRole(userId: string, role: Role) {
   return apiCall(`/admin/users/${encodeURIComponent(userId)}/role`, {
     method: "PUT",
     body: JSON.stringify({ role }),
+  })
+}
+
+export async function updateUserAccessMode(userId: string, accessMode: AccessMode) {
+  return apiCall(`/admin/users/${encodeURIComponent(userId)}/access-mode`, {
+    method: "PUT",
+    body: JSON.stringify({ accessMode }),
   })
 }
 

@@ -1,9 +1,154 @@
 export const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
+const OPENROUTER_MODEL_NAME = import.meta.env.VITE_OPENROUTER_MODEL_NAME || "anthropic/claude-3.5-sonnet";
+const CMA_LEARNING_STORE_KEY = "finratio:cma-learning-examples";
 
-export async function parseCmaFinancialData(rawText: string) {
+type CmaLearningExample = {
+  sourceSignature: string;
+  sourceFormat: string;
+  rawPreview: string;
+  parsedData: Record<string, unknown>;
+  createdAt: string;
+  model: string;
+};
+
+type ParseOptions = {
+  sourceFormat?: string;
+  sourceName?: string;
+};
+
+function truncateText(text: string, head = 14000, tail = 8000) {
+  if (text.length <= head + tail + 32) return text;
+  return `${text.slice(0, head)}\n\n... [truncated ${text.length - head - tail} characters] ...\n\n${text.slice(-tail)}`;
+}
+
+function normalizeTokens(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\n]+/g, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
+function buildSourceSignature(rawText: string) {
+  return normalizeTokens(rawText).slice(0, 120).join(" ");
+}
+
+function safeJsonParse(raw: string) {
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const candidate = fenced?.[1]?.trim() || trimmed;
+
+  try {
+    return JSON.parse(candidate);
+  } catch {
+    const firstBrace = candidate.indexOf("{");
+    const firstBracket = candidate.indexOf("[");
+    const start = firstBrace >= 0 && firstBracket >= 0 ? Math.min(firstBrace, firstBracket) : Math.max(firstBrace, firstBracket);
+    const end = Math.max(candidate.lastIndexOf("}"), candidate.lastIndexOf("]"));
+
+    if (start >= 0 && end > start) {
+      return JSON.parse(candidate.slice(start, end + 1));
+    }
+
+    throw new Error("OpenRouter response did not contain valid JSON");
+  }
+}
+
+function readLearningExamples(): CmaLearningExample[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = window.localStorage.getItem(CMA_LEARNING_STORE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLearningExamples(examples: CmaLearningExample[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(CMA_LEARNING_STORE_KEY, JSON.stringify(examples.slice(0, 20)));
+}
+
+function findRelevantExamples(rawText: string, sourceFormat?: string) {
+  const targetTokens = new Set(normalizeTokens(rawText).slice(0, 200));
+  return readLearningExamples()
+    .filter((example) => !sourceFormat || example.sourceFormat === sourceFormat)
+    .map((example) => {
+      const exampleTokens = normalizeTokens(example.rawPreview);
+      let overlap = 0;
+      for (const token of exampleTokens) {
+        if (targetTokens.has(token)) overlap++;
+      }
+      return { example, overlap };
+    })
+    .sort((a, b) => b.overlap - a.overlap)
+    .slice(0, 3)
+    .map(({ example }) => example);
+}
+
+function buildLearningContext(rawText: string, sourceFormat?: string) {
+  const examples = findRelevantExamples(rawText, sourceFormat);
+  if (examples.length === 0) return "";
+
+  return [
+    "Confirmed prior parses for similar CMA inputs:",
+    ...examples.map((example, index) => {
+      const parsedPreview = JSON.stringify(example.parsedData, null, 2);
+      return [
+        `Example ${index + 1} (${example.sourceFormat}, model: ${example.model}):`,
+        `Source preview: ${example.rawPreview}`,
+        `Confirmed output: ${parsedPreview}`,
+      ].join("\n");
+    }),
+  ].join("\n\n");
+}
+
+export function recordCmaLearningExample(
+  rawText: string,
+  parsedData: Record<string, unknown>,
+  options: { sourceFormat?: string; model?: string; sourceName?: string } = {}
+) {
+  if (typeof window === "undefined") return;
+
+  const sourceSignature = buildSourceSignature(rawText);
+  const rawPreview = truncateText(rawText, 1200, 300);
+  const example: CmaLearningExample = {
+    sourceSignature,
+    sourceFormat: options.sourceFormat || "unknown",
+    rawPreview,
+    parsedData,
+    createdAt: new Date().toISOString(),
+    model: options.model || OPENROUTER_MODEL_NAME,
+  };
+
+  const current = readLearningExamples();
+  const next = [example, ...current.filter((item) => item.sourceSignature !== sourceSignature)];
+  writeLearningExamples(next);
+}
+
+export function buildCmaExportPayload(parsedData: Record<string, unknown>, meta: Record<string, unknown> = {}) {
+  return {
+    generatedAt: new Date().toISOString(),
+    model: OPENROUTER_MODEL_NAME,
+    ...meta,
+    parsedData,
+  };
+}
+
+export async function parseCmaFinancialData(rawText: string, options: ParseOptions = {}) {
   if (!OPENROUTER_API_KEY) {
     throw new Error("OpenRouter API key is missing. Please add VITE_OPENROUTER_API_KEY to your .env file.");
   }
+
+  const learningContext = buildLearningContext(rawText, options.sourceFormat);
+  const sourceExcerpt = truncateText(rawText);
+  const sourceDescriptor = [
+    options.sourceName ? `Source file: ${options.sourceName}` : null,
+    options.sourceFormat ? `Source format: ${options.sourceFormat}` : null,
+  ].filter(Boolean).join("\n");
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -14,8 +159,9 @@ export async function parseCmaFinancialData(rawText: string) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "anthropic/claude-3-sonnet", // Or anthropic/claude-3.5-sonnet depending on available models, the prompt mentioned claude-sonnet-4-20250514 but we use standard identifiers
+      model: OPENROUTER_MODEL_NAME,
       response_format: { type: "json_object" },
+      temperature: 0,
       messages: [
         {
           role: "system",
@@ -114,7 +260,12 @@ Auto-compute any missing fields using standard accounting relationships. Verify 
         },
         {
           role: "user",
-          content: rawText
+          content: [
+            sourceDescriptor,
+            learningContext ? `\n${learningContext}` : "",
+            "\nPrimary source content:",
+            sourceExcerpt,
+          ].join("\n")
         }
       ]
     })
@@ -127,7 +278,7 @@ Auto-compute any missing fields using standard accounting relationships. Verify 
 
   const data = await response.json();
   try {
-    return JSON.parse(data.choices[0].message.content);
+    return safeJsonParse(data.choices[0].message.content);
   } catch (err) {
     console.error("Failed to parse JSON", data.choices[0].message.content);
     throw new Error("AI did not return valid JSON");
@@ -148,7 +299,8 @@ export async function* streamCmaCreditOpinion(cmaData: any) {
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: "anthropic/claude-3-sonnet", 
+      model: OPENROUTER_MODEL_NAME,
+      temperature: 0.2,
       stream: true,
       messages: [
         {
@@ -187,7 +339,7 @@ The applicant's CMA data is provided. Write a structured credit assessment repor
 10. OVERALL CREDIT RISK RATING: LOW / MODERATE / HIGH
     (with brief justification)
 
-Use exact numbers from the CMA. Write in formal banking language. 500-700 words.`
+Use exact numbers from the CMA. Do not invent figures or ratios. If a required number is missing, state that it is not available in the provided CMA. Write in formal banking language. 500-700 words.`
         },
         {
           role: "user",

@@ -4,6 +4,7 @@ import mapToCalculator from "../../lib/parsedToCalculatorMapper"
 import { CalculatorType } from "../../lib/financialCalculations"
 import * as calc from "../../lib/financialCalculations"
 import { saveCalculation } from "../../lib/calculationStorage"
+import { uploadBalanceSheetFile } from "../../lib/uploadStorage"
 
 type Props = {
   userId?: string
@@ -20,11 +21,13 @@ export default function BalanceSheetUpload({ userId }: Props) {
 
   async function handleParse() {
     if (!file) return setMessage("Choose a file first")
+    if (!userId) return setMessage("Sign in required to store uploads")
     setLoading(true)
     try {
+      await uploadBalanceSheetFile(file)
       const p = await parseFile(file)
       setParsed(p)
-      setMessage("Parsed successfully; review and map to calculator")
+      setMessage("Uploaded and parsed successfully; review and map to calculator")
     } catch (err: any) {
       setMessage(String(err?.message || err))
     } finally {
@@ -106,7 +109,11 @@ export default function BalanceSheetUpload({ userId }: Props) {
       <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
       <div style={{ marginTop: 8 }}>
         <label>Calculator: </label>
-        <select value={selectedCalculator} onChange={(e) => setSelectedCalculator(e.target.value as CalculatorType)}>
+        <select
+          value={selectedCalculator}
+          onChange={(e) => setSelectedCalculator(e.target.value as CalculatorType)}
+          style={{ color: "#0f172a", backgroundColor: "#ffffff", border: "1px solid #cbd5f5" }}
+        >
           {(
             [
               "debt-equity",
