@@ -1086,9 +1086,17 @@ app.post(`${API_PREFIX}/uploads`, async (c) => {
       created_at: nowIso(),
     };
 
-    const supabase = getSupabaseAdminClient();
-    const { error } = await supabase.from("file_uploads").insert(record);
-    if (error) throw error;
+    try {
+      const supabase = getSupabaseAdminClient();
+      const { error } = await supabase.from("file_uploads").insert(record);
+      if (error) throw error;
+    } catch (dbError) {
+      console.warn("[uploads:post] database write failed, falling back to KV:", dbError);
+      const existingUploads = await kv.get(`uploads:${auth.user.id}`);
+      const uploads = Array.isArray(existingUploads) ? existingUploads : [];
+      const nextUploads = [record, ...uploads.filter((item: any) => item?.id !== record.id)].slice(0, 100);
+      await kv.set(`uploads:${auth.user.id}`, nextUploads);
+    }
 
     return c.json({ id: record.id }, 201);
   } catch (error) {

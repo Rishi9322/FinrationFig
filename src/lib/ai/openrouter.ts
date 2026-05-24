@@ -290,22 +290,14 @@ export async function* streamCmaCreditOpinion(cmaData: any) {
     throw new Error("OpenRouter API key is missing.");
   }
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-      "HTTP-Referer": window.location.origin,
-      "X-Title": "Finratio CMA Engine",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: OPENROUTER_MODEL_NAME,
-      temperature: 0.2,
-      stream: true,
-      messages: [
-        {
-          role: "system",
-          content: `You are a senior credit analyst at a commercial bank evaluating a term loan and working capital facility application under the RBI CMA framework.
+  const requestBody = JSON.stringify({
+    model: OPENROUTER_MODEL_NAME,
+    temperature: 0.2,
+    stream: true,
+    messages: [
+      {
+        role: "system",
+        content: `You are a senior credit analyst at a commercial bank evaluating a term loan and working capital facility application under the RBI CMA framework.
 
 The applicant's CMA data is provided. Write a structured credit assessment report:
 
@@ -340,48 +332,91 @@ The applicant's CMA data is provided. Write a structured credit assessment repor
     (with brief justification)
 
 Use exact numbers from the CMA. Do not invent figures or ratios. If a required number is missing, state that it is not available in the provided CMA. Write in formal banking language. 500-700 words.`
-        },
-        {
-          role: "user",
-          content: JSON.stringify(cmaData, null, 2)
-        }
-      ]
-    })
+      },
+      {
+        role: "user",
+        content: JSON.stringify(cmaData, null, 2)
+      }
+    ]
   });
 
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.status}`);
-  }
-  
-  if (!response.body) {
-      throw new Error("No response body returned from API");
-  }
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+        "HTTP-Referer": window.location.origin,
+        "X-Title": "Finratio CMA Engine",
+        "Content-Type": "application/json"
+      },
+      body: requestBody,
+    });
 
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "");
+      const retryAfterHeader = response.headers.get("Retry-After");
+      const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : Number.NaN;
+      const shouldRetry = response.status === 429 && attempt < 2;
 
-  let isFinished = false;
-  while (!isFinished) {
-    const { done, value } = await reader.read();
-    if (done) {
-      isFinished = true;
-      break;
+      if (shouldRetry) {
+        const delayMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
+          ? retryAfterSeconds * 1000
+          : (attempt + 1) * 1000;
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        continue;
+      }
+
+      let message = `OpenRouter request failed with status ${response.status}`;
+      if (errorText) {
+        try {
+          const parsed = JSON.parse(errorText);
+          message = parsed?.error?.message || parsed?.message || message;
+        } catch {
+          message = errorText || message;
+        }
+      }
+
+      if (response.status === 429) {
+        throw new Error(`OpenRouter is rate limited right now. ${message}`);
+      }
+
+      throw new Error(message);
     }
 
-    const chunk = decoder.decode(value, { stream: true });
-    const lines = chunk.split('\\n');
-    
-    for (const line of lines) {
-      if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-        try {
-          const parsed = JSON.parse(line.slice(6));
-          if (parsed.choices[0].delta.content) {
-            yield parsed.choices[0].delta.content;
+    if (!response.body) {
+      throw new Error("No response body returned from API");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    let isFinished = false;
+    while (!isFinished) {
+      const { done, value } = await reader.read();
+      if (done) {
+        isFinished = true;
+        break;
+      }
+
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+      
+      for (const line of lines) {
+        if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+          try {
+            const parsed = JSON.parse(line.slice(6));
+            if (parsed.choices[0].delta.content) {
+              yield parsed.choices[0].delta.content;
+            }
+          } catch (e) {
+            // parse error on chunk
           }
-        } catch (e) {
-          // parse error on chunk
         }
       }
     }
+
+    return;
   }
+
+  throw new Error("OpenRouter is busy right now. Please try again in a moment.");
 }
