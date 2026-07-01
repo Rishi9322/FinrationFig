@@ -1,5 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
+// This module is intended to be used only on the server (node) side.
+// Prevent accidental client-side imports which would leak service-role keys
+// or silently fall back to publishable keys.
+if (typeof window !== 'undefined') {
+  throw new Error('src/lib/admin.ts is server-only. Call the /api/admin endpoints from the browser instead.');
+}
+
 // Types
 interface AdminStats {
   totalUsers: number;
@@ -33,43 +40,53 @@ interface Calculator {
   version: string;
 }
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-);
+function getSupabaseEnv() {
+  // Server first: prefer explicit service role + URL env vars
+  const serverUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || (process.env.VITE_SUPABASE_URL || '');
+  const serverKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || '';
+
+  if (serverKey && serverUrl) {
+    return { url: serverUrl, key: serverKey };
+  }
+
+  // Fallback for non-server environments (shouldn't happen because we throw earlier)
+  const viteEnv = import.meta.env as ImportMetaEnv & {
+    VITE_SUPABASE_URL?: string;
+    VITE_SUPABASE_PUBLISHABLE_KEY?: string;
+    NEXT_PUBLIC_SUPABASE_URL?: string;
+    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?: string;
+  };
+
+  return {
+    url: viteEnv.VITE_SUPABASE_URL || viteEnv.NEXT_PUBLIC_SUPABASE_URL || (process.env.NEXT_PUBLIC_SUPABASE_URL || ''),
+    key: viteEnv.VITE_SUPABASE_PUBLISHABLE_KEY || viteEnv.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || ''),
+  };
+}
+
+// Initialize Supabase client (server-side)
+const { url: supabaseUrl, key: supabaseKey } = getSupabaseEnv();
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function getAdminStats(): Promise<AdminStats> {
+  // Admin-only function: requires server-side service role key
+  if (!supabase || !supabaseUrl || !supabaseKey) {
+    throw new Error('Admin client not available. Call this function from a server environment with SUPABASE_SERVICE_ROLE_KEY configured.');
+  }
+
   try {
-    const { data: users, error: usersError } = await supabase
-      .from('app_users')
-      .select('*');
-    
-    const { data: activeUsers, error: activeError } = await supabase
-      .from('app_users')
-      .select('*')
-      .eq('status', 'ACTIVE');
-    
-    const { data: calculators, error: calcError } = await supabase
-      .from('calculator_features')
-      .select('*');
-    
-    const { data: enabledCalcs, error: enabledError } = await supabase
-      .from('calculator_features')
-      .select('*')
-      .eq('enabled', true);
-    
-    const { data: calculations, error: calcHistError } = await supabase
-      .from('calculations')
-      .select('*');
+    const { data: users } = await supabase.from('app_users').select('*');
+    const { data: activeUsers } = await supabase.from('app_users').select('*').eq('status', 'ACTIVE');
+    const { data: calculators } = await supabase.from('calculator_features').select('*');
+    const { data: enabledCalcs } = await supabase.from('calculator_features').select('*').eq('enabled', true);
+    const { data: calculations } = await supabase.from('calculations').select('*');
 
     const totalUsers = users?.length || 0;
     const activeCount = activeUsers?.length || 0;
     const totalCalcs = calculators?.length || 0;
     const enabledCount = enabledCalcs?.length || 0;
     const totalCalculations = calculations?.length || 0;
-    
-    const loginCounts = users?.map((u: any) => u.login_count || 0) || [];
+
+    const loginCounts = (users || []).map((u: any) => u.login_count || 0) || [];
     const avgLoginCount = loginCounts.length > 0
       ? loginCounts.reduce((a: number, b: number) => a + b, 0) / loginCounts.length
       : 0;

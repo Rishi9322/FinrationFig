@@ -11,6 +11,7 @@ export type CalculatorType =
   | "pid"
   | "valuation"
   | "working-capital-cycle"
+  | "cma-document"
 
 export type RiskLevel = "low" | "moderate" | "high" | "n/a"
 

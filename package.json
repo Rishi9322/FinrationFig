@@ -67,6 +67,8 @@
     "react-router": "7.13.0",
     "react-slick": "0.31.0",
     "recharts": "2.15.2",
+    "@supabase/ssr": "^0.5.0",
+    "@supabase/supabase-js": "^2.49.8",
     "sonner": "2.0.3",
     "tailwind-merge": "3.2.0",
     "tw-animate-css": "1.3.8",

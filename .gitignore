@@ -10,6 +10,9 @@ build/
 .next/
 out/
 
+# Personal/unrelated scratch files
+scratch/
+
 # Environment variables
 .env
 .env.local

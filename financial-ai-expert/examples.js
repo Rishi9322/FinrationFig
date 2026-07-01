@@ -255,14 +255,17 @@ async function runExamples() {
     const expert = await exampleInitialize();
 
     // Run examples
-    await exampleCreateCMA(expert);
-    await exampleAnalyzeDocument(expert);
-    await exampleTransformDocument(expert);
-    await exampleCreateProjections(expert);
-    await exampleAssessCredit(expert);
-    await exampleParseFile();
-    await exampleGetCapabilities(expert);
-    await exampleHealthCheck(expert);
+    // Many examples are independent after initialization — run them in parallel
+    await Promise.all([
+      exampleCreateCMA(expert),
+      exampleAnalyzeDocument(expert),
+      exampleTransformDocument(expert),
+      exampleCreateProjections(expert),
+      exampleAssessCredit(expert),
+      exampleParseFile(),
+      exampleGetCapabilities(expert),
+      exampleHealthCheck(expert)
+    ]);
 
     // Stream example (optional, commented by default as it takes longer)
     // await exampleStreamAnalysis(expert);

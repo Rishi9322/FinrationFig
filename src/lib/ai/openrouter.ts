@@ -138,6 +138,67 @@ export function buildCmaExportPayload(parsedData: Record<string, unknown>, meta:
   };
 }
 
+export type DocumentClassification = {
+  isFinancialDocument: boolean;
+  docType: string;
+  confidence: number;
+  reason: string;
+};
+
+export async function classifyFinancialDocument(rawText: string, sourceName?: string): Promise<DocumentClassification> {
+  if (!OPENROUTER_API_KEY) {
+    throw new Error("OpenRouter API key is missing. Please add VITE_OPENROUTER_API_KEY to your .env file.");
+  }
+
+  const excerpt = truncateText(rawText, 4000, 1000);
+
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+      "HTTP-Referer": window.location.origin,
+      "X-Title": "Finratio CMA Engine",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: OPENROUTER_MODEL_NAME,
+      response_format: { type: "json_object" },
+      temperature: 0,
+      messages: [
+        {
+          role: "system",
+          content: `You classify uploaded documents for an Indian banking CMA (Credit Monitoring Arrangement) tool. Given extracted document text, return ONLY valid JSON with this exact shape:
+{
+  "isFinancialDocument": boolean,
+  "docType": "Balance Sheet" | "Profit & Loss / Income Statement" | "CMA Form" | "Bank Statement" | "Trial Balance" | "Other Financial Statement" | "Not a Financial Document",
+  "confidence": 0.0-1.0,
+  "reason": "one short sentence"
+}
+A document is a financial document if it contains balance sheet, P&L, trial balance, CMA, or bank statement line items (assets, liabilities, sales, expenses, borrowings, etc). Otherwise isFinancialDocument is false.`
+        },
+        {
+          role: "user",
+          content: [sourceName ? `Filename: ${sourceName}` : "", "Extracted text:", excerpt].filter(Boolean).join("\n")
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error?.message || `API Error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const parsed = safeJsonParse(data.choices[0].message.content);
+  return {
+    isFinancialDocument: Boolean(parsed.isFinancialDocument),
+    docType: String(parsed.docType || "Other Financial Statement"),
+    confidence: Number(parsed.confidence) || 0,
+    reason: String(parsed.reason || ""),
+  };
+}
+
 export async function parseCmaFinancialData(rawText: string, options: ParseOptions = {}) {
   if (!OPENROUTER_API_KEY) {
     throw new Error("OpenRouter API key is missing. Please add VITE_OPENROUTER_API_KEY to your .env file.");

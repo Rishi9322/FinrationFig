@@ -1039,7 +1039,9 @@ app.post(`${API_PREFIX}/calculations`, async (c) => {
 
     const access = await getUserFeatureAccess(auth.user.id);
     const isPrivileged = auth.user.role === "SUPER_ADMIN" || auth.user.role === "ADMIN";
-    if (!isPrivileged && !access.includes(calculatorType)) {
+    // "cma-document" stores saved CMA analyses (not a gated calculator feature) -
+    // any authenticated user may save/read their own documents.
+    if (!isPrivileged && calculatorType !== "cma-document" && !access.includes(calculatorType)) {
       return c.json({ error: "Access restricted" }, 403);
     }
 

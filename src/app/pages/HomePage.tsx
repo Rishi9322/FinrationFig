@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router"
-import { ArrowRight, Play, Zap, Lock, FolderOpen, FileText, RefreshCw, Globe, Star, ChevronRight } from "lucide-react"
+import { ArrowRight, Play, Zap, Lock, FolderOpen, FileText, RefreshCw, Globe, ChevronRight } from "lucide-react"
 
 function useCountUp(target: number, duration = 1800, started = false) {
   const [value, setValue] = useState(0)
@@ -35,15 +35,15 @@ function useInView(threshold = 0.2) {
   return { ref, inView }
 }
 
-function AnimatedStat({ label, prefix = "", suffix = "", value, started }: {
-  label: string; prefix?: string; suffix?: string; value: number; started: boolean
+function AnimatedStat({ label, prefix = "", suffix = "", value, decimals = 0, started }: {
+  label: string; prefix?: string; suffix?: string; value: number; decimals?: number; started: boolean
 }) {
-  const current = useCountUp(value, 1600, started)
+  const current = useCountUp(value * 10 ** decimals, 1600, started) / 10 ** decimals
   const display = value >= 10000000
     ? (current / 10000000).toFixed(2) + " Cr"
     : value >= 100000
     ? (current / 100000).toFixed(1) + "L"
-    : current.toString()
+    : current.toFixed(decimals)
   return (
     <div className="bg-[#0D1726] border border-white/8 rounded-xl p-5 flex flex-col gap-1">
       <span className="font-['Geist_Mono'] text-[#10B981] text-2xl font-medium tracking-tight">
@@ -70,10 +70,10 @@ const FEATURES = [
   { icon: Globe, title: "Built for India", desc: "₹ native formatting with lakhs and crores support" },
 ]
 
-const TESTIMONIALS = [
-  { quote: "Saved us hours every month on ratio reviews. The risk badges alone changed how we present to banks.", name: "Rohan M.", role: "CFO, Mumbai", initials: "RM" },
-  { quote: "Finally a calculator that actually explains the math behind each ratio. Our team trusts the output.", name: "Priya S.", role: "Finance Head, Pune", initials: "PS" },
-  { quote: "The calculation history is a game-changer for tracking our financial health quarter over quarter.", name: "Arjun K.", role: "CA, Delhi", initials: "AK" },
+const PRINCIPLES = [
+  { title: "No black boxes", desc: "Every ratio shows its formula and inputs — nothing is computed off-screen. Audit the math yourself." },
+  { title: "Built for Indian credit norms", desc: "Lakhs, crores, and the exact ratio set (DSCR, ISCR, Drawing Power) that Indian lenders actually ask for." },
+  { title: "No manufactured numbers", desc: "We're early. We'd rather show you real formulas than fake testimonials or inflated user counts." },
 ]
 
 const CALCULATORS = [
@@ -202,27 +202,10 @@ export default function HomePage() {
             </a>
           </div>
 
-          {/* Social proof */}
-          <div className="flex items-center justify-center gap-3">
-            <div className="flex -space-x-2">
-              {["RK", "PS", "AM", "VG"].map((init, i) => (
-                <div
-                  key={i}
-                  className="w-8 h-8 rounded-full border-2 border-[#050A14] flex items-center justify-center text-[10px] font-medium text-white"
-                  style={{
-                    background: ["#1d4ed8", "#0f766e", "#7c3aed", "#b45309"][i],
-                  }}
-                >
-                  {init}
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="flex text-[#10B981]">
-                {[...Array(5)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-current" />)}
-              </div>
-              <span className="text-sm text-[#64748B]">Trusted by 500+ finance teams</span>
-            </div>
+          {/* Honest positioning line — no fabricated user counts or star ratings */}
+          <div className="flex items-center justify-center gap-2 text-sm text-[#64748B]">
+            <Zap className="w-3.5 h-3.5 text-[#10B981]" />
+            <span>Free to use — the same 9 formulas banks use, running in your browser</span>
           </div>
         </div>
 
@@ -363,12 +346,12 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              <AnimatedStat label="Current Ratio" suffix="×" value={232} started={statsInView} />
-              <AnimatedStat label="DSCR Score" suffix="×" value={132} started={statsInView} />
+              <AnimatedStat label="Current Ratio" suffix="x" value={2.32} decimals={2} started={statsInView} />
+              <AnimatedStat label="DSCR" suffix="x" value={1.32} decimals={2} started={statsInView} />
               <AnimatedStat label="Net Working Capital" prefix="₹" value={4200000} started={statsInView} />
               <AnimatedStat label="EBITDA Margin" suffix="%" value={18} started={statsInView} />
-              <AnimatedStat label="D/E Ratio" suffix="×" value={145} started={statsInView} />
-              <AnimatedStat label="ISCR" suffix="×" value={287} started={statsInView} />
+              <AnimatedStat label="D/E Ratio" suffix="x" value={1.45} decimals={2} started={statsInView} />
+              <AnimatedStat label="ISCR" suffix="x" value={2.87} decimals={2} started={statsInView} />
             </div>
           </div>
         </div>
@@ -452,40 +435,32 @@ export default function HomePage() {
       <section className="py-24 px-6 border-t border-white/8" ref={testiRef}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <p className="text-xs font-['Geist_Mono'] text-[#2563EB] uppercase tracking-widest mb-3">Testimonials</p>
+            <p className="text-xs font-['Geist_Mono'] text-[#2563EB] uppercase tracking-widest mb-3">Why FinRatio</p>
             <h2
               className="text-4xl lg:text-5xl font-normal text-white"
               style={{ fontFamily: "'Instrument Serif', serif" }}
             >
-              Finance teams
+              Built to be checked,
               <br />
-              <em className="not-italic text-[#64748B]">love FinRatio</em>
+              <em className="not-italic text-[#64748B]">not just trusted</em>
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {TESTIMONIALS.map((t, i) => (
+            {PRINCIPLES.map((p, i) => (
               <div
-                key={t.name}
-                className="bg-[#0D1726] border border-white/8 rounded-xl p-6 flex flex-col gap-4"
+                key={p.title}
+                className="bg-[#0D1726] border border-white/8 rounded-xl p-6 flex flex-col gap-3"
                 style={{
                   opacity: testiInView ? 1 : 0,
                   transform: testiInView ? "translateY(0)" : "translateY(20px)",
                   transition: `opacity 0.5s ease ${i * 100}ms, transform 0.5s ease ${i * 100}ms`,
                 }}
               >
-                <div className="flex text-[#10B981]">
-                  {[...Array(5)].map((_, j) => <Star key={j} className="w-4 h-4 fill-current" />)}
+                <div className="w-9 h-9 rounded-full bg-[#10B981]/15 border border-[#10B981]/25 flex items-center justify-center text-xs font-medium text-[#10B981]">
+                  {String(i + 1).padStart(2, "0")}
                 </div>
-                <p className="text-[#F1F5F9] text-sm leading-relaxed flex-1">"{t.quote}"</p>
-                <div className="flex items-center gap-3 pt-2 border-t border-white/8">
-                  <div className="w-9 h-9 rounded-full bg-[#2563EB]/20 border border-[#2563EB]/30 flex items-center justify-center text-xs font-medium text-[#2563EB]">
-                    {t.initials}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">{t.name}</p>
-                    <p className="text-xs text-[#64748B]">{t.role}</p>
-                  </div>
-                </div>
+                <h3 className="text-sm font-medium text-white">{p.title}</h3>
+                <p className="text-[#64748B] text-sm leading-relaxed">{p.desc}</p>
               </div>
             ))}
           </div>

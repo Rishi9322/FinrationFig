@@ -5,6 +5,7 @@ import { CalculatorType } from "../../lib/financialCalculations"
 import * as calc from "../../lib/financialCalculations"
 import { saveCalculation } from "../../lib/calculationStorage"
 import { uploadBalanceSheetFile } from "../../lib/uploadStorage"
+import "../../styles/balance-sheet-upload.css"
 
 type Props = {
   userId?: string
@@ -21,13 +22,22 @@ export default function BalanceSheetUpload({ userId }: Props) {
 
   async function handleParse() {
     if (!file) return setMessage("Choose a file first")
-    if (!userId) return setMessage("Sign in required to store uploads")
     setLoading(true)
     try {
-      await uploadBalanceSheetFile(file)
+      // Parse locally first so users can preview even when not signed in
       const p = await parseFile(file)
       setParsed(p)
-      setMessage("Uploaded and parsed successfully; review and map to calculator")
+
+      if (userId) {
+        try {
+          await uploadBalanceSheetFile(file)
+          setMessage("Parsed and uploaded successfully; review and map to calculator")
+        } catch (uploadErr: any) {
+          setMessage("Parsed successfully; upload failed: " + String(uploadErr?.message || uploadErr))
+        }
+      } else {
+        setMessage("Parsed successfully; sign in to save uploads")
+      }
     } catch (err: any) {
       setMessage(String(err?.message || err))
     } finally {
@@ -104,15 +114,20 @@ export default function BalanceSheetUpload({ userId }: Props) {
   }
 
   return (
-    <div style={{ border: "1px solid #ddd", padding: 12, borderRadius: 8 }}>
+    <div className="bs-upload">
       <h3>Upload Balance Sheet</h3>
-      <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-      <div style={{ marginTop: 8 }}>
-        <label>Calculator: </label>
+      <div className="form-row">
+        <label htmlFor="bs-file">File</label>
+        <input id="bs-file" type="file" aria-label="Upload balance sheet file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+      </div>
+      <div className="form-row">
+        <label htmlFor="calc-select">Calculator</label>
         <select
+          id="calc-select"
+          aria-label="Select calculator"
           value={selectedCalculator}
           onChange={(e) => setSelectedCalculator(e.target.value as CalculatorType)}
-          style={{ color: "#0f172a", backgroundColor: "#ffffff", border: "1px solid #cbd5f5" }}
+          className="calc-select"
         >
           {(
             [
@@ -135,39 +150,39 @@ export default function BalanceSheetUpload({ userId }: Props) {
         </select>
       </div>
 
-      <div style={{ marginTop: 8 }}>
-        <button onClick={handleParse} disabled={loading || !file} style={{ marginRight: 8 }}>
+      <div className="actions">
+        <button onClick={handleParse} disabled={loading || !file} className="btn">
           Parse
         </button>
-        <button onClick={handleMap} disabled={!parsed} style={{ marginRight: 8 }}>
+        <button onClick={handleMap} disabled={!parsed} className="btn">
           Map
         </button>
-        <button onClick={runCalc} disabled={!mapped} style={{ marginRight: 8 }}>
+        <button onClick={runCalc} disabled={!mapped} className="btn">
           Run Calculation
         </button>
-        <button onClick={handleSave} disabled={!result || !userId}>
+        <button onClick={handleSave} disabled={!result || !userId} className="btn primary">
           Save
         </button>
       </div>
 
-      <div style={{ marginTop: 12 }}>
-        {message && <div style={{ color: "#333" }}>{message}</div>}
+      <div className="preview">
+        {message && <div className="message">{message}</div>}
         {parsed && (
           <details>
             <summary>Parsed Preview</summary>
-            <pre style={{ maxHeight: 200, overflow: "auto" }}>{JSON.stringify(parsed, null, 2)}</pre>
+            <pre className="pre-box">{JSON.stringify(parsed, null, 2)}</pre>
           </details>
         )}
         {mapped && (
           <details>
             <summary>Mapped Inputs</summary>
-            <pre style={{ maxHeight: 200, overflow: "auto" }}>{JSON.stringify(mapped, null, 2)}</pre>
+            <pre className="pre-box">{JSON.stringify(mapped, null, 2)}</pre>
           </details>
         )}
         {result && (
           <details open>
             <summary>Result</summary>
-            <pre style={{ maxHeight: 300, overflow: "auto" }}>{JSON.stringify(result, null, 2)}</pre>
+            <pre className="pre-box">{JSON.stringify(result, null, 2)}</pre>
           </details>
         )}
       </div>

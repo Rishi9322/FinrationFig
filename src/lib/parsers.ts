@@ -21,7 +21,7 @@ function parseCSVText(text: string): LineItem[] {
     }
 
     // fallback: last column numeric
-    const last = cols[cols.length - 1]
+    const last = String(cols[cols.length - 1] ?? "")
     const value = Number(last.replace(/[^0-9.-]+/g, ""))
     const name = cols.slice(0, -1).join(" ") || cols[0]
     return { name: name || "item", value: isNaN(value) ? 0 : value }
@@ -93,8 +93,8 @@ export async function parseFile(file: File): Promise<ParsedBalanceSheet> {
       const obj = JSON.parse(text)
       // If already in parsed shape, trust it
       if (obj && obj.balanceSheet) {
-        return { ...obj, originalFormat: "json", parsedAt }
-      }
+          return { ...obj, sourceFilename: name, originalFormat: "json", parsedAt }
+        }
 
       // try to turn arrays into line items
       const items: LineItem[] = []

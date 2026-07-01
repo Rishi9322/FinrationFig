@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useMemo } from 'react';
 import { CmaParsedData, CmaComputedData } from '../../../lib/finance/cmaTypes';
 import { computeCmaData } from '../../../lib/finance/cmaCalculations';
+import type { DocumentClassification } from '../../../lib/ai/openrouter';
 
 interface CmaState {
   parsedData: CmaParsedData | null;
@@ -10,6 +11,8 @@ interface CmaState {
   creditOpinion: string;
   isStreaming: boolean;
   balanceCheck: { isBalanced: boolean; differences?: number[] };
+  classification: DocumentClassification | null;
+  sourceMeta: { sourceName: string | null; sourceFormat: string };
 }
 
 interface CmaContextType extends CmaState {
@@ -18,7 +21,10 @@ interface CmaContextType extends CmaState {
   setIsLoading: (loading: boolean) => void;
   setCreditOpinion: (opinion: string | ((prev: string) => string)) => void;
   setIsStreaming: (streaming: boolean) => void;
+  setClassification: (classification: DocumentClassification | null) => void;
+  setSourceMeta: (meta: { sourceName: string | null; sourceFormat: string }) => void;
   loadSampleData: () => void;
+  loadSavedDocument: (saved: { parsedData: CmaParsedData; creditOpinion?: string; classification?: DocumentClassification | null; sourceName?: string | null; sourceFormat?: string }) => void;
 }
 
 const CmaContext = createContext<CmaContextType | undefined>(undefined);
@@ -29,6 +35,8 @@ export function CmaProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const [creditOpinion, setCreditOpinion] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [classification, setClassification] = useState<DocumentClassification | null>(null);
+  const [sourceMeta, setSourceMeta] = useState<{ sourceName: string | null; sourceFormat: string }>({ sourceName: null, sourceFormat: "txt" });
 
   const computedData = useMemo(() => {
     if (!parsedData) return null;
@@ -157,6 +165,13 @@ export function CmaProvider({ children }: { children: React.ReactNode }) {
     setParsedDataState(sample);
   };
 
+  const loadSavedDocument = (saved: { parsedData: CmaParsedData; creditOpinion?: string; classification?: DocumentClassification | null; sourceName?: string | null; sourceFormat?: string }) => {
+    setParsedDataState(saved.parsedData);
+    setCreditOpinion(saved.creditOpinion || "");
+    setClassification(saved.classification ?? null);
+    setSourceMeta({ sourceName: saved.sourceName ?? null, sourceFormat: saved.sourceFormat || "txt" });
+  };
+
   return (
     <CmaContext.Provider value={{
       parsedData,
@@ -166,12 +181,17 @@ export function CmaProvider({ children }: { children: React.ReactNode }) {
       creditOpinion,
       isStreaming,
       balanceCheck,
+      classification,
+      sourceMeta,
       setParsedData,
       setActiveTab,
       setIsLoading,
       setCreditOpinion,
       setIsStreaming,
-      loadSampleData
+      setClassification,
+      setSourceMeta,
+      loadSampleData,
+      loadSavedDocument
     }}>
       {children}
     </CmaContext.Provider>

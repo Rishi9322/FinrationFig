@@ -1,17 +1,17 @@
 // Financial Expert System - AI Agent with Financial Knowledge
-import OllamaClient from './ollama-client.js';
+import OpenRouterClient from './openrouter-client.js';
 import chalk from 'chalk';
 
 export class FinancialExpert {
   constructor() {
-    this.ollama = new OllamaClient();
+    this.llm = new OpenRouterClient();
     this.financialContext = this.buildFinancialContext();
     this.initialized = false;
   }
 
   async initialize() {
-    await this.ollama.initialize();
-    this.initialized = this.ollama.isConnected;
+    await this.llm.initialize();
+    this.initialized = this.llm.isConnected;
     return this.initialized;
   }
 
@@ -128,7 +128,7 @@ ${JSON.stringify(financialData, null, 2)}
 Create a professional, bank-ready CMA Report with all sections.`;
 
     console.log(chalk.blue('📝 Generating CMA Report...'));
-    return this.ollama.chat(this.getSystemPrompt('cmaReport'), message);
+    return this.llm.chat(this.getSystemPrompt('cmaReport'), message);
   }
 
   async analyzeDocument(documentContent, analysisType = 'comprehensive') {
@@ -143,7 +143,7 @@ ${documentContent}
 Provide detailed financial analysis with specific insights, numbers, and recommendations.`;
 
     console.log(chalk.blue('🔍 Analyzing financial document...'));
-    return this.ollama.chat(this.getSystemPrompt('analysis'), message);
+    return this.llm.chat(this.getSystemPrompt('analysis'), message);
   }
 
   async transformDocument(documentContent, targetFormat = 'cma') {
@@ -158,7 +158,7 @@ ${documentContent}
 Extract key financial data and present it in standard ${targetFormat} format.`;
 
     console.log(chalk.blue(`🔄 Transforming to ${targetFormat} format...`));
-    return this.ollama.chat(this.getSystemPrompt('transformation'), message);
+    return this.llm.chat(this.getSystemPrompt('transformation'), message);
   }
 
   async createProjections(historicalData, assumptions = {}) {
@@ -177,7 +177,7 @@ ${JSON.stringify(assumptions, null, 2)}
 Generate detailed financial projections for next 3-5 years.`;
 
     console.log(chalk.blue('📈 Creating financial projections...'));
-    return this.ollama.chat(this.getSystemPrompt('projection'), message);
+    return this.llm.chat(this.getSystemPrompt('projection'), message);
   }
 
   async assessCreditRisk(financialData, companyProfile = {}) {
@@ -201,7 +201,7 @@ Provide credit risk assessment with:
 - Terms and Conditions`;
 
     console.log(chalk.blue('⚠️  Assessing credit risk...'));
-    return this.ollama.chat(this.getSystemPrompt('analysis'), message);
+    return this.llm.chat(this.getSystemPrompt('analysis'), message);
   }
 
   async streamAnalysis(documentContent, onChunk) {
@@ -216,7 +216,7 @@ ${documentContent.substring(0, 5000)}...
 Provide comprehensive financial analysis.`;
 
     console.log(chalk.blue('🔍 Streaming analysis...'));
-    return this.ollama.streamChat(
+    return this.llm.streamChat(
       this.getSystemPrompt('analysis'),
       message,
       onChunk
@@ -230,8 +230,8 @@ Provide comprehensive financial analysis.`;
   async healthCheck() {
     return {
       status: this.initialized ? 'ready' : 'not-initialized',
-      connected: this.ollama.isConnected,
-      model: this.ollama.model,
+      connected: this.llm.isConnected,
+      model: this.llm.model,
       capabilities: this.financialContext.capabilities.length
     };
   }

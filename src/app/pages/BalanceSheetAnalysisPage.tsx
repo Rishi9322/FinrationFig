@@ -1,17 +1,11 @@
 import React from "react"
 import BalanceSheetUpload from "@/app/components/BalanceSheetUpload"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
+import { useAuth } from "@/app/hooks/useAuth"
 
-/**
- * Example integration page for Balance Sheet Upload
- * 
- * This demonstrates how to use the BalanceSheetUpload component
- * in your application.
- */
 export default function BalanceSheetAnalysisPage() {
-  // Get userId from your auth context
-  // const { user } = useAuth()
-  const userId = "demo-user-123"
+  const { user } = useAuth()
+  const userId = user?.id
 
   return (
     <div className="container mx-auto p-6">

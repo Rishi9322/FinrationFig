@@ -1,21 +1,37 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useCma } from '../context/CmaContext';
-import { buildCmaExportPayload, parseCmaFinancialData, recordCmaLearningExample } from '../../../lib/ai/openrouter';
+import { buildCmaExportPayload, classifyFinancialDocument, parseCmaFinancialData, recordCmaLearningExample } from '../../../lib/ai/openrouter';
 import { uploadBalanceSheetFile } from '../../../lib/uploadStorage';
+import { saveCmaDocument, getSavedCmaDocuments, type SavedCmaDocument } from '../../../lib/cmaDocumentStorage';
+import { useAuth } from '../../../app/hooks/useAuth';
 
 export function DataInputEngine() {
-  const { loadSampleData, setParsedData, setIsLoading, isLoading, parsedData, balanceCheck } = useCma();
+  const { loadSampleData, setParsedData, setIsLoading, isLoading, parsedData, computedData, balanceCheck, creditOpinion, classification, setClassification, sourceMeta, setSourceMeta, loadSavedDocument } = useCma();
+  const { user } = useAuth();
   const [rawText, setRawText] = useState("");
   const [error, setError] = useState("");
   const [sourceName, setSourceName] = useState<string | null>(null);
   const [sourceFormat, setSourceFormat] = useState<string>("txt");
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [isClassifying, setIsClassifying] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [savedDocuments, setSavedDocuments] = useState<SavedCmaDocument[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!user) {
+      setSavedDocuments([]);
+      return;
+    }
+    getSavedCmaDocuments(user.id).then(setSavedDocuments).catch(() => setSavedDocuments([]));
+  }, [user]);
 
   const inferSourceFormat = (fileName: string) => {
     const lowerName = fileName.toLowerCase();
     if (lowerName.endsWith('.pdf')) return 'pdf';
     if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) return 'xlsx';
+    if (lowerName.endsWith('.docx')) return 'docx';
     if (lowerName.endsWith('.csv')) return 'csv';
     if (lowerName.endsWith('.txt')) return 'txt';
     return 'other';
@@ -81,11 +97,22 @@ export function DataInputEngine() {
       return sheetParts.join('\n');
     }
 
+    if (lowerName.endsWith('.docx')) {
+      const mammoth = await import('mammoth');
+      const buffer = await file.arrayBuffer();
+      const res = await mammoth.extractRawText({ arrayBuffer: buffer });
+      return String(res.value || '');
+    }
+
+    if (lowerName.endsWith('.doc')) {
+      throw new Error('Legacy .doc files are not supported. Please convert to .docx or PDF and re-upload.');
+    }
+
     if (lowerName.endsWith('.csv') || lowerName.endsWith('.txt')) {
       return await file.text();
     }
 
-    throw new Error('Unsupported file format. Please upload PDF, XLS/XLSX, or CSV.');
+    throw new Error('Unsupported file format. Please upload PDF, DOCX, XLS/XLSX, or CSV.');
   };
 
   const downloadJson = (filename: string, payload: unknown) => {
@@ -103,11 +130,22 @@ export function DataInputEngine() {
     setIsLoading(true);
     setError("");
     try {
+      setIsClassifying(true);
+      try {
+        const result = await classifyFinancialDocument(rawText, sourceName || undefined);
+        setClassification(result);
+      } catch (classifyErr) {
+        setClassification(null);
+      } finally {
+        setIsClassifying(false);
+      }
+
       const parsed = await parseCmaFinancialData(rawText, {
         sourceFormat,
         sourceName: sourceName || undefined,
       });
       setParsedData(parsed);
+      setSourceMeta({ sourceName, sourceFormat });
     } catch (err: any) {
       setError(err.message || "Failed to parse data");
     } finally {
@@ -122,7 +160,8 @@ export function DataInputEngine() {
     setIsLoading(true);
     setError("");
     setUploadStatus(null);
-    
+    setClassification(null);
+
     try {
       try {
         await uploadBalanceSheetFile(file);
@@ -150,10 +189,10 @@ export function DataInputEngine() {
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Data Input Engine</h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <input 
-            type="file" 
-            accept=".pdf,.csv,.xlsx,.xls,.txt" 
-            style={{ display: 'none' }} 
+          <input
+            type="file"
+            accept=".pdf,.docx,.csv,.xlsx,.xls,.txt"
+            style={{ display: 'none' }}
             ref={fileInputRef}
             onChange={handleFileUpload}
           />
@@ -172,7 +211,7 @@ export function DataInputEngine() {
 
       <div style={{ marginBottom: '1rem' }}>
         <p style={{ color: '#94A3B8', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-          Paste raw balance sheet and P&L data below, or upload a PDF/XLS/CSV file. The AI will parse it into the RBI CMA format.
+          Paste raw balance sheet and P&L data below, or upload a PDF/DOCX/XLS/CSV file. The AI will auto-detect the document type and parse it into the RBI CMA format.
         </p>
         {uploadStatus && (
           <p style={{ color: '#94A3B8', marginBottom: '0.5rem', fontSize: '0.8rem' }}>{uploadStatus}</p>
@@ -205,6 +244,31 @@ export function DataInputEngine() {
         </button>
         {error && <span style={{ color: '#EF4444', fontSize: '0.875rem' }}>{error}</span>}
       </div>
+
+      {isClassifying && (
+        <p style={{ color: '#94A3B8', fontSize: '0.85rem', marginTop: '0.75rem' }}>Checking document type…</p>
+      )}
+      {classification && (
+        <div style={{
+          marginTop: '0.75rem',
+          padding: '0.75rem 1rem',
+          borderRadius: '6px',
+          border: `1px solid ${classification.isFinancialDocument ? '#1A2030' : '#EF4444'}`,
+          backgroundColor: '#111720',
+        }}>
+          <span className={classification.isFinancialDocument ? 'cma-badge badge-green' : 'cma-badge badge-red'}>
+            {classification.isFinancialDocument ? classification.docType : 'Not a financial document'}
+          </span>
+          <span style={{ color: '#94A3B8', fontSize: '0.8rem', marginLeft: '0.75rem' }}>
+            Confidence: {Math.round(classification.confidence * 100)}% — {classification.reason}
+          </span>
+          {!classification.isFinancialDocument && (
+            <p style={{ color: '#EF4444', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+              This doesn't look like a balance sheet or financial statement. You can still proceed, but the extracted CMA data may be inaccurate.
+            </p>
+          )}
+        </div>
+      )}
 
       {parsedData && (
         <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#111720', borderRadius: '6px', border: '1px solid #1A2030' }}>
@@ -248,6 +312,59 @@ export function DataInputEngine() {
             >
               Save as learning example
             </button>
+            <button
+              className="cma-btn cma-btn-outline"
+              disabled={!user || isSaving}
+              onClick={async () => {
+                if (!user) {
+                  setSaveStatus('Sign in to save this document to your account.');
+                  return;
+                }
+                setIsSaving(true);
+                setSaveStatus(null);
+                try {
+                  await saveCmaDocument(user.id, {
+                    sourceName,
+                    sourceFormat,
+                    classification,
+                    parsedData,
+                    computedData,
+                    creditOpinion,
+                  });
+                  setSaveStatus('Saved to your account.');
+                  const docs = await getSavedCmaDocuments(user.id);
+                  setSavedDocuments(docs);
+                } catch (err: any) {
+                  setSaveStatus(err?.message || 'Failed to save document.');
+                } finally {
+                  setIsSaving(false);
+                }
+              }}
+            >
+              {isSaving ? 'Saving…' : 'Save to My Documents'}
+            </button>
+          </div>
+          {saveStatus && <p style={{ color: '#94A3B8', fontSize: '0.8rem', marginTop: '0.5rem' }}>{saveStatus}</p>}
+        </div>
+      )}
+
+      {user && savedDocuments.length > 0 && (
+        <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#111720', borderRadius: '6px', border: '1px solid #1A2030' }}>
+          <h3 style={{ marginBottom: '1rem', color: '#F8FAFC' }}>My Saved Documents</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {savedDocuments.map((doc) => (
+              <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1A2030', paddingBottom: '0.5rem' }}>
+                <div>
+                  <div style={{ color: '#E2E8F0' }}>{doc.sourceName || doc.parsedData?.company || 'Untitled document'}</div>
+                  <div style={{ color: '#64748B', fontSize: '0.75rem' }}>
+                    {doc.classification?.docType || 'Financial document'} · {new Date(doc.createdAt).toLocaleString()}
+                  </div>
+                </div>
+                <button className="cma-btn cma-btn-outline" onClick={() => loadSavedDocument(doc)}>
+                  Load
+                </button>
+              </div>
+            ))}
           </div>
         </div>
       )}

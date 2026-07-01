@@ -1,0 +1,11 @@
+.bs-upload{border:1px solid var(--muted, #ddd);padding:12px;border-radius:8px}
+.bs-upload h3{margin:0 0 8px 0}
+.form-row{display:flex;flex-direction:column;margin-bottom:8px}
+.form-row label{font-size:0.9rem;margin-bottom:4px}
+.calc-select{color:#0f172a;background:#fff;border:1px solid #cbd5f5;padding:6px;border-radius:4px}
+.actions{display:flex;gap:8px;margin-top:8px}
+.btn{padding:6px 10px;border-radius:6px;border:1px solid #cbd5f5;background:#fff}
+.btn.primary{background:#0b69ff;color:#fff;border-color:#0b69ff}
+.preview{margin-top:12px}
+.pre-box{max-height:300px;overflow:auto;background:#f8fafc;padding:8px;border-radius:6px;border:1px solid #e2e8f0}
+.message{color:#111}

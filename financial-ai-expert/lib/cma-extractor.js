@@ -11,7 +11,6 @@
  */
 
 import { buildSynonymIndex, flatSchema, CMA_SCHEMA } from './cma-schema.js';
-import OllamaClient from './ollama-client.js';
 
 const CONFIDENCE_AUTO_ACCEPT = 0.9;   // green — no flag
 const CONFIDENCE_WARN = 0.7;          // yellow highlight
@@ -86,10 +85,11 @@ function ruleMatch(label) {
 
 // ─── Stage 3: LLM extractor ─────────────────────────────────────────────────
 
-const SCHEMA_SUMMARY = SCHEMA_FLAT
-  .filter(i => !i.computed)
-  .map(i => `${i.section}.${i.key}: "${i.label}" (${(i.synonyms ?? []).slice(0, 3).join(', ')})`)
-  .join('\n');
+const SCHEMA_SUMMARY = SCHEMA_FLAT.reduce((acc, i) => {
+  if (i.computed) return acc;
+  acc.push(`${i.section}.${i.key}: "${i.label}" (${(i.synonyms ?? []).slice(0, 3).join(', ')})`);
+  return acc;
+}, []).join('\n');
 
 const LLM_SYSTEM_PROMPT = `You are a senior Indian banking CMA analyst. Your task is to map financial line items to the standard CMA schema.
 
@@ -159,10 +159,12 @@ export async function extractCmaValues(sourceItems, ollama) {
   if (unmatched.length > 0 && ollama?.isConnected) {
     const llmResults = await llmMatch(ollama, unmatched);
 
+    // Build a fast lookup map to avoid O(N^2) find calls
+    const unmatchedMap = new Map(unmatched.map(u => [u.label, u]));
     for (const res of llmResults) {
       if (!res.schema_key || res.confidence < 0.3) continue;
 
-      const original = unmatched.find(u => u.label === res.source_label);
+      const original = unmatchedMap.get(res.source_label);
       if (!original) continue;
 
       const yearKey = original.year ?? 'default';

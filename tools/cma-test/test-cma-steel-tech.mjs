@@ -18,6 +18,7 @@ import path from 'path'
 const DATA_DIR = 'steel tech'
 const CMA_FILE = path.join(DATA_DIR, 'CMA Steel Tech.xls')
 const LOAN_FILE = path.join(DATA_DIR, 'Loan Sheet1.xlsx')
+let totalAnnualEMI = 0
 
 console.log('\n========================================')
 console.log('CMA Steel Tech - Formula Validation Test')
@@ -97,13 +98,21 @@ try {
   console.log(`✅ Loan data loaded: ${loanData.length} rows`)
   console.log('Sample:', loanData[0])
 
+  totalAnnualEMI = loanData.reduce((sum, loan) => {
+    const monthlyEmi = Number(loan.EMI ?? loan['EMI'] ?? loan.emi ?? loan['emi'] ?? 0)
+    if (!Number.isFinite(monthlyEmi) || monthlyEmi <= 0) return sum
+    return sum + (monthlyEmi * 12)
+  }, 0)
+
+  console.log(`✅ Derived total annual EMI from loan sheet: ₹${totalAnnualEMI.toLocaleString('en-IN')}`)
+
   // ============================================================================
   // STEP 4: Run Calculator Functions
   // ============================================================================
 
   console.log('\n🧮 Running Financial Calculators...\n')
 
-  const results = runCalculators(parsedBS)
+  const results = runCalculators(parsedBS, sheets)
 
   // ============================================================================
   // STEP 5: Compare with CMA Report
@@ -212,11 +221,55 @@ function parseBalanceSheet(rawData) {
   return result
 }
 
+function findRowByLabel(rows, labelRegex) {
+  return rows.find((row) =>
+    Object.values(row).some((value) => labelRegex.test(String(value).toLowerCase()))
+  ) || null
+}
+
+function extractFirstNumericValue(row) {
+  if (!row) return null
+
+  for (const value of Object.values(row)) {
+    const numeric = Number(String(value).replace(/,/g, ''))
+    if (Number.isFinite(numeric) && numeric > 0) {
+      return numeric
+    }
+  }
+
+  return null
+}
+
 /**
  * Run all financial calculator functions
  */
-function runCalculators(bs) {
+function runCalculators(bs, sheets) {
   const results = {}
+
+  const operatingStatementRows = sheets['Operating Statement'] || []
+  const currentLiabilitiesRows = sheets['Current Liabilities'] || []
+  const currentAssetsRows = sheets['Current Assets'] || []
+
+  const currentAssets = extractFirstNumericValue(findRowByLabel(currentAssetsRows, /total current assets/i))
+    ?? extractFirstNumericValue(findRowByLabel(currentAssetsRows, /current assets/i))
+    ?? (bs.assets.total * 0.7)
+
+  const currentLiabilities = extractFirstNumericValue(findRowByLabel(currentLiabilitiesRows, /total current liabilities/i))
+    ?? extractFirstNumericValue(findRowByLabel(currentLiabilitiesRows, /current liabilities/i))
+    ?? (bs.liabilities.total * 0.6)
+
+  const revenue = extractFirstNumericValue(findRowByLabel(operatingStatementRows, /net sales/i))
+    ?? extractFirstNumericValue(findRowByLabel(operatingStatementRows, /gross sales/i))
+    ?? (bs.liabilities.total * 2)
+
+  const operatingProfitBeforeInterest = extractFirstNumericValue(
+    findRowByLabel(operatingStatementRows, /operating profit before interest/i)
+  )
+  const operatingExpenses = extractFirstNumericValue(
+    findRowByLabel(operatingStatementRows, /selling, general and admns\. expenses/i)
+  ) ?? (revenue * 0.6)
+
+  const ebitda = operatingProfitBeforeInterest ?? (revenue - operatingExpenses)
 
   try {
     // 1. Debt-to-Equity Ratio
@@ -228,8 +281,6 @@ function runCalculators(bs) {
     }
 
     // 2. Current Ratio
-    const currentAssets = bs.assets.total * 0.7 // Estimate (typically accounts receivable + inventory + cash)
-    const currentLiabilities = bs.liabilities.total * 0.6 // Estimate
     results['current-ratio'] = {
       formula: 'Current Assets / Current Liabilities',
       calculation: currentAssets / currentLiabilities,
@@ -238,9 +289,6 @@ function runCalculators(bs) {
     }
 
     // 3. EBITDA Margin
-    const revenue = bs.incomeStatement.revenue || bs.liabilities.total * 2 // Estimate
-    const operatingExpenses = bs.incomeStatement.operatingExpenses || revenue * 0.6
-    const ebitda = revenue - operatingExpenses
     results['ebitda'] = {
       formula: 'Revenue - Operating Expenses',
       calculation: ebitda,
@@ -287,7 +335,7 @@ function runCalculators(bs) {
     }
 
     // 8. Debt Service Coverage Ratio (DSCR)
-    const totalDebtService = bs.liabilities.total * 0.15 // Estimate
+    const totalDebtService = totalAnnualEMI || (bs.liabilities.total * 0.15)
     results['dscr'] = {
       formula: 'EBITDA / Total Debt Service',
       calculation: ebitda / totalDebtService,
@@ -365,7 +413,7 @@ function validateFormulas(results, bs) {
 
     try {
       // Basic validation: result should be a number
-      if (typeof calc.value !== 'number' || isNaN(calc.value)) {
+      if (typeof calc.value !== 'number' || !Number.isFinite(calc.value)) {
         detail.status = 'FAIL'
         detail.error = 'Invalid result type'
         validation.summary.failedValidation++

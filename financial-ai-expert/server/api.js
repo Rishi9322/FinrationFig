@@ -29,11 +29,12 @@ expert.initialize().then(() => {
 
 // Health Check
 app.get('/api/health', (req, res) => {
+  const health = expert.healthCheck();
   res.json({
     status: expertReady ? 'ready' : 'initializing',
     timestamp: new Date().toISOString(),
-    expert: expert.ollama.isConnected ? 'connected' : 'offline',
-    model: expert.ollama.model
+    expert: health.connected ? 'connected' : 'offline',
+    model: health.model
   });
 });
 
@@ -186,7 +187,7 @@ app.post('/api/assess-credit', async (req, res) => {
 // List Available Models
 app.get('/api/models', async (req, res) => {
   try {
-    const models = await expert.ollama.getAvailableModels();
+    const models = await expert.llm.getAvailableModels();
     res.json({ success: true, models });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -200,7 +201,7 @@ app.post('/api/set-model', async (req, res) => {
     if (!model) {
       return res.status(400).json({ error: 'Model name required' });
     }
-    await expert.ollama.setModel(model);
+    await expert.llm.setModel(model);
     res.json({ success: true, model });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -247,8 +248,8 @@ app.post('/api/cma/extract', async (req, res) => {
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'items array required' });
     }
-    const ollama = expertReady ? expert.ollama : null;
-    const extraction = await extractCmaValues(items, ollama);
+    const llm = expertReady ? expert.llm : null;
+    const extraction = await extractCmaValues(items, llm);
     res.json({ success: true, extraction, years });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -283,8 +284,8 @@ app.post('/api/cma/extract-and-compute', async (req, res) => {
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ error: 'items array required' });
     }
-    const ollama = expertReady ? expert.ollama : null;
-    const extraction = await extractCmaValues(items, ollama);
+    const llm = expertReady ? expert.llm : null;
+    const extraction = await extractCmaValues(items, llm);
     const { model, tieOuts } = computeCmaModel(extraction, years);
     res.json({ success: true, extraction, model, tieOuts, years });
   } catch (err) {
@@ -307,7 +308,7 @@ app.get('/api/cma/schema', (_req, res) => {
  */
 app.post('/api/cma/credit-opinion', async (req, res) => {
   try {
-    if (!expertReady) return res.status(503).json({ error: 'Ollama not ready' });
+    if (!expertReady) return res.status(503).json({ error: 'LLM not ready' });
 
     const { model, years, companyName = 'the borrower' } = req.body;
 
@@ -335,7 +336,7 @@ Write a structured credit assessment report for ${companyName}:
 
 Use exact numbers from the CMA data. 500-700 words. Formal banking language.`;
 
-    await expert.ollama.streamChat(
+    await expert.llm.streamChat(
       systemPrompt,
       `CMA Data (years: ${years.join(', ')}):\n${JSON.stringify(model, null, 2)}`,
       (chunk) => res.write(`data: ${JSON.stringify({ chunk })}\n\n`),
