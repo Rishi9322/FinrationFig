@@ -1,118 +1,82 @@
-# FinRatio SaaS Platform
+# FinRatio
 
-FinRatio is a fintech-style ratio analysis platform with production-oriented credentials authentication, JWT session cookies, RBAC, calculator feature gating, and admin access management.
+FinRatio is a financial ratio analysis platform for Indian SMEs and credit teams — 12 ratio calculators (D/E, DSCR, ISCR, EBITDA, Current Ratio, Drawing Power, Ageing, Net Working Capital, Working Capital Cycle, PID, Quasi D/E, Business Valuation), a CMA (Credit Monitoring Arrangement) report generator with balance sheet upload/parsing, calculation history, and role-based admin management — all built on React + Vite with a Supabase backend.
 
-## Implemented Security and Access Features
+## Stack
 
-- Credentials auth only: email + password (no OAuth)
-- Signup fields: full name, email, phone number, password, confirm password
-- Phone number collection and validation via `libphonenumber-js` (no SMS OTP)
-- Email OTP verification with 6-digit code and 5-minute expiry
-- JWT session in HTTP-only secure cookie
-- CSRF protection for state-changing authenticated APIs
-- Brute-force/rate-limit guards for signin/signup/OTP/password reset routes
-- Bcrypt password hashing
-- Forgot password/reset password flow with crypto-secure token and 15-minute expiry
-- Role-based access control: `SUPER_ADMIN`, `ADMIN`, `USER`
-- Fine-grained calculator access by user
-- Default calculator access: `pid` only for new users
-- Admin panel for user role/status/calculator-access management
-- Access-denied route and locked calculator UI states
-- Server-side permission checks for protected APIs
+- **Frontend**: React 19, Vite, TypeScript, React Router, Tailwind + Radix UI + MUI, Recharts
+- **Backend**: Supabase (Postgres, Auth, Edge Functions, Storage) — edge function at `supabase/functions/make-server-bd792702`
+- **AI/parsing**: `financial-ai-expert/` package (CMA extraction, OpenRouter-backed financial analysis), `pdfjs-dist` / `xlsx` for document parsing
+- **Testing**: Vitest
 
-## Routes
+## Features
 
-### Auth
+- Credentials auth (email + password), email OTP verification, JWT session in HTTP-only cookie, CSRF protection, rate-limiting on auth routes, bcrypt hashing, forgot/reset password flow
+- Role-based access control (`SUPER_ADMIN`, `ADMIN`, `USER`) with per-user, per-calculator feature gating
+- 12 financial ratio calculators with live recalculation and risk badges (Low/Moderate/High)
+- Calculation history — every run saved and reloadable
+- Balance sheet upload and CMA report generation with document parsing/extraction
+- Admin panel: users, calculators, calculations, permissions, settings
 
-- `/auth/signup`
-- `/auth/signin`
-- `/auth/verify-otp`
-- `/auth/forgot-password`
-- `/auth/reset-password`
+## Project Structure
 
-### Protected App
-
-- `/dashboard`
-- `/calculators`
-- `/calculators/*` (feature-permission gated)
-
-### Admin
-
-- `/admin/users` (SUPER_ADMIN only)
-
-### Errors
-
-- `/access-denied`
-
-## Prisma Schema
-
-The requested Prisma schema is included at:
-
-- `prisma/schema.prisma`
-
-This schema models:
-
-- `User`
-- `Role`
-- `CalculatorFeature`
-- `UserCalculatorAccess`
-- `Calculation`
+```
+src/
+  app/
+    pages/            top-level routes (Home, Dashboard, auth, admin, calculators)
+    components/        shared UI (Navbar, ProtectedRoute, upload, admin, calculators)
+  modules/cma/         CMA report generator (components, context, pages)
+  lib/                 calculators, parsers, Supabase admin client, AI/OpenRouter wiring
+financial-ai-expert/   standalone CMA extraction / financial analysis package
+supabase/
+  functions/           edge functions (make-server-bd792702, admin-api, server)
+  migrations/          SQL schema + RLS migrations
+docs/                  implementation notes, validation reports, formula sheet
+tools/, scripts/       CMA test fixtures and OCR comparison tooling
+```
 
 ## Environment Variables
 
-### Frontend
+### Frontend (`.env.local`)
 
-The frontend uses existing Supabase function wiring via `utils/supabase/info.tsx`.
+- `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`
 
 ### Supabase Edge Function (`supabase/functions/make-server-bd792702`)
 
-Set these secrets in Supabase:
-
-- `JWT_SECRET`: strong secret for session JWT signing
-- `RESEND_API_KEY`: Resend API key for transactional email
-- `RESEND_FROM_EMAIL`: verified sender local part/domain mailbox, defaults to `deepak.poddar@finratio.sbs`
-- `APP_BASE_URL`: frontend base URL (for reset links), e.g. `https://app.finratio.com`
-- `APP_ORIGIN`: exact frontend origin for CORS, e.g. `https://app.finratio.com`
-- `COOKIE_SECURE`: `true` in production, `false` for local non-HTTPS testing
-
-## Email Provider
-
-Resend is used for:
-
-- Verification OTP email
-- Password reset email
-- Access granted notification
-
-Use a verified sender domain in your Resend account and ensure:
-
-- `from: FinRatio <deepak.poddar@finratio.sbs>` is allowed, or set `RESEND_FROM_EMAIL` to another verified sender
+- `JWT_SECRET` — session JWT signing secret
+- `RESEND_API_KEY`, `RESEND_FROM_EMAIL` — transactional email (OTP, password reset, access notifications)
+- `APP_BASE_URL`, `APP_ORIGIN` — frontend base URL / CORS origin
+- `COOKIE_SECURE` — `true` in production, `false` for local HTTP testing
+- `SUPABASE_SERVICE_ROLE_KEY` — required for admin operations (`src/lib/admin.ts`), server-only
 
 ## Local Development
 
-1. Install dependencies:
-   - `npm install`
-2. Run frontend:
-   - `npm run dev`
-3. Deploy/update edge function:
-   - `supabase functions deploy make-server-bd792702 --no-verify-jwt`
-4. Set secrets:
-   - `supabase secrets set JWT_SECRET=... RESEND_API_KEY=... APP_BASE_URL=http://localhost:5173 APP_ORIGIN=http://localhost:5173 COOKIE_SECURE=false`
+```bash
+npm install
+npm run dev            # start Vite dev server
+npm test                # run Vitest
+npm run build            # production build
+```
+
+### Supabase
+
+```bash
+npx supabase link --project-ref <project-ref>
+npx supabase db push     # apply pending migrations
+npx supabase functions deploy make-server-bd792702 --no-verify-jwt
+npx supabase secrets set JWT_SECRET=... RESEND_API_KEY=... APP_BASE_URL=http://localhost:5173 APP_ORIGIN=http://localhost:5173 COOKIE_SECURE=false
+```
+
+All application tables have Row Level Security enabled — the app and admin panel access them exclusively through the service role (edge functions and `src/lib/admin.ts`), never the anon/publishable key.
+
+## Deployment
+
+The `main` branch is wired to Vercel via Git integration — pushing to `main` triggers a production deploy. Preview deployments are created automatically for other branches.
 
 ## Production Hardening Checklist
 
-- Use HTTPS everywhere
-- Keep `COOKIE_SECURE=true`
-- Rotate `JWT_SECRET` periodically
+- Keep `COOKIE_SECURE=true` and `JWT_SECRET` rotated
+- RLS is enabled on all tables; keep all direct table access server-side (service role only)
 - Add centralized audit logging for admin actions
-- Move KV-based auth storage to relational tables backed by Prisma models for long-term scale
 - Add SIEM alerts for suspicious signin/OTP/reset patterns
-
-## Future-Ready Architecture Hooks
-
-The current structure is prepared for extending into:
-
-- Paid subscription plans
-- Team workspaces
-- Enterprise access policies
-- API key issuance and rotation
-- Usage quotas and metering
+- Code-split the main JS bundle (currently >1.5MB) via dynamic `import()`
