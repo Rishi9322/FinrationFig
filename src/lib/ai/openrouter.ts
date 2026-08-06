@@ -1,6 +1,7 @@
-export const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY;
-const OPENROUTER_MODEL_NAME = import.meta.env.VITE_OPENROUTER_MODEL_NAME || "anthropic/claude-3.5-sonnet";
-const CMA_LEARNING_STORE_KEY = "finratio:cma-learning-examples";
+import { aiChat } from "../ai";
+
+// Model identity is decided server-side; this label is only used in exports.
+const OPENROUTER_MODEL_NAME = "server-configured";
 
 type CmaLearningExample = {
   sourceSignature: string;
@@ -55,21 +56,17 @@ function safeJsonParse(raw: string) {
   }
 }
 
-function readLearningExamples(): CmaLearningExample[] {
-  if (typeof window === "undefined") return [];
+// Learning examples hold raw document previews and parsed financials. They are
+// kept in memory for the tab only - never persisted, so nothing sensitive is left
+// at rest in browser storage. Server-side opt-in storage would be the upgrade.
+let learningExamples: CmaLearningExample[] = [];
 
-  try {
-    const raw = window.localStorage.getItem(CMA_LEARNING_STORE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+function readLearningExamples(): CmaLearningExample[] {
+  return learningExamples;
 }
 
 function writeLearningExamples(examples: CmaLearningExample[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(CMA_LEARNING_STORE_KEY, JSON.stringify(examples.slice(0, 20)));
+  learningExamples = examples.slice(0, 20);
 }
 
 function findRelevantExamples(rawText: string, sourceFormat?: string) {
@@ -146,22 +143,9 @@ export type DocumentClassification = {
 };
 
 export async function classifyFinancialDocument(rawText: string, sourceName?: string): Promise<DocumentClassification> {
-  if (!OPENROUTER_API_KEY) {
-    throw new Error("OpenRouter API key is missing. Please add VITE_OPENROUTER_API_KEY to your .env file.");
-  }
-
   const excerpt = truncateText(rawText, 4000, 1000);
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-      "HTTP-Referer": window.location.origin,
-      "X-Title": "Finratio CMA Engine",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: OPENROUTER_MODEL_NAME,
+  const response = await aiChat({
       response_format: { type: "json_object" },
       temperature: 0,
       messages: [
@@ -181,7 +165,6 @@ A document is a financial document if it contains balance sheet, P&L, trial bala
           content: [sourceName ? `Filename: ${sourceName}` : "", "Extracted text:", excerpt].filter(Boolean).join("\n")
         }
       ]
-    })
   });
 
   if (!response.ok) {
@@ -200,10 +183,6 @@ A document is a financial document if it contains balance sheet, P&L, trial bala
 }
 
 export async function parseCmaFinancialData(rawText: string, options: ParseOptions = {}) {
-  if (!OPENROUTER_API_KEY) {
-    throw new Error("OpenRouter API key is missing. Please add VITE_OPENROUTER_API_KEY to your .env file.");
-  }
-
   const learningContext = buildLearningContext(rawText, options.sourceFormat);
   const sourceExcerpt = truncateText(rawText);
   const sourceDescriptor = [
@@ -211,16 +190,7 @@ export async function parseCmaFinancialData(rawText: string, options: ParseOptio
     options.sourceFormat ? `Source format: ${options.sourceFormat}` : null,
   ].filter(Boolean).join("\n");
 
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-      "HTTP-Referer": window.location.origin,
-      "X-Title": "Finratio CMA Engine",
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      model: OPENROUTER_MODEL_NAME,
+  const response = await aiChat({
       response_format: { type: "json_object" },
       temperature: 0,
       messages: [
@@ -329,7 +299,6 @@ Auto-compute any missing fields using standard accounting relationships. Verify 
           ].join("\n")
         }
       ]
-    })
   });
 
   if (!response.ok) {
@@ -338,21 +307,54 @@ Auto-compute any missing fields using standard accounting relationships. Verify 
   }
 
   const data = await response.json();
+  let parsed: unknown;
   try {
-    return safeJsonParse(data.choices[0].message.content);
-  } catch (err) {
-    console.error("Failed to parse JSON", data.choices[0].message.content);
+    parsed = safeJsonParse(data.choices[0].message.content);
+  } catch {
     throw new Error("AI did not return valid JSON");
   }
+
+  return validateCmaShape(parsed);
+}
+
+/**
+ * Model output is untrusted input. Every financial series must be an array of
+ * finite numbers before it can reach a calculation - a string, null or NaN
+ * slipping through would silently corrupt downstream ratios.
+ */
+export function validateCmaShape(parsed: unknown): Record<string, unknown> {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("AI returned an unexpected CMA structure");
+  }
+
+  const record = parsed as Record<string, unknown>;
+  if (!Array.isArray(record.years) || !record.years.every((year) => typeof year === "string")) {
+    throw new Error("AI returned an unexpected CMA structure: years");
+  }
+
+  const check = (value: unknown, path: string) => {
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        if (typeof entry !== "number" || !Number.isFinite(entry)) {
+          throw new Error(`AI returned a non-numeric value at ${path}`);
+        }
+      }
+      return;
+    }
+    if (value && typeof value === "object") {
+      for (const [key, child] of Object.entries(value)) check(child, `${path}.${key}`);
+    }
+  };
+
+  for (const section of ["operatingStatement", "balanceSheet"]) {
+    if (record[section]) check(record[section], section);
+  }
+
+  return record;
 }
 
 export async function* streamCmaCreditOpinion(cmaData: any) {
-  if (!OPENROUTER_API_KEY) {
-    throw new Error("OpenRouter API key is missing.");
-  }
-
-  const requestBody = JSON.stringify({
-    model: OPENROUTER_MODEL_NAME,
+  const requestBody = {
     temperature: 0.2,
     stream: true,
     messages: [
@@ -399,49 +401,19 @@ Use exact numbers from the CMA. Do not invent figures or ratios. If a required n
         content: JSON.stringify(cmaData, null, 2)
       }
     ]
-  });
+  };
 
   for (let attempt = 0; attempt < 3; attempt++) {
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-        "HTTP-Referer": window.location.origin,
-        "X-Title": "Finratio CMA Engine",
-        "Content-Type": "application/json"
-      },
-      body: requestBody,
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      const retryAfterHeader = response.headers.get("Retry-After");
-      const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : Number.NaN;
-      const shouldRetry = response.status === 429 && attempt < 2;
-
-      if (shouldRetry) {
-        const delayMs = Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0
-          ? retryAfterSeconds * 1000
-          : (attempt + 1) * 1000;
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
+    let response: Response;
+    try {
+      response = await aiChat(requestBody);
+    } catch (error) {
+      // Retry only on the server's rate-limit signal, with a bounded backoff.
+      if (attempt < 2 && (error as { status?: number })?.status === 429) {
+        await new Promise((resolve) => setTimeout(resolve, (attempt + 1) * 1000));
         continue;
       }
-
-      let message = `OpenRouter request failed with status ${response.status}`;
-      if (errorText) {
-        try {
-          const parsed = JSON.parse(errorText);
-          message = parsed?.error?.message || parsed?.message || message;
-        } catch {
-          message = errorText || message;
-        }
-      }
-
-      if (response.status === 429) {
-        throw new Error(`OpenRouter is rate limited right now. ${message}`);
-      }
-
-      throw new Error(message);
+      throw error;
     }
 
     if (!response.body) {

@@ -12,13 +12,54 @@ import fs from 'fs';
 import path from 'path';
 
 const app = express();
-const upload = multer({ dest: 'uploads/' });
+
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '').split(',').map((o) => o.trim()).filter(Boolean);
+const API_TOKEN = process.env.AI_SERVICE_TOKEN || '';
+
+if (!API_TOKEN) {
+  throw new Error('AI_SERVICE_TOKEN must be set. Refusing to start an unauthenticated AI service.');
+}
+
+const upload = multer({ dest: 'uploads/', limits: { fileSize: MAX_UPLOAD_BYTES, files: 1 } });
 const expert = new FinancialExpert();
 
+// Log the real cause, return a stable opaque message. Provider errors and parser
+// paths must not reach the caller.
+function publicError(error) {
+  console.error('[api]', error);
+  return 'Request failed';
+}
+
 // Middleware
-app.use(cors());
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(cors({ origin: ALLOWED_ORIGINS, credentials: true }));
+app.use(bodyParser.json({ limit: '2mb' }));
+app.use(bodyParser.urlencoded({ limit: '2mb', extended: true }));
+
+// Every route below is authenticated. /api/health stays open for liveness probes.
+app.use((req, res, next) => {
+  if (req.path === '/api/health') return next();
+  const presented = (req.get('Authorization') || '').replace(/^Bearer\s+/i, '');
+  if (presented !== API_TOKEN) return res.status(401).json({ error: 'Unauthorized' });
+  next();
+});
+
+// ponytail: in-process fixed-window limiter, per token+IP. Swap for a shared
+// store if this service ever runs more than one instance.
+const rateWindows = new Map();
+app.use((req, res, next) => {
+  if (req.path === '/api/health') return next();
+  const key = req.ip;
+  const now = Date.now();
+  const state = rateWindows.get(key);
+  if (!state || now - state.start > 60_000) {
+    rateWindows.set(key, { start: now, count: 1 });
+    return next();
+  }
+  if (state.count >= 30) return res.status(429).json({ error: 'Too many requests' });
+  state.count += 1;
+  next();
+});
 
 // Initialize expert on startup
 let expertReady = false;
@@ -58,7 +99,7 @@ app.post('/api/create-cma', async (req, res) => {
     const report = await expert.createCMAReport(financialData, companyInfo);
     res.json({ success: true, report });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: publicError(error) });
   }
 });
 
@@ -77,7 +118,7 @@ app.post('/api/analyze', async (req, res) => {
     const analysis = await expert.analyzeDocument(content, analysisType);
     res.json({ success: true, analysis });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: publicError(error) });
   }
 });
 
@@ -96,7 +137,7 @@ app.post('/api/transform', async (req, res) => {
     const transformed = await expert.transformDocument(content, targetFormat);
     res.json({ success: true, transformed });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: publicError(error) });
   }
 });
 
@@ -109,6 +150,11 @@ app.post('/api/process-file', upload.single('file'), async (req, res) => {
 
     const filePath = req.file.path;
     const ext = path.extname(req.file.originalname).toLowerCase();
+
+    if (!['.pdf', '.docx', '.csv', '.xlsx', '.xls', '.txt'].includes(ext)) {
+      fs.rmSync(filePath, { force: true });
+      return res.status(415).json({ error: 'Unsupported file type' });
+    }
 
     // Parse file
     let data = await DocumentParser.autoDetectAndParse(filePath);
@@ -132,7 +178,7 @@ app.post('/api/process-file', upload.single('file'), async (req, res) => {
     }
 
     // Cleanup
-    fs.unlinkSync(filePath);
+    fs.rmSync(filePath, { force: true });
 
     res.json({
       success: true,
@@ -141,8 +187,8 @@ app.post('/api/process-file', upload.single('file'), async (req, res) => {
       data: transformed
     });
   } catch (error) {
-    if (req.file) fs.unlinkSync(req.file.path);
-    res.status(500).json({ error: error.message });
+    if (req.file) fs.rmSync(req.file.path, { force: true });
+    res.status(500).json({ error: publicError(error) });
   }
 });
 
@@ -161,7 +207,7 @@ app.post('/api/create-projections', async (req, res) => {
     const projections = await expert.createProjections(historicalData, assumptions);
     res.json({ success: true, projections });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: publicError(error) });
   }
 });
 
@@ -180,7 +226,7 @@ app.post('/api/assess-credit', async (req, res) => {
     const assessment = await expert.assessCreditRisk(financialData, companyProfile);
     res.json({ success: true, assessment });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: publicError(error) });
   }
 });
 
@@ -190,7 +236,7 @@ app.get('/api/models', async (req, res) => {
     const models = await expert.llm.getAvailableModels();
     res.json({ success: true, models });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: publicError(error) });
   }
 });
 
@@ -204,7 +250,7 @@ app.post('/api/set-model', async (req, res) => {
     await expert.llm.setModel(model);
     res.json({ success: true, model });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: publicError(error) });
   }
 });
 
@@ -231,7 +277,7 @@ app.post('/api/convert', async (req, res) => {
 
     res.json({ success: true, data: converted });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: publicError(error) });
   }
 });
 

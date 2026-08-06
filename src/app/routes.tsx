@@ -230,27 +230,51 @@ export const router = createBrowserRouter([
   },
   {
     path: "/admin/dashboard",
-    element: <AdminDashboardPage />,
+    element: (
+      <ProtectedLayout requiredRole="SUPER_ADMIN">
+        <AdminDashboardPage />
+      </ProtectedLayout>
+    ),
   },
   {
     path: "/admin/users",
-    element: <AdminUsersPage />,
+    element: (
+      <ProtectedLayout requiredRole="SUPER_ADMIN">
+        <AdminUsersPage />
+      </ProtectedLayout>
+    ),
   },
   {
     path: "/admin/calculators",
-    element: <AdminCalculatorsPage />,
+    element: (
+      <ProtectedLayout requiredRole="SUPER_ADMIN">
+        <AdminCalculatorsPage />
+      </ProtectedLayout>
+    ),
   },
   {
     path: "/admin/calculations",
-    element: <AdminCalculationsPage />,
+    element: (
+      <ProtectedLayout requiredRole="SUPER_ADMIN">
+        <AdminCalculationsPage />
+      </ProtectedLayout>
+    ),
   },
   {
     path: "/admin/permissions",
-    element: <AdminPermissionsPage />,
+    element: (
+      <ProtectedLayout requiredRole="SUPER_ADMIN">
+        <AdminPermissionsPage />
+      </ProtectedLayout>
+    ),
   },
   {
     path: "/admin/settings",
-    element: <AdminSettingsPage />,
+    element: (
+      <ProtectedLayout requiredRole="SUPER_ADMIN">
+        <AdminSettingsPage />
+      </ProtectedLayout>
+    ),
   },
   {
     path: "*",

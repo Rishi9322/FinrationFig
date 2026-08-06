@@ -1,11 +1,11 @@
 import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
-import { logger } from "npm:hono/logger";
 import { getCookie, setCookie, deleteCookie } from "npm:hono/cookie";
 import { sign, verify } from "npm:hono/jwt";
 import { createClient } from "npm:@supabase/supabase-js";
 import bcrypt from "npm:bcryptjs";
 import { parsePhoneNumberFromString } from "npm:libphonenumber-js";
+import { z } from "npm:zod";
 import * as kv from "./kv_store.tsx";
 
 type Role = "SUPER_ADMIN" | "ADMIN" | "USER";
@@ -75,8 +75,14 @@ const RESET_TTL_MS = 15 * 60 * 1000;
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
 const DEFAULT_FEATURE_SLUG = "pid";
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+const ALLOWED_UPLOAD_EXTENSIONS = [".pdf", ".docx", ".csv", ".xlsx", ".xls", ".txt"];
+const MAX_AI_REQUEST_BYTES = 256 * 1024;
 
-const JWT_SECRET = Deno.env.get("JWT_SECRET") ?? "change-me-in-production";
+const JWT_SECRET = Deno.env.get("JWT_SECRET") ?? "";
+if (JWT_SECRET.length < 32) {
+  throw new Error("JWT_SECRET must be set to at least 32 characters. Refusing to start.");
+}
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
@@ -87,12 +93,20 @@ const ADMIN_PASSWORD = Deno.env.get("ADMIN_PASSWORD") ?? "";
 const ADMIN_NAME = Deno.env.get("ADMIN_NAME") ?? "FinRatio Admin";
 const ADMIN_PHONE_NUMBER = Deno.env.get("ADMIN_PHONE_NUMBER") ?? "";
 const ALLOWED_ORIGINS = [
-  "http://localhost:5173",
-  "http://127.0.0.1:5173",
   "https://finration-fig.vercel.app",
   ...(APP_ORIGIN ? APP_ORIGIN.split(",").map((origin) => origin.trim()).filter(Boolean) : []),
 ];
 const secureCookies = (Deno.env.get("COOKIE_SECURE") ?? "true") === "true";
+
+// Vite picks the next free port when 5173 is taken, so dev origins are matched by
+// pattern rather than listed - but only behind an explicit opt-in that must never
+// be set on the production deployment.
+const allowDevOrigins = Deno.env.get("ALLOW_DEV_ORIGINS") === "true";
+
+function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  return allowDevOrigins && /^http:\/\/(localhost|127\.0\.0\.1):\d{1,5}$/.test(origin);
+}
 const sessionCookieName = secureCookies ? "__Host-finratio_session" : "finratio_session";
 const csrfCookieName = secureCookies ? "__Host-finratio_csrf" : "finratio_csrf";
 
@@ -111,11 +125,23 @@ const CALCULATOR_FEATURES: CalculatorFeature[] = [
   { id: crypto.randomUUID(), slug: "working-capital-cycle", name: "Working Capital Cycle" },
 ];
 
-app.use("*", logger(console.log));
+// Log method + path only. Never the query string (it can carry tokens) or bodies.
+app.use("*", async (c, next) => {
+  await next();
+  console.log(`${c.req.method} ${new URL(c.req.url).pathname} ${c.res.status}`);
+});
 
-// Simple CORS middleware - no credentials mode, so wildcard is safe
+// Exact-origin allowlist. Requests from unknown origins get no CORS headers.
 app.use("/*", async (c, next) => {
-  c.header("Access-Control-Allow-Origin", "*");
+  const origin = c.req.header("Origin");
+  if (origin && !isAllowedOrigin(origin)) {
+    return c.json({ error: "Origin not allowed" }, 403);
+  }
+  if (origin) {
+    c.header("Access-Control-Allow-Origin", origin);
+    c.header("Vary", "Origin");
+    c.header("Access-Control-Allow-Credentials", "true");
+  }
   c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   c.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-CSRF-Token, X-Session-Token");
   c.header("Access-Control-Max-Age", "600");
@@ -129,10 +155,129 @@ app.use("/*", async (c, next) => {
   await next();
 });
 
+// Request schemas. Every mutating route parses its body through one of these, so
+// unbounded strings, wrong types and unexpected fields never reach handler logic.
+const emailField = z.string().trim().min(3).max(254);
+const passwordField = z.string().min(1).max(200);
+
+const Schemas = {
+  signup: z.object({
+    name: z.string().trim().min(1).max(120),
+    email: emailField,
+    phoneNumber: z.string().trim().min(1).max(32),
+    password: passwordField,
+    confirmPassword: passwordField,
+  }),
+  verifyOtp: z.object({ email: emailField, otp: z.string().trim().regex(/^\d{6}$/) }),
+  emailOnly: z.object({ email: emailField }),
+  signin: z.object({ email: emailField, password: passwordField }),
+  resetPassword: z.object({
+    email: emailField,
+    token: z.string().regex(/^[0-9a-f]{64}$/),
+    password: passwordField,
+    confirmPassword: passwordField,
+  }),
+  onboarding: z.object({ businessConstitution: z.string().trim().min(1).max(200) }),
+  calculation: z.object({
+    calculatorType: z.string().trim().min(1).max(64),
+    inputs: z.record(z.string(), z.unknown()).default({}),
+    results: z.record(z.string(), z.unknown()).default({}),
+  }),
+  upload: z.object({
+    filename: z.string().trim().min(1).max(255),
+    contentType: z.string().max(255).nullish(),
+    // 4/3 accounts for base64 expansion; the decoded size is re-checked in the handler.
+    fileBase64: z.string().min(1).max(Math.ceil((MAX_UPLOAD_BYTES * 4) / 3) + 4),
+  }),
+  adminCreateUser: z.object({
+    name: z.string().trim().min(1).max(120),
+    email: emailField,
+    phoneNumber: z.string().trim().min(1).max(32),
+    password: passwordField,
+    role: z.enum(["SUPER_ADMIN", "ADMIN", "USER"]).optional(),
+    calculatorAccessMode: z.enum(["FULL", "CUSTOM"]).optional(),
+    calculatorAccess: z.array(z.string().max(64)).max(100).optional(),
+  }),
+  role: z.object({ role: z.enum(["SUPER_ADMIN", "ADMIN", "USER"]) }),
+  accessMode: z.object({ accessMode: z.enum(["FULL", "CUSTOM"]) }),
+  calculatorAccess: z.object({ slugs: z.array(z.string().max(64)).max(100) }),
+  suspend: z.object({ suspended: z.boolean() }),
+  aiChat: z.object({
+    messages: z.array(z.object({
+      role: z.enum(["system", "user", "assistant"]).default("user"),
+      content: z.string().max(MAX_AI_REQUEST_BYTES),
+    })).min(1).max(20),
+    temperature: z.number().min(0).max(2).optional(),
+    response_format: z.object({ type: z.string().max(32) }).optional(),
+    stream: z.boolean().optional(),
+  }),
+};
+
+type ParsedBody<T> = { ok: true; data: T } | { ok: false; response: Response };
+
+async function parseBody<T>(c: any, schema: z.ZodType<T>): Promise<ParsedBody<T>> {
+  let raw: unknown;
+  try {
+    raw = await c.req.json();
+  } catch {
+    return { ok: false, response: c.json({ error: "Invalid JSON body" }, 400) };
+  }
+
+  const result = schema.safeParse(raw);
+  if (!result.success) {
+    // Report which fields failed, never the submitted values.
+    const fields = result.error.issues.map((issue) => issue.path.join(".")).filter(Boolean);
+    return { ok: false, response: c.json({ error: "Invalid request", fields }, 400) };
+  }
+
+  return { ok: true, data: result.data };
+}
+
+/**
+ * Append-only security audit trail. Records who did what, never what was said -
+ * no passwords, tokens, file contents or financial values are ever passed here.
+ * ponytail: KV list capped at 1000 events; move to a table when you need queries.
+ */
+async function auditLog(
+  c: any,
+  event: string,
+  detail: { actorId?: string; targetId?: string; outcome: "success" | "failure"; note?: string },
+): Promise<void> {
+  const ip = getClientIpHeader(c.req.header("x-forwarded-for"));
+
+  try {
+    const supabase = getSupabaseAdminClient();
+    const { error } = await supabase.from("audit_events").insert({
+      event,
+      actor_id: detail.actorId ?? null,
+      target_id: detail.targetId ?? null,
+      outcome: detail.outcome,
+      note: detail.note ?? null,
+      ip,
+    });
+    if (error) throw error;
+    return;
+  } catch (error) {
+    console.warn("[audit] database write failed, falling back to KV:", error);
+  }
+
+  try {
+    const entry = { id: crypto.randomUUID(), event, at: nowIso(), ip, ...detail };
+    const existing = await kv.get("audit:events");
+    const events = Array.isArray(existing) ? existing : [];
+    await kv.set("audit:events", [entry, ...events].slice(0, 1000));
+  } catch (error) {
+    // Auditing must never break the request it is recording.
+    console.error("[audit] write failed", error);
+  }
+}
+
 function getClientIpHeader(forwardedFor: string | undefined): string {
   if (!forwardedFor) return "unknown";
-  const [first] = forwardedFor.split(",");
-  return first.trim() || "unknown";
+  // Take the LAST entry: it is appended by the edge proxy in front of us and is
+  // the only one a client cannot spoof. The first entry is caller-controlled.
+  const parts = forwardedFor.split(",").map((part) => part.trim()).filter(Boolean);
+  return parts[parts.length - 1] || "unknown";
 }
 
 function nowIso(): string {
@@ -450,6 +595,23 @@ async function clearAuthSessionCookies(c: any): Promise<void> {
 }
 
 async function validateRateLimit(key: string, limit: number, windowMs: number): Promise<boolean> {
+  // Preferred path: one atomic statement in Postgres, so concurrent requests
+  // cannot race between reading and writing the counter.
+  try {
+    const supabase = getSupabaseAdminClient();
+    const { data, error } = await supabase.rpc("consume_rate_limit", {
+      p_key: key,
+      p_limit: limit,
+      p_window_seconds: Math.ceil(windowMs / 1000),
+    });
+    if (!error && typeof data === "boolean") return data;
+    if (error) throw error;
+  } catch (error) {
+    console.warn("[rate-limit] falling back to KV:", error);
+  }
+
+  // ponytail: KV fallback is read-modify-write and therefore racy. It exists only
+  // so a database outage degrades to a weak limit instead of no limit at all.
   const state = await kv.get(`rate:${key}`) as RateLimitState | null;
   const now = Date.now();
 
@@ -473,9 +635,7 @@ async function validateRateLimit(key: string, limit: number, windowMs: number): 
 }
 
 function getSessionTokenFromRequest(c: any): string | undefined {
-  const queryToken = c.req.query("sessionToken");
-  if (queryToken) return queryToken;
-
+  // Deliberately no query-string support: URLs leak into logs, history and referrers.
   const explicitToken = c.req.header("X-Session-Token") || c.req.header("x-session-token");
   if (explicitToken) return explicitToken;
 
@@ -516,8 +676,11 @@ async function requireAuth(c: any): Promise<{ user: UserRecord; claims: AuthClai
     return null;
   }
 
+  // A valid signature is not enough: the session must still exist server-side,
+  // belong to the same user, and not be expired. This is what makes logout and
+  // revocation actually revoke.
   const session = await kv.get(`auth:session:${claims.sid}`) as SessionRecord | null;
-  if (session && new Date(session.expiresAt) < new Date()) {
+  if (!session || session.userId !== claims.sub || new Date(session.expiresAt) < new Date()) {
     c.status(401);
     c.json({ error: "Session expired" });
     return null;
@@ -544,7 +707,7 @@ async function requireCsrfForMutation(c: any, auth: { claims: AuthClaims }): Pro
 
   const session = await kv.get(`auth:session:${auth.claims.sid}`) as SessionRecord | null;
   const csrfCookie = getCookie(c, csrfCookieName);
-  const csrfHeader = c.req.header("X-CSRF-Token") || c.req.header("x-csrf-token") || c.req.query("csrfToken");
+  const csrfHeader = c.req.header("X-CSRF-Token") || c.req.header("x-csrf-token");
 
   if (!csrfHeader) {
     c.status(403);
@@ -584,6 +747,15 @@ function publicUserView(user: UserRecord, featureAccess: string[]) {
   };
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 async function sendEmail(params: { to: string; subject: string; html: string }): Promise<void> {
   if (!RESEND_API_KEY) {
     console.warn("[sendEmail] RESEND_API_KEY not configured. Email would have been sent to:", params.to);
@@ -616,7 +788,7 @@ async function sendVerificationOtpEmail(email: string, otp: string): Promise<voi
   const html = `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:auto">
     <h2 style="color:#0b3b86">FinRatio Email Verification</h2>
     <p>Your one-time verification code is:</p>
-    <p style="font-size:34px;letter-spacing:8px;font-weight:700;color:#0b3b86">${otp}</p>
+    <p style="font-size:34px;letter-spacing:8px;font-weight:700;color:#0b3b86">${escapeHtml(otp)}</p>
     <p>This code expires in 5 minutes.</p>
     <p>If you did not request this, please ignore this email.</p>
   </div>`;
@@ -627,7 +799,7 @@ async function sendPasswordResetEmail(email: string, resetUrl: string): Promise<
   const html = `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:auto">
     <h2 style="color:#0b3b86">Reset your FinRatio password</h2>
     <p>Use the link below to reset your password. It expires in 15 minutes.</p>
-    <p><a href="${resetUrl}" style="display:inline-block;background:#0b3b86;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Reset Password</a></p>
+    <p><a href="${escapeHtml(resetUrl)}" style="display:inline-block;background:#0b3b86;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Reset Password</a></p>
     <p>If you did not request a password reset, you can ignore this email.</p>
   </div>`;
   await sendEmail({ to: email, subject: "FinRatio password reset", html });
@@ -637,7 +809,7 @@ async function sendAccessGrantedEmail(email: string, grantedFeatures: string[]):
   const html = `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:auto">
     <h2 style="color:#0b3b86">New FinRatio calculator access granted</h2>
     <p>Your account now has access to:</p>
-    <ul>${grantedFeatures.map((f) => `<li>${f}</li>`).join("")}</ul>
+    <ul>${grantedFeatures.map((f) => `<li>${escapeHtml(f)}</li>`).join("")}</ul>
     <p>Sign in to use your newly enabled calculators.</p>
   </div>`;
   await sendEmail({ to: email, subject: "FinRatio calculator access updated", html });
@@ -705,7 +877,9 @@ app.post(`${API_PREFIX}/auth/signup`, async (c) => {
     const allowed = await validateRateLimit(`signup:${ip}`, 10, 15 * 60 * 1000);
     if (!allowed) return c.json({ error: "Too many signup attempts" }, 429);
 
-    const body = await c.req.json();
+    const parsed = await parseBody(c, Schemas.signup);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const name = (body.name || "").trim();
     const email = lowerEmail(body.email || "");
     const phoneRaw = (body.phoneNumber || "").trim();
@@ -773,7 +947,9 @@ app.post(`${API_PREFIX}/auth/signup`, async (c) => {
 
 app.post(`${API_PREFIX}/auth/verify-otp`, async (c) => {
   try {
-    const body = await c.req.json();
+    const parsed = await parseBody(c, Schemas.verifyOtp);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const email = lowerEmail(body.email || "");
     const otp = String(body.otp || "").trim();
 
@@ -829,7 +1005,9 @@ app.post(`${API_PREFIX}/auth/resend-otp`, async (c) => {
     const allowed = await validateRateLimit(`resend-otp:${ip}`, 8, 15 * 60 * 1000);
     if (!allowed) return c.json({ error: "Too many OTP requests" }, 429);
 
-    const body = await c.req.json();
+    const parsed = await parseBody(c, Schemas.emailOnly);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const email = lowerEmail(body.email || "");
     const user = await getUserByEmail(email);
 
@@ -857,7 +1035,9 @@ app.post(`${API_PREFIX}/auth/signin`, async (c) => {
     await ensureBootstrapAdmin();
 
     const ip = getClientIpHeader(c.req.header("x-forwarded-for"));
-    const body = await c.req.json();
+    const parsed = await parseBody(c, Schemas.signin);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const email = lowerEmail(body.email || "");
     const password = body.password || "";
 
@@ -870,6 +1050,7 @@ app.post(`${API_PREFIX}/auth/signin`, async (c) => {
 
     const isPasswordValid = await verifyPassword(password, user.passwordHash);
     if (!isPasswordValid) {
+      await auditLog(c, "auth.signin", { actorId: user.id, outcome: "failure", note: "bad-password" });
       return c.json({ error: "Invalid email or password" }, 401);
     }
 
@@ -888,6 +1069,7 @@ app.post(`${API_PREFIX}/auth/signin`, async (c) => {
     const access = await getPublicCalculatorAccess(user);
     const session = await setAuthSessionCookies(c, user);
 
+    await auditLog(c, "auth.signin", { actorId: user.id, outcome: "success" });
     return c.json({ message: "Signin successful", user: publicUserView(user, access), session });
   } catch (error) {
     console.error("[auth/signin]", error);
@@ -901,7 +1083,9 @@ app.post(`${API_PREFIX}/auth/forgot-password`, async (c) => {
     const allowed = await validateRateLimit(`forgot:${ip}`, 8, 15 * 60 * 1000);
     if (!allowed) return c.json({ error: "Too many requests" }, 429);
 
-    const body = await c.req.json();
+    const parsed = await parseBody(c, Schemas.emailOnly);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const email = lowerEmail(body.email || "");
     const user = await getUserByEmail(email);
 
@@ -916,16 +1100,18 @@ app.post(`${API_PREFIX}/auth/forgot-password`, async (c) => {
     user.updatedAt = nowIso();
     await saveUser(user);
 
-    const appBaseUrl = Deno.env.get("APP_BASE_URL") || "http://localhost:5173";
+    // The reset link must point at an origin we control, or we hand attackers a
+    // token-delivery redirect.
+    const configuredBaseUrl = Deno.env.get("APP_BASE_URL") || "";
+    const appBaseUrl = isAllowedOrigin(configuredBaseUrl) ? configuredBaseUrl : ALLOWED_ORIGINS[ALLOWED_ORIGINS.length - 1];
     const resetUrl = `${appBaseUrl}/auth/reset-password?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
     
     // Try to send email, but don't fail if it doesn't work
     try {
       await sendPasswordResetEmail(user.email, resetUrl);
     } catch (emailError) {
-      console.warn("[auth/forgot-password] Email send failed:", emailError);
-      // Still store the reset token so user can manually use it if needed
-      console.log("[auth/forgot-password] Reset URL for debugging:", resetUrl);
+      // Never log the reset URL or token - logs would become a credential store.
+      console.warn("[auth/forgot-password] Email send failed for user", user.id, emailError);
     }
 
     return c.json({ message: "If this email is registered, a reset link has been sent." });
@@ -937,7 +1123,9 @@ app.post(`${API_PREFIX}/auth/forgot-password`, async (c) => {
 
 app.post(`${API_PREFIX}/auth/reset-password`, async (c) => {
   try {
-    const body = await c.req.json();
+    const parsed = await parseBody(c, Schemas.resetPassword);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const email = lowerEmail(body.email || "");
     const token = String(body.token || "");
     const password = body.password || "";
@@ -977,6 +1165,7 @@ app.post(`${API_PREFIX}/auth/reset-password`, async (c) => {
 
     await clearAuthSessionCookies(c);
 
+    await auditLog(c, "auth.password-reset", { actorId: user.id, outcome: "success" });
     return c.json({ message: "Password reset successful" });
   } catch (error) {
     console.error("[auth/reset-password]", error);
@@ -995,6 +1184,74 @@ app.get(`${API_PREFIX}/auth/me`, async (c) => {
 
   const access = await getPublicCalculatorAccess(auth.user);
   return c.json({ user: publicUserView(auth.user, access) });
+});
+
+// Subject access request: everything held about the caller, in one download.
+app.get(`${API_PREFIX}/me/export`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.body(null, 401);
+
+  const { passwordHash: _p, otpCode: _o, resetTokenHash: _r, ...profile } = auth.user;
+  const calculations = await getCalculationsForUser(auth.user.id);
+  const access = await getUserFeatureAccess(auth.user.id);
+
+  let uploads: unknown[] = [];
+  try {
+    const supabase = getSupabaseAdminClient();
+    // Metadata only - the document bytes are excluded to keep the export usable.
+    const { data } = await supabase
+      .from("file_uploads")
+      .select("id, filename, content_type, size_bytes, created_at")
+      .eq("user_id", auth.user.id);
+    uploads = data ?? [];
+  } catch (error) {
+    console.warn("[me/export] upload metadata unavailable:", error);
+  }
+
+  await auditLog(c, "privacy.export", { actorId: auth.user.id, outcome: "success" });
+
+  return c.json(
+    { exportedAt: nowIso(), profile, calculatorAccess: access, calculations, uploads },
+    200,
+    { "Content-Disposition": `attachment; filename="finratio-export-${auth.user.id}.json"` },
+  );
+});
+
+// Account deletion. Removes the user everywhere we hold them; the database
+// cascades handle calculations, uploads, access grants and sessions.
+app.delete(`${API_PREFIX}/me`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.body(null, 401);
+  if (!(await requireCsrfForMutation(c, auth))) return c.body(null, 403);
+
+  // A super-admin deleting themselves could leave the deployment unadministrable.
+  if (auth.user.role === "SUPER_ADMIN") {
+    return c.json({ error: "Transfer super-admin rights before deleting this account" }, 409);
+  }
+
+  const { id, email, phoneNumber } = auth.user;
+
+  try {
+    const supabase = getSupabaseAdminClient();
+    const { error } = await supabase.from("app_users").delete().eq("id", id);
+    if (error) throw error;
+  } catch (error) {
+    console.warn("[me:delete] database delete failed, continuing with KV:", error);
+  }
+
+  await kv.del(`user:by-email:${email}`);
+  await kv.del(`user:by-id:${id}`);
+  if (phoneNumber) await kv.del(`user:by-phone:${phoneNumber}`);
+  await kv.del(`user:${email}`);
+  await kv.del(`calculations:${id}`);
+  await kv.del(`uploads:${id}`);
+  await kv.del(`user:calculator-access:${id}`);
+
+  await clearAuthSessionCookies(c);
+  // actorId is intentionally omitted: the row it referenced no longer exists.
+  await auditLog(c, "privacy.account-deleted", { outcome: "success", note: id });
+
+  return c.json({ message: "Account deleted" });
 });
 
 app.get(`${API_PREFIX}/features`, async (c) => {
@@ -1028,7 +1285,9 @@ app.post(`${API_PREFIX}/calculations`, async (c) => {
     if (!auth) return c.body(null, 401);
     if (!(await requireCsrfForMutation(c, auth))) return c.body(null, 403);
 
-    const body = await c.req.json();
+    const parsed = await parseBody(c, Schemas.calculation);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const calculatorType = String(body.calculatorType || "");
     const inputs = body.inputs ?? {};
     const results = body.results ?? {};
@@ -1068,14 +1327,25 @@ app.post(`${API_PREFIX}/uploads`, async (c) => {
     if (!auth) return c.body(null, 401);
     if (!(await requireCsrfForMutation(c, auth))) return c.body(null, 403);
 
-    const body = await c.req.json();
+    const parsed = await parseBody(c, Schemas.upload);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const filename = String(body.filename || "").trim();
     const contentType = typeof body.contentType === "string" ? body.contentType : null;
-    const sizeBytes = Number(body.sizeBytes);
     const fileBase64 = String(body.fileBase64 || "");
 
     if (!filename || !fileBase64) {
       return c.json({ error: "filename and fileBase64 are required" }, 400);
+    }
+
+    // Client-reported sizeBytes is untrusted; measure the payload we actually got.
+    const decodedBytes = Math.floor((fileBase64.length * 3) / 4);
+    if (decodedBytes > MAX_UPLOAD_BYTES) {
+      return c.json({ error: `File exceeds the ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB limit` }, 413);
+    }
+
+    if (!ALLOWED_UPLOAD_EXTENSIONS.some((ext) => filename.toLowerCase().endsWith(ext))) {
+      return c.json({ error: "Unsupported file type" }, 415);
     }
 
     const record = {
@@ -1083,7 +1353,7 @@ app.post(`${API_PREFIX}/uploads`, async (c) => {
       user_id: auth.user.id,
       filename,
       content_type: contentType,
-      size_bytes: Number.isFinite(sizeBytes) ? Math.round(sizeBytes) : null,
+      size_bytes: decodedBytes,
       file_base64: fileBase64,
       created_at: nowIso(),
     };
@@ -1113,7 +1383,9 @@ app.post(`${API_PREFIX}/auth/onboarding`, async (c) => {
     if (!auth) return c.body(null, 401);
     if (!(await requireCsrfForMutation(c, auth))) return c.body(null, 403);
 
-    const body = await c.req.json();
+    const parsed = await parseBody(c, Schemas.onboarding);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.data;
     const businessConstitution = (body.businessConstitution || "").trim();
 
     if (!businessConstitution) {
@@ -1157,7 +1429,9 @@ app.put(`${API_PREFIX}/admin/users/:id/role`, async (c) => {
   const user = await getUserById(c.req.param("id"));
   if (!user) return c.json({ error: "User not found" }, 404);
 
-  const body = await c.req.json();
+  const parsed = await parseBody(c, Schemas.role);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
   const role = body.role as Role;
   if (!["SUPER_ADMIN", "ADMIN", "USER"].includes(role)) {
     return c.json({ error: "Invalid role" }, 400);
@@ -1172,6 +1446,7 @@ app.put(`${API_PREFIX}/admin/users/:id/role`, async (c) => {
   await saveUser(user);
 
   const access = await getPublicCalculatorAccess(user);
+  await auditLog(c, "admin.role-change", { actorId: auth.user.id, targetId: user.id, outcome: "success", note: role });
   return c.json({ message: "Role updated", user: publicUserView(user, access) });
 });
 
@@ -1181,7 +1456,9 @@ app.post(`${API_PREFIX}/admin/users`, async (c) => {
   if (!(await requireCsrfForMutation(c, auth))) return c.body(null, 403);
   if (auth.user.role !== "SUPER_ADMIN") return c.json({ error: "Forbidden" }, 403);
 
-  const body = await c.req.json();
+  const parsed = await parseBody(c, Schemas.adminCreateUser);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
   const name = String(body.name || "").trim();
   const email = lowerEmail(String(body.email || ""));
   const phoneRaw = String(body.phoneNumber || "").trim();
@@ -1247,10 +1524,13 @@ app.put(`${API_PREFIX}/admin/users/:id/suspend`, async (c) => {
   const user = await getUserById(c.req.param("id"));
   if (!user) return c.json({ error: "User not found" }, 404);
 
-  const body = await c.req.json();
+  const parsed = await parseBody(c, Schemas.suspend);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
   user.status = body.suspended ? "SUSPENDED" : "ACTIVE";
   user.updatedAt = nowIso();
   await saveUser(user);
+  await auditLog(c, "admin.suspend", { actorId: auth.user.id, targetId: user.id, outcome: "success", note: user.status });
 
   const access = await getPublicCalculatorAccess(user);
   return c.json({ message: "Status updated", user: publicUserView(user, access) });
@@ -1265,7 +1545,9 @@ app.put(`${API_PREFIX}/admin/users/:id/access-mode`, async (c) => {
   const user = await getUserById(c.req.param("id"));
   if (!user) return c.json({ error: "User not found" }, 404);
 
-  const body = await c.req.json();
+  const parsed = await parseBody(c, Schemas.accessMode);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
   const accessMode: AccessMode = body.accessMode === "FULL" ? "FULL" : "CUSTOM";
   user.calculatorAccessMode = accessMode;
   user.updatedAt = nowIso();
@@ -1276,6 +1558,7 @@ app.put(`${API_PREFIX}/admin/users/:id/access-mode`, async (c) => {
   }
 
   const access = await getPublicCalculatorAccess(user);
+  await auditLog(c, "admin.access-mode", { actorId: auth.user.id, targetId: user.id, outcome: "success", note: accessMode });
   return c.json({ message: "Access mode updated", user: publicUserView(user, access) });
 });
 
@@ -1292,7 +1575,9 @@ app.put(`${API_PREFIX}/admin/users/:id/calculator-access`, async (c) => {
   const features = await kv.get("feature:catalog") as CalculatorFeature[];
   const validSlugs = new Set(features.map((f) => f.slug));
 
-  const body = await c.req.json();
+  const parsed = await parseBody(c, Schemas.calculatorAccess);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
   const slugs = Array.isArray(body.slugs) ? body.slugs.filter((slug: unknown) => typeof slug === "string") : [];
   const cleaned = Array.from(new Set(slugs.filter((slug) => validSlugs.has(slug))));
 
@@ -1304,64 +1589,88 @@ app.put(`${API_PREFIX}/admin/users/:id/calculator-access`, async (c) => {
   await sendAccessGrantedEmail(user.email, cleaned);
 
   const updatedAccess = await getPublicCalculatorAccess(user);
+  await auditLog(c, "admin.calculator-access", { actorId: auth.user.id, targetId: user.id, outcome: "success" });
   return c.json({ message: "Calculator access updated", user: publicUserView(user, updatedAccess) });
 });
 
-app.get(`${API_PREFIX}/resend/api-keys`, (c) => c.json([]));
-app.post(`${API_PREFIX}/resend/api-keys`, (c) => c.json({ success: true }));
-app.delete(`${API_PREFIX}/resend/api-keys/:id`, (c) => c.json({ success: true }));
+// An audit trail nobody can read is not a control. Super-admins only.
+app.get(`${API_PREFIX}/admin/audit`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.body(null, 401);
+  if (auth.user.role !== "SUPER_ADMIN") return c.json({ error: "Forbidden" }, 403);
 
-// Test endpoint for email delivery verification
-app.post(`${API_PREFIX}/test/send-email`, async (c) => {
+  const limit = Math.min(Number(c.req.query("limit") ?? 100) || 100, 500);
+
   try {
-    const { to } = await c.req.json();
-
-    if (!to || typeof to !== "string" || !to.includes("@")) {
-      return c.json({ error: "Invalid recipient email" }, 400);
-    }
-
-    if (!RESEND_API_KEY) {
-      return c.json({ error: "RESEND_API_KEY not configured" }, 500);
-    }
-
-    const testHtml = `
-      <div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:auto;padding:20px">
-        <h2 style="color:#0b3b86">FinRatio Test Email</h2>
-        <p>This is a test email to verify your Resend integration is working correctly.</p>
-        <div style="background:#f0f0f0;padding:15px;border-radius:5px;margin:20px 0">
-          <p><strong>Sender:</strong> ${RESEND_FROM_EMAIL}</p>
-          <p><strong>Recipient:</strong> ${to}</p>
-          <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
-        </div>
-        <p>If you received this email, your email configuration is working correctly!</p>
-      </div>
-    `;
-
-    await sendEmail({
-      to,
-      subject: "FinRatio Test Email Verification",
-      html: testHtml,
-    });
-
-    return c.json({
-      success: true,
-      message: "Test email sent successfully",
-      details: {
-        from: RESEND_FROM_EMAIL,
-        to,
-        subject: "FinRatio Test Email Verification",
-      },
-    });
+    const supabase = getSupabaseAdminClient();
+    const { data, error } = await supabase
+      .from("audit_events")
+      .select("id, event, actor_id, target_id, outcome, note, ip, created_at")
+      .order("created_at", { ascending: false })
+      .limit(limit);
+    if (error) throw error;
+    return c.json({ events: data ?? [] });
   } catch (error) {
-    console.error("Test email error:", error);
-    return c.json(
-      {
-        error: "Failed to send test email",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      500
-    );
+    console.warn("[admin/audit] falling back to KV:", error);
+    const events = await kv.get("audit:events");
+    return c.json({ events: Array.isArray(events) ? events.slice(0, limit) : [] });
   }
+});
+
+// AI proxy. The OpenRouter key stays server-side; the browser never sees it.
+// The client sends only `messages` (+ optional response_format/temperature/stream);
+// model selection and all provider headers are decided here.
+app.post(`${API_PREFIX}/ai/chat`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.body(null, 401);
+  if (!(await requireCsrfForMutation(c, auth))) return c.body(null, 403);
+
+  const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
+  if (!openRouterKey) return c.json({ error: "AI is not configured" }, 503);
+
+  const allowed = await validateRateLimit(`ai:${auth.user.id}`, 60, 60 * 60 * 1000);
+  if (!allowed) return c.json({ error: "AI request quota exceeded. Try again later." }, 429);
+
+  if (Number(c.req.header("Content-Length") ?? 0) > MAX_AI_REQUEST_BYTES) {
+    return c.json({ error: "Request too large" }, 413);
+  }
+
+  const parsed = await parseBody(c, Schemas.aiChat);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
+  const messages = body.messages;
+
+  const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${openRouterKey}`,
+      "HTTP-Referer": ALLOWED_ORIGINS[ALLOWED_ORIGINS.length - 1],
+      "X-Title": "FinRatio",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: Deno.env.get("OPENROUTER_MODEL_NAME") || "anthropic/claude-3.5-sonnet",
+      messages,
+      stream: body.stream === true,
+      ...(body.response_format ? { response_format: body.response_format } : {}),
+      ...(typeof body.temperature === "number" ? { temperature: body.temperature } : {}),
+    }),
+    signal: AbortSignal.timeout(120_000),
+  });
+
+  if (!upstream.ok) {
+    // Never echo the provider body: it can carry key hints and account details.
+    console.error("[ai/chat] upstream error", upstream.status);
+    return c.json({ error: "AI request failed" }, upstream.status === 429 ? 429 : 502);
+  }
+
+  return new Response(upstream.body, {
+    status: 200,
+    headers: {
+      "Content-Type": upstream.headers.get("Content-Type") ?? "application/json",
+      "Cache-Control": "no-store",
+    },
+  });
 });
 
 Deno.serve(app.fetch);

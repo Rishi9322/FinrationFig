@@ -1,8 +1,9 @@
 # Dependencies
 node_modules/
+
+# pnpm is canonical here; npm/yarn lockfiles would drift
 package-lock.json
 yarn.lock
-pnpm-lock.yaml
 
 # Production builds
 dist/

@@ -1,4 +1,4 @@
-import { projectId, publicAnonKey } from "../../utils/supabase/info"
+import { apiCall, apiRequest } from "./apiSession"
 
 export type Role = "SUPER_ADMIN" | "ADMIN" | "USER"
 export type AccountStatus = "ACTIVE" | "SUSPENDED"
@@ -26,79 +26,11 @@ export interface CalculatorFeature {
 }
 
 const CURRENT_USER_KEY = "finratio_current_user"
-const SESSION_TOKEN_KEY = "finratio_session_token"
-const CSRF_TOKEN_KEY = "finratio_csrf_token"
-const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-bd792702`
 
-function readCookie(name: string): string | null {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`))
-  return match ? decodeURIComponent(match[1]) : null
-}
-
-function getCsrfTokenFromCookie(): string | null {
-  return readCookie("__Host-finratio_csrf") || readCookie("finratio_csrf")
-}
-
-function getSessionToken(): string | null {
-  return localStorage.getItem(SESSION_TOKEN_KEY)
-}
-
-function getCsrfToken(): string | null {
-  return localStorage.getItem(CSRF_TOKEN_KEY) || getCsrfTokenFromCookie()
-}
-
-function setSessionTokens(session?: { sessionToken?: string; csrfToken?: string }): void {
-  if (!session?.sessionToken || !session?.csrfToken) return
-  localStorage.setItem(SESSION_TOKEN_KEY, session.sessionToken)
-  localStorage.setItem(CSRF_TOKEN_KEY, session.csrfToken)
-}
-
+// No session/CSRF token is stored in localStorage any more - both live in cookies.
 function clearSessionTokens(): void {
-  localStorage.removeItem(SESSION_TOKEN_KEY)
-  localStorage.removeItem(CSRF_TOKEN_KEY)
-}
-
-async function apiCall(endpoint: string, options: RequestInit = {}) {
-  const method = (options.method || "GET").toUpperCase()
-  const csrfToken = getCsrfToken()
-  const sessionToken = getSessionToken()
-  const url = new URL(`${API_BASE}${endpoint}`)
-
-  if (sessionToken) {
-    url.searchParams.set("sessionToken", sessionToken)
-    if (csrfToken && method !== "GET") {
-      url.searchParams.set("csrfToken", csrfToken)
-    }
-  }
-
-  const response = await fetch(url.toString(), {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${publicAnonKey}`,
-      ...(sessionToken ? { "X-Session-Token": sessionToken } : {}),
-      ...(csrfToken && method !== "GET" ? { "X-CSRF-Token": csrfToken } : {}),
-      ...options.headers,
-    },
-  })
-
-  const raw = await response.text()
-  let data: any = null
-
-  if (raw) {
-    try {
-      data = JSON.parse(raw)
-    } catch {
-      data = { message: raw }
-    }
-  }
-
-  if (!response.ok) {
-    throw new Error(data?.error || data?.message || "Request failed")
-  }
-
-  return data ?? {}
+  localStorage.removeItem("finratio_session_token")
+  localStorage.removeItem("finratio_csrf_token")
 }
 
 export async function signup(params: {
@@ -122,7 +54,6 @@ export async function verifyOTP(email: string, otp: string) {
     body: JSON.stringify({ email, otp }),
   })
 
-  setSessionTokens(data.session)
   if (data.user) setCurrentUser(data.user)
   return data
 }
@@ -134,7 +65,6 @@ export async function signin(email: string, password: string) {
     body: JSON.stringify({ email, password }),
   })
 
-  setSessionTokens(data.session)
   if (data.user) setCurrentUser(data.user)
   return data
 }
@@ -249,6 +179,21 @@ export async function updateUserCalculatorAccess(userId: string, slugs: string[]
   })
 }
 
+/**
+ * Single source of truth for admin-surface visibility.
+ *
+ * Nav links, the route guard, and AdminLayout must all use this — when they
+ * disagree, a role either sees a link it can't open or has access it can't find.
+ */
+export function canAccessAdmin(user: User | null | undefined): boolean {
+  return user?.role === "SUPER_ADMIN"
+}
+
+/** Roles that bypass per-calculator grants and see every calculator. */
+export function hasAllCalculatorAccess(user: User | null | undefined): boolean {
+  return user?.role === "SUPER_ADMIN" || user?.role === "ADMIN"
+}
+
 export function getCurrentUser(): User | null {
   const userJson = localStorage.getItem(CURRENT_USER_KEY)
   if (!userJson) return null
@@ -267,4 +212,24 @@ export function setCurrentUser(user: User): void {
 
 export function clearCurrentUser(): void {
   localStorage.removeItem(CURRENT_USER_KEY)
+}
+
+/** GDPR/CCPA subject access request: downloads everything held about the user. */
+export async function exportMyData(): Promise<Blob> {
+  const response = await apiRequest("/me/export")
+  if (!response.ok) throw new Error("Export failed")
+  return new Blob([await response.text()], { type: "application/json" })
+}
+
+/** Irreversible. Deletes the account and everything cascading from it. */
+export async function deleteMyAccount(): Promise<void> {
+  await apiCall("/me", { method: "DELETE" })
+  clearSessionTokens()
+  clearCurrentUser()
+}
+
+/** Security audit trail. Super-admin only; the server enforces that. */
+export async function fetchAuditEvents(limit = 100) {
+  const data = await apiCall(`/admin/audit?limit=${limit}`)
+  return Array.isArray(data.events) ? data.events : []
 }
