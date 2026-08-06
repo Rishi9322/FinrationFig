@@ -179,3 +179,26 @@
     line-height: 1.5;
   }
 }
+
+/*
+ * UX-008 — one focus indicator for the whole app.
+ *
+ * `currentColor` is the trick: the ring inherits the element's own text colour,
+ * so it stays visible on the dark customer surfaces AND the light admin ones
+ * without a per-surface override. Shape (not just colour) carries the state,
+ * which is what WCAG 2.4.7 / 1.4.11 actually require.
+ *
+ * :focus-visible, not :focus — mouse users never see it, keyboard users always do.
+ */
+@layer base {
+  :focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  /* Tailwind's reset zeroes this; restore it for anything opting out above. */
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+}

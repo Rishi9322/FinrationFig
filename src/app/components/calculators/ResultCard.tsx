@@ -64,7 +64,7 @@ Provide a short, actionable paragraph explaining what this means for the busines
   }
 
   const accentColor =
-    result.risk === "low" ? "#10B981" : result.risk === "moderate" ? "#f59e0b" : result.risk === "high" ? "#ef4444" : "#64748B"
+    result.risk === "low" ? "#10B981" : result.risk === "moderate" ? "#f59e0b" : result.risk === "high" ? "#ef4444" : "#94A3B8"
 
   return (
     <div
@@ -102,7 +102,7 @@ Provide a short, actionable paragraph explaining what this means for the busines
       <div className="space-y-2 p-4 rounded-lg bg-white/3 border border-white/5">
         <p className="text-sm text-[#F1F5F9] leading-relaxed">{result.interpretation}</p>
         {result.details && (
-          <p className="text-xs text-[#64748B] leading-relaxed border-t border-white/8 pt-2 mt-2">{result.details}</p>
+          <p className="text-xs text-[#94A3B8] leading-relaxed border-t border-white/8 pt-2 mt-2">{result.details}</p>
         )}
       </div>
 

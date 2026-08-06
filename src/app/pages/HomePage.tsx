@@ -49,7 +49,7 @@ function AnimatedStat({ label, prefix = "", suffix = "", value, decimals = 0, st
       <span className="font-['Geist_Mono'] text-[#10B981] text-2xl font-medium tracking-tight">
         {prefix}{display}{suffix}
       </span>
-      <span className="text-[#64748B] text-sm font-['DM_Sans']">{label}</span>
+      <span className="text-[#94A3B8] text-sm font-['DM_Sans']">{label}</span>
     </div>
   )
 }
@@ -122,7 +122,7 @@ export default function HomePage() {
           <nav className="flex items-center gap-3">
             <Link
               to="/auth/signin"
-              className="text-sm text-[#64748B] hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-white/5"
+              className="text-sm text-[#94A3B8] hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-white/5"
             >
               Sign In
             </Link>
@@ -179,7 +179,7 @@ export default function HomePage() {
             Instantly
           </h1>
 
-          <p className="text-lg text-[#64748B] max-w-xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg text-[#94A3B8] max-w-xl mx-auto mb-10 leading-relaxed">
             9 professional-grade financial ratio calculators with real-time risk assessment,
             Indian currency formatting, and secure history — built for credit teams and CFOs.
           </p>
@@ -195,7 +195,7 @@ export default function HomePage() {
             </Link>
             <a
               href="#how-it-works"
-              className="inline-flex items-center gap-2 text-[#64748B] hover:text-white px-6 py-3.5 rounded-xl border border-white/10 hover:border-white/20 transition-all text-base"
+              className="inline-flex items-center gap-2 text-[#94A3B8] hover:text-white px-6 py-3.5 rounded-xl border border-white/10 hover:border-white/20 transition-all text-base"
             >
               <Play className="w-4 h-4" />
               See how it works
@@ -203,7 +203,7 @@ export default function HomePage() {
           </div>
 
           {/* Honest positioning line — no fabricated user counts or star ratings */}
-          <div className="flex items-center justify-center gap-2 text-sm text-[#64748B]">
+          <div className="flex items-center justify-center gap-2 text-sm text-[#94A3B8]">
             <Zap className="w-3.5 h-3.5 text-[#10B981]" />
             <span>Free to use — the same 9 formulas banks use, running in your browser</span>
           </div>
@@ -220,12 +220,12 @@ export default function HomePage() {
               <div className="w-3 h-3 rounded-full bg-[#ef4444]/60" />
               <div className="w-3 h-3 rounded-full bg-[#f59e0b]/60" />
               <div className="w-3 h-3 rounded-full bg-[#10B981]/60" />
-              <span className="ml-3 text-xs font-['Geist_Mono'] text-[#64748B]">finratio.app / calculators / dscr</span>
+              <span className="ml-3 text-xs font-['Geist_Mono'] text-[#94A3B8]">finratio.app / calculators / dscr</span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2">
               {/* Input panel */}
               <div className="p-6 border-r border-white/8">
-                <p className="text-xs font-['Geist_Mono'] text-[#64748B] uppercase tracking-widest mb-4">Inputs</p>
+                <p className="text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-widest mb-4">Inputs</p>
                 {[
                   ["Business Type", "Manufacturer"],
                   ["Net Annual Sales", "₹5,00,00,000"],
@@ -234,7 +234,7 @@ export default function HomePage() {
                   ["Depreciation", "₹8,00,000"],
                 ].map(([label, val]) => (
                   <div key={label} className="mb-3">
-                    <p className="text-xs text-[#64748B] mb-1">{label}</p>
+                    <p className="text-xs text-[#94A3B8] mb-1">{label}</p>
                     <div className="bg-[#050A14] rounded-lg px-3 py-2 text-sm font-['Geist_Mono'] text-[#F1F5F9] border border-white/8">
                       {val}
                     </div>
@@ -243,21 +243,21 @@ export default function HomePage() {
               </div>
               {/* Result panel */}
               <div className="p-6">
-                <p className="text-xs font-['Geist_Mono'] text-[#64748B] uppercase tracking-widest mb-4">Results</p>
+                <p className="text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-widest mb-4">Results</p>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#64748B]">DSCR</span>
+                    <span className="text-sm text-[#94A3B8]">DSCR</span>
                     <div className="flex items-center gap-2">
                       <span className="font-['Geist_Mono'] text-[#10B981] font-medium">1.32</span>
                       <span className="text-[10px] bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/25 rounded-full px-2 py-0.5">Low Risk</span>
                     </div>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#64748B]">Annual Repayment</span>
+                    <span className="text-sm text-[#94A3B8]">Annual Repayment</span>
                     <span className="font-['Geist_Mono'] text-[#F1F5F9] text-sm">₹38,00,000</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#64748B]">Cash Accrual</span>
+                    <span className="text-sm text-[#94A3B8]">Cash Accrual</span>
                     <span className="font-['Geist_Mono'] text-[#F1F5F9] text-sm">₹50,00,000</span>
                   </div>
                   <div className="mt-4 p-3 rounded-lg bg-[#10B981]/8 border border-[#10B981]/20">
@@ -283,7 +283,7 @@ export default function HomePage() {
             >
               From inputs to insight
               <br />
-              <em className="not-italic text-[#64748B]">in four steps</em>
+              <em className="not-italic text-[#94A3B8]">in four steps</em>
             </h2>
           </div>
 
@@ -308,7 +308,7 @@ export default function HomePage() {
                   </div>
                   <span className="font-['Geist_Mono'] text-xs text-[#2563EB] mb-2 tracking-widest">{step.n}</span>
                   <h3 className="font-medium text-white mb-2 text-base">{step.title}</h3>
-                  <p className="text-sm text-[#64748B] leading-relaxed">{step.desc}</p>
+                  <p className="text-sm text-[#94A3B8] leading-relaxed">{step.desc}</p>
                 </div>
               )
             })}
@@ -330,9 +330,9 @@ export default function HomePage() {
               >
                 See your numbers
                 <br />
-                <em className="not-italic text-[#64748B]">come alive</em>
+                <em className="not-italic text-[#94A3B8]">come alive</em>
               </h2>
-              <p className="text-[#64748B] leading-relaxed mb-8">
+              <p className="text-[#94A3B8] leading-relaxed mb-8">
                 Every input field recalculates the full ratio suite in real time.
                 Risk badges update automatically — Low, Moderate, or High — with
                 plain-language interpretation for each result.
@@ -368,7 +368,7 @@ export default function HomePage() {
             >
               9 calculators,
               <br />
-              <em className="not-italic text-[#64748B]">one platform</em>
+              <em className="not-italic text-[#94A3B8]">one platform</em>
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -383,7 +383,7 @@ export default function HomePage() {
                     {String(i + 1).padStart(2, "0")}
                   </span>
                 </div>
-                <p className="text-xs text-[#64748B] leading-relaxed">{calc.desc}</p>
+                <p className="text-xs text-[#94A3B8] leading-relaxed">{calc.desc}</p>
               </div>
             ))}
           </div>
@@ -403,7 +403,7 @@ export default function HomePage() {
             >
               Everything a finance
               <br />
-              <em className="not-italic text-[#64748B]">team needs</em>
+              <em className="not-italic text-[#94A3B8]">team needs</em>
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -423,7 +423,7 @@ export default function HomePage() {
                     <Icon className="w-5 h-5 text-[#2563EB]" />
                   </div>
                   <h3 className="font-medium text-white mb-2">{feat.title}</h3>
-                  <p className="text-sm text-[#64748B] leading-relaxed">{feat.desc}</p>
+                  <p className="text-sm text-[#94A3B8] leading-relaxed">{feat.desc}</p>
                 </div>
               )
             })}
@@ -442,7 +442,7 @@ export default function HomePage() {
             >
               Built to be checked,
               <br />
-              <em className="not-italic text-[#64748B]">not just trusted</em>
+              <em className="not-italic text-[#94A3B8]">not just trusted</em>
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -460,7 +460,7 @@ export default function HomePage() {
                   {String(i + 1).padStart(2, "0")}
                 </div>
                 <h3 className="text-sm font-medium text-white">{p.title}</h3>
-                <p className="text-[#64748B] text-sm leading-relaxed">{p.desc}</p>
+                <p className="text-[#94A3B8] text-sm leading-relaxed">{p.desc}</p>
               </div>
             ))}
           </div>
@@ -487,9 +487,9 @@ export default function HomePage() {
           >
             Start your first calculation
             <br />
-            <em className="not-italic text-[#64748B]">— free</em>
+            <em className="not-italic text-[#94A3B8]">— free</em>
           </h2>
-          <p className="text-[#64748B] mb-10 text-lg">No credit card. No setup. Just results.</p>
+          <p className="text-[#94A3B8] mb-10 text-lg">No credit card. No setup. Just results.</p>
           <Link
             to="/auth/signup"
             className="inline-flex items-center gap-2 bg-white hover:bg-[#F1F5F9] text-[#050A14] px-10 py-4 rounded-xl font-semibold text-base transition-all hover:-translate-y-0.5 shadow-xl"
@@ -513,15 +513,15 @@ export default function HomePage() {
               </span>
               <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#2563EB] border border-[#2563EB]/30 rounded px-1.5 py-0.5">β</span>
             </div>
-            <p className="text-xs text-[#64748B]">Financial Intelligence for Indian Business</p>
+            <p className="text-xs text-[#94A3B8]">Financial Intelligence for Indian Business</p>
           </div>
-          <nav className="flex items-center gap-6 text-sm text-[#64748B]">
+          <nav className="flex items-center gap-6 text-sm text-[#94A3B8]">
             <a href="#" className="hover:text-white transition-colors">Home</a>
             <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
             <Link to="/auth/signin" className="hover:text-white transition-colors">Sign In</Link>
             <Link to="/auth/signup" className="hover:text-white transition-colors">Sign Up</Link>
           </nav>
-          <p className="text-xs text-[#64748B]">© 2026 FinRatio. All rights reserved.</p>
+          <p className="text-xs text-[#94A3B8]">© 2026 FinRatio. All rights reserved.</p>
         </div>
       </footer>
     </div>

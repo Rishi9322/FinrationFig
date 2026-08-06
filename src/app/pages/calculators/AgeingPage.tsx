@@ -66,7 +66,7 @@ export default function AgeingPage() {
   }
 
   const accentColor =
-    result?.risk === "low" ? "#10B981" : result?.risk === "moderate" ? "#f59e0b" : result?.risk === "high" ? "#ef4444" : "#64748B"
+    result?.risk === "low" ? "#10B981" : result?.risk === "moderate" ? "#f59e0b" : result?.risk === "high" ? "#ef4444" : "#94A3B8"
 
   return (
     <CalculatorShell
@@ -85,7 +85,7 @@ export default function AgeingPage() {
             {/* Total + risk */}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-[#64748B] mb-1">Total Receivables</p>
+                <p className="text-xs text-[#94A3B8] mb-1">Total Receivables</p>
                 <p className="text-2xl font-['Geist_Mono'] font-medium" style={{ color: accentColor }}>
                   {formatCurrency(result.total)}
                 </p>
@@ -99,7 +99,7 @@ export default function AgeingPage() {
                 <div key={bucket.label} className="bg-white/3 border border-white/5 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
                     <p className="text-sm font-medium text-white">{bucket.label}</p>
-                    <p className="text-xs text-[#64748B]">{bucket.count} invoice{bucket.count !== 1 ? "s" : ""}</p>
+                    <p className="text-xs text-[#94A3B8]">{bucket.count} invoice{bucket.count !== 1 ? "s" : ""}</p>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="h-1.5 flex-1 mr-4 bg-white/8 rounded-full overflow-hidden">
@@ -110,7 +110,7 @@ export default function AgeingPage() {
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-sm font-['Geist_Mono'] text-[#F1F5F9]">{formatCurrency(bucket.amount)}</p>
-                      <p className="text-xs text-[#64748B]">{bucket.percentage.toFixed(1)}%</p>
+                      <p className="text-xs text-[#94A3B8]">{bucket.percentage.toFixed(1)}%</p>
                     </div>
                   </div>
                 </div>
@@ -146,7 +146,7 @@ export default function AgeingPage() {
     >
       <div className="space-y-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
         <div className="flex items-center justify-between">
-          <p className="text-sm text-[#64748B]">Enter each outstanding receivable below</p>
+          <p className="text-sm text-[#94A3B8]">Enter each outstanding receivable below</p>
           <button
             onClick={addReceivable}
             className="flex items-center gap-1.5 text-xs text-[#2563EB] hover:text-white border border-[#2563EB]/30 hover:border-[#2563EB] hover:bg-[#2563EB] px-3 py-1.5 rounded-lg transition-all"
@@ -160,8 +160,8 @@ export default function AgeingPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/8">
-                <th className="px-4 py-3 text-left text-xs font-['Geist_Mono'] text-[#64748B] uppercase tracking-wider">Amount (₹)</th>
-                <th className="px-4 py-3 text-left text-xs font-['Geist_Mono'] text-[#64748B] uppercase tracking-wider">Days Outstanding</th>
+                <th className="px-4 py-3 text-left text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-wider">Amount (₹)</th>
+                <th className="px-4 py-3 text-left text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-wider">Days Outstanding</th>
                 <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
@@ -179,7 +179,7 @@ export default function AgeingPage() {
                       placeholder="0"
                       min="0"
                       step="0.01"
-                      className="w-full bg-[#050A14] border border-white/10 rounded-lg px-3 py-2 text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#64748B]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+                      className="w-full bg-[#050A14] border border-white/10 rounded-lg px-3 py-2 text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
                     />
                   </td>
                   <td className="px-4 py-2.5">
@@ -190,14 +190,14 @@ export default function AgeingPage() {
                       placeholder="0"
                       min="0"
                       step="1"
-                      className="w-full bg-[#050A14] border border-white/10 rounded-lg px-3 py-2 text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#64748B]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+                      className="w-full bg-[#050A14] border border-white/10 rounded-lg px-3 py-2 text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
                     />
                   </td>
                   <td className="px-4 py-2.5 text-center">
                     {receivables.length > 1 && (
                       <button
                         onClick={() => removeReceivable(r.id)}
-                        className="text-[#64748B] hover:text-[#ef4444] transition-colors"
+                        className="text-[#94A3B8] hover:text-[#ef4444] transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -209,7 +209,7 @@ export default function AgeingPage() {
           </table>
         </div>
 
-        <p className="text-xs text-[#64748B] leading-relaxed">
+        <p className="text-xs text-[#94A3B8] leading-relaxed">
           Each row is one outstanding invoice. Enter the amount and the number of days since it was due.
         </p>
       </div>

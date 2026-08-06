@@ -3,6 +3,13 @@ import { useNavigate } from "react-router"
 import { Building2, Loader2 } from "lucide-react"
 import { getCurrentUser, submitOnboarding } from "../../../lib/auth"
 import { toast } from "sonner"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select"
 
 const CONSTITUTIONS = [
   "Sole Proprietorship",
@@ -81,30 +88,31 @@ export default function OnboardingPage() {
               <Building2 className="w-7 h-7 text-[#2563EB]" />
             </div>
             <h2 className="text-lg font-medium text-white mb-1">Business Details</h2>
-            <p className="text-xs text-[#64748B] leading-relaxed">
+            <p className="text-xs text-[#94A3B8] leading-relaxed">
               What is the constitution of your business?
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-[#F1F5F9]">Constitution</label>
-              <select
-                value={constitution}
-                onChange={(e) => setConstitution(e.target.value)}
-                className="w-full px-4 py-3 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors appearance-none"
-                style={{
-                  backgroundImage: "url(\"data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2364748B%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E\")",
-                  backgroundRepeat: "no-repeat",
-                  backgroundPosition: "right 1rem top 50%",
-                  backgroundSize: "0.65rem auto"
-                }}
-              >
-                <option value="" disabled>Select your business type</option>
-                {CONSTITUTIONS.map(c => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
+              <label htmlFor="constitution" className="block text-sm font-medium text-[#F1F5F9]">
+                Constitution
+              </label>
+              <Select value={constitution} onValueChange={setConstitution}>
+                <SelectTrigger
+                  id="constitution"
+                  className="w-full px-4 py-3 h-auto bg-[#050A14] border-white/10 rounded-lg text-[#F1F5F9] text-sm data-[placeholder]:text-[#94A3B8]"
+                >
+                  <SelectValue placeholder="Select your business type" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#0D1726] border-white/10 text-[#F1F5F9]">
+                  {CONSTITUTIONS.map((c) => (
+                    <SelectItem key={c} value={c} className="text-sm focus:bg-white/5">
+                      {c}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {error && (

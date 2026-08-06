@@ -111,11 +111,11 @@ export default function DrawingPowerPage() {
               min="0"
               max="100"
               step="0.1"
-              className="w-full px-4 py-2.5 pr-10 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#64748B]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+              className="w-full px-4 py-2.5 pr-10 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] text-sm font-['Geist_Mono']">%</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] text-sm font-['Geist_Mono']">%</span>
           </div>
-          <p className="text-xs text-[#64748B]">Bank's margin requirement (typically 20–25%)</p>
+          <p className="text-xs text-[#94A3B8]">Bank's margin requirement (typically 20–25%)</p>
           {error && <p className="text-xs text-[#ef4444]">{error}</p>}
         </div>
       </div>

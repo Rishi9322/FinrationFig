@@ -200,7 +200,7 @@ export default function UsersAdminPage() {
           <h1 className="text-3xl font-normal text-white font-instrument-serif">
             Admin Panel
           </h1>
-          <p className="text-sm text-[#64748B] mt-1.5 max-w-lg">
+          <p className="text-sm text-[#94A3B8] mt-1.5 max-w-lg">
             Manage roles, calculator feature access, and account status.
           </p>
         </div>
@@ -208,7 +208,7 @@ export default function UsersAdminPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           {stats.map((item) => (
             <div key={item.label} className="rounded-lg border border-white/8 bg-[#0D1726] px-4 py-3">
-              <p className="text-xs text-[#64748B] uppercase tracking-wider font-['Geist_Mono']">{item.label}</p>
+              <p className="text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">{item.label}</p>
               <p className="text-2xl text-white mt-1">{item.value}</p>
             </div>
           ))}
@@ -217,7 +217,7 @@ export default function UsersAdminPage() {
         <div className="mb-6 rounded-xl border border-white/8 bg-[#0D1726] p-5">
           <div className="flex items-start justify-between gap-6 flex-wrap">
             <div>
-              <p className="text-xs font-['Geist_Mono'] uppercase tracking-widest text-[#64748B]">Create User</p>
+              <p className="text-xs font-['Geist_Mono'] uppercase tracking-widest text-[#94A3B8]">Create User</p>
               <h2 className="text-xl text-white mt-1">New admin or limited-access user</h2>
               <p className="text-sm text-[#94A3B8] mt-1.5 max-w-2xl">
                 Set the role, choose full or custom access, and generate a 10-character password for first sign-in.
@@ -288,7 +288,7 @@ export default function UsersAdminPage() {
 
           {createForm.role === "USER" && createForm.accessMode === "CUSTOM" && (
             <div className="mt-4">
-              <p className="text-xs font-['Geist_Mono'] uppercase tracking-widest text-[#64748B] mb-2">Custom calculators</p>
+              <p className="text-xs font-['Geist_Mono'] uppercase tracking-widest text-[#94A3B8] mb-2">Custom calculators</p>
               <div className="flex flex-wrap gap-2">
                 {features.map((feature) => {
                   const active = createForm.calculatorAccess.includes(feature.slug)
@@ -338,14 +338,14 @@ export default function UsersAdminPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/8">
-                <th className="text-left py-3.5 px-4 text-xs text-[#64748B] uppercase tracking-wider font-['Geist_Mono']">Name</th>
-                <th className="text-left py-3.5 px-4 text-xs text-[#64748B] uppercase tracking-wider font-['Geist_Mono']">Email</th>
-                <th className="text-left py-3.5 px-4 text-xs text-[#64748B] uppercase tracking-wider font-['Geist_Mono']">Phone</th>
-                <th className="text-left py-3.5 px-4 text-xs text-[#64748B] uppercase tracking-wider font-['Geist_Mono']">Role</th>
-                <th className="text-left py-3.5 px-4 text-xs text-[#64748B] uppercase tracking-wider font-['Geist_Mono']">Access Tier</th>
-                <th className="text-left py-3.5 px-4 text-xs text-[#64748B] uppercase tracking-wider font-['Geist_Mono']">Enabled Calculators</th>
-                <th className="text-left py-3.5 px-4 text-xs text-[#64748B] uppercase tracking-wider font-['Geist_Mono']">Status</th>
-                <th className="text-left py-3.5 px-4 text-xs text-[#64748B] uppercase tracking-wider font-['Geist_Mono']">Actions</th>
+                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Name</th>
+                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Email</th>
+                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Phone</th>
+                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Role</th>
+                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Access Tier</th>
+                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Enabled Calculators</th>
+                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Status</th>
+                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -411,7 +411,7 @@ export default function UsersAdminPage() {
                       })}
                     </div>
                     {user.role !== "USER" || (user.calculatorAccessMode || "CUSTOM") === "FULL" ? (
-                      <p className="text-[11px] text-[#64748B] mt-1.5">Full access covers current and future calculators.</p>
+                      <p className="text-[11px] text-[#94A3B8] mt-1.5">Full access covers current and future calculators.</p>
                     ) : null}
                   </td>
                   <td className="py-4 px-4">

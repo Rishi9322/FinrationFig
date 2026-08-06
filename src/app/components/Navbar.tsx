@@ -1,10 +1,23 @@
 import { useState, useEffect } from "react"
 import { Link, useLocation, useNavigate } from "react-router"
 import { CALCULATORS } from "../../lib/calculatorConfig"
-import { getCurrentUser, signout } from "../../lib/auth"
+import { getCurrentUser, signout, canAccessAdmin, hasAllCalculatorAccess } from "../../lib/auth"
 import { Menu, X, ChevronDown, LogOut } from "lucide-react"
 import * as Icons from "lucide-react"
 import { toast } from "sonner"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu"
+
+/** Desktop and mobile render from this one list so they can't drift apart. */
+const PRIMARY_LINKS = [
+  { to: "/dashboard", label: "Dashboard" },
+  { to: "/dashboard/cma-generator", label: "CMA Engine" },
+  { to: "/doc-parser", label: "Doc Parser" },
+]
 
 export function Navbar() {
   const navigate = useNavigate()
@@ -32,7 +45,7 @@ export function Navbar() {
 
   const visibleCalculators = CALCULATORS.filter((calc) => {
     if (!user) return false
-    if (user.role === "SUPER_ADMIN" || user.role === "ADMIN") return true
+    if (hasAllCalculatorAccess(user)) return true
     return user.calculatorAccess?.includes(calc.id)
   })
 
@@ -58,60 +71,50 @@ export function Navbar() {
 
           {/* Desktop nav */}
           <div className="hidden md:flex items-center gap-1">
-            <Link
-              to="/dashboard"
-              className={`text-sm px-4 py-2 rounded-lg transition-colors ${
-                isActive("/dashboard")
-                  ? "text-white bg-white/8"
-                  : "text-[#64748B] hover:text-white hover:bg-white/5"
-              }`}
-            >
-              Dashboard
-            </Link>
-
-            <Link
-              to="/dashboard/cma-generator"
-              className={`text-sm px-4 py-2 rounded-lg transition-colors ${
-                isActive("/dashboard/cma-generator")
-                  ? "text-white bg-white/8"
-                  : "text-[#64748B] hover:text-white hover:bg-white/5"
-              }`}
-            >
-              CMA Engine
-            </Link>
-
-            <Link
-              to="/doc-parser"
-              className={`text-sm px-4 py-2 rounded-lg transition-colors ${
-                isActive("/doc-parser") ? "text-white bg-white/8" : "text-[#64748B] hover:text-white hover:bg-white/5"
-              }`}
-            >
-              Doc Parser
-            </Link>
-
-            {/* Calculators dropdown */}
-            <div className="relative">
-              <button
-                onClick={() => setCalcOpen(!calcOpen)}
-                onBlur={() => setTimeout(() => setCalcOpen(false), 200)}
-                className={`text-sm px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors ${
-                  calcActive ? "text-white bg-white/8" : "text-[#64748B] hover:text-white hover:bg-white/5"
+            {PRIMARY_LINKS.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                aria-current={isActive(link.to) ? "page" : undefined}
+                className={`text-sm px-4 py-2 rounded-lg transition-colors ${
+                  isActive(link.to)
+                    ? "text-white bg-white/8"
+                    : "text-[#94A3B8] hover:text-white hover:bg-white/5"
                 }`}
               >
-                Calculators
-                <ChevronDown className={`h-3.5 w-3.5 transition-transform ${calcOpen ? "rotate-180" : ""}`} />
-              </button>
+                {link.label}
+              </Link>
+            ))}
 
-              {calcOpen && (
-                <div className="absolute top-full left-0 mt-2 w-80 bg-[#0D1726] border border-white/10 rounded-xl shadow-2xl py-2 max-h-[480px] overflow-y-auto">
-                  {visibleCalculators.map((calc) => {
-                    const Icon = Icons[calc.icon as keyof typeof Icons] as React.ComponentType<{ className?: string }>
-                    return (
+            {/* Calculators dropdown — Radix handles focus, Escape, and menu ARIA. */}
+            <DropdownMenu open={calcOpen} onOpenChange={setCalcOpen}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={`text-sm px-4 py-2 rounded-lg flex items-center gap-1.5 transition-colors ${
+                    calcActive ? "text-white bg-white/8" : "text-[#94A3B8] hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  Calculators
+                  <ChevronDown className={`h-3.5 w-3.5 transition-transform ${calcOpen ? "rotate-180" : ""}`} />
+                </button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent
+                align="start"
+                className="w-80 bg-[#0D1726] border-white/10 rounded-xl shadow-2xl py-2 max-h-[480px] overflow-y-auto"
+              >
+                {visibleCalculators.length === 0 && (
+                  <p className="px-4 py-3 text-xs text-[#94A3B8]">
+                    No calculators yet — request access from the Calculators page.
+                  </p>
+                )}
+                {visibleCalculators.map((calc) => {
+                  const Icon = Icons[calc.icon as keyof typeof Icons] as React.ComponentType<{ className?: string }>
+                  return (
+                    <DropdownMenuItem key={calc.id} asChild>
                       <Link
-                        key={calc.id}
                         to={calc.path}
-                        className="flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors border-l-2 border-transparent hover:border-[#2563EB]"
-                        onClick={() => setCalcOpen(false)}
+                        className="flex items-start gap-3 px-4 py-3 focus:bg-white/5 hover:bg-white/5 transition-colors border-l-2 border-transparent hover:border-[#2563EB] cursor-pointer"
                       >
                         {Icon && (
                           <div className="p-1.5 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-lg text-[#2563EB] mt-0.5 shrink-0">
@@ -120,34 +123,35 @@ export function Navbar() {
                         )}
                         <div>
                           <div className="text-sm font-medium text-white">{calc.name}</div>
-                          <div className="text-xs text-[#64748B] mt-0.5 leading-relaxed">{calc.shortDescription}</div>
+                          <div className="text-xs text-[#94A3B8] mt-0.5 leading-relaxed">{calc.shortDescription}</div>
                         </div>
                       </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+                    </DropdownMenuItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {user && (
               <>
-                {user.role === "SUPER_ADMIN" && (
+                {canAccessAdmin(user) && (
                   <Link
                     to="/admin"
+                    aria-current={adminActive ? "page" : undefined}
                     className={`text-sm px-4 py-2 rounded-lg transition-colors ${
                       adminActive
                         ? "text-white bg-white/8"
-                        : "text-[#64748B] hover:text-white hover:bg-white/5"
+                        : "text-[#94A3B8] hover:text-white hover:bg-white/5"
                     }`}
                   >
                     Admin
                   </Link>
                 )}
                 <div className="h-4 w-px bg-white/10 mx-2" />
-                <span className="text-sm text-[#64748B]">{user.name || user.email}</span>
+                <span className="text-sm text-[#94A3B8]">{user.name || user.email}</span>
                 <button
                   onClick={handleSignOut}
-                  className="flex items-center gap-1.5 text-sm text-[#64748B] hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-colors ml-1"
+                  className="flex items-center gap-1.5 text-sm text-[#94A3B8] hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-colors ml-1"
                 >
                   <LogOut className="h-3.5 w-3.5" />
                   Sign Out
@@ -159,7 +163,7 @@ export function Navbar() {
           {/* Mobile toggle */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden p-2 text-[#64748B] hover:text-white transition-colors"
+            className="md:hidden p-2 text-[#94A3B8] hover:text-white transition-colors"
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -169,29 +173,31 @@ export function Navbar() {
         {mobileOpen && (
           <div className="md:hidden absolute top-16 left-0 right-0 bg-[#0D1726] border-b border-white/8 max-h-[80vh] overflow-y-auto z-50">
             <div className="px-4 py-4 space-y-1">
-              <Link
-                to="/dashboard"
-                className="block text-sm text-[#F1F5F9] px-3 py-2.5 rounded-lg hover:bg-white/5"
-                onClick={() => setMobileOpen(false)}
-              >
-                Dashboard
-              </Link>
-              <Link
-                to="/doc-parser"
-                className="block text-sm text-[#F1F5F9] px-3 py-2.5 rounded-lg hover:bg-white/5"
-                onClick={() => setMobileOpen(false)}
-              >
-                Doc Parser
-              </Link>
+              {PRIMARY_LINKS.map((link) => (
+                <Link
+                  key={link.to}
+                  to={link.to}
+                  aria-current={isActive(link.to) ? "page" : undefined}
+                  className="block text-sm text-[#F1F5F9] px-3 py-2.5 rounded-lg hover:bg-white/5"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              ))}
               <div className="pt-2 pb-1">
-                <p className="text-xs font-['Geist_Mono'] text-[#64748B] uppercase tracking-widest px-3 mb-2">Calculators</p>
+                <p className="text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-widest px-3 mb-2">Calculators</p>
+                {visibleCalculators.length === 0 && (
+                  <p className="px-3 py-2 text-xs text-[#94A3B8]">
+                    No calculators yet — request access from the Calculators page.
+                  </p>
+                )}
                 {visibleCalculators.map((calc) => {
                   const Icon = Icons[calc.icon as keyof typeof Icons] as React.ComponentType<{ className?: string }>
                   return (
                     <Link
                       key={calc.id}
                       to={calc.path}
-                      className="flex items-center gap-2 pl-3 pr-3 py-2.5 text-sm text-[#64748B] hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+                      className="flex items-center gap-2 pl-3 pr-3 py-2.5 text-sm text-[#94A3B8] hover:text-white hover:bg-white/5 rounded-lg transition-colors"
                       onClick={() => setMobileOpen(false)}
                     >
                       {Icon && <Icon className="h-4 w-4 shrink-0" />}
@@ -202,7 +208,7 @@ export function Navbar() {
               </div>
               {user && (
                 <div className="pt-3 border-t border-white/8 mt-2">
-                  {user.role === "SUPER_ADMIN" && (
+                  {canAccessAdmin(user) && (
                     <Link
                       to="/admin"
                       className="block text-sm text-[#F1F5F9] px-3 py-2.5 rounded-lg hover:bg-white/5"
@@ -211,10 +217,10 @@ export function Navbar() {
                       Admin
                     </Link>
                   )}
-                  <p className="text-sm text-[#64748B] px-3 py-1.5">{user.name || user.email}</p>
+                  <p className="text-sm text-[#94A3B8] px-3 py-1.5">{user.name || user.email}</p>
                   <button
                     onClick={handleSignOut}
-                    className="flex items-center gap-2 text-sm text-[#64748B] hover:text-white px-3 py-2.5 rounded-lg hover:bg-white/5 w-full transition-colors"
+                    className="flex items-center gap-2 text-sm text-[#94A3B8] hover:text-white px-3 py-2.5 rounded-lg hover:bg-white/5 w-full transition-colors"
                   >
                     <LogOut className="h-4 w-4" />
                     Sign Out

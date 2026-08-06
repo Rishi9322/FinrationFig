@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Toggle, ToggleRight, Eye, EyeOff } from 'lucide-react';
+import { ToggleRight, Eye, EyeOff } from 'lucide-react';
+import { toast } from 'sonner';
+import { ConfirmDialog } from './ConfirmDialog';
+import { adminMutate } from './adminFetch';
+import { EmptyState, ErrorState, TableLoadingState } from '../ui/states';
 
 interface Calculator {
   id: string;
@@ -15,6 +19,7 @@ interface Calculator {
 export function CalculatorsManagement() {
   const [calculators, setCalculators] = useState<Calculator[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     fetchCalculators();
@@ -22,69 +27,78 @@ export function CalculatorsManagement() {
 
   const fetchCalculators = async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const response = await fetch('/api/admin/calculators');
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       const data = await response.json();
       setCalculators(data.calculators || []);
     } catch (error) {
-      console.error('Failed to fetch calculators:', error);
+      const description = error instanceof Error ? error.message : 'Request failed.';
+      setLoadError(description);
+      toast.error('Could not load calculators', { description });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleToggleCalculator = async (calculatorId: string, enabled: boolean) => {
-    try {
-      await fetch(`/api/admin/calculators/${calculatorId}/toggle`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: !enabled }),
-      });
-      fetchCalculators();
-    } catch (error) {
-      console.error('Failed to toggle calculator:', error);
-    }
+  const handleToggleCalculator = async (calculatorId: string, name: string, enabled: boolean) => {
+    await adminMutate(`/api/admin/calculators/${calculatorId}/toggle`, {
+      body: { enabled: !enabled },
+      success: `${name} ${enabled ? 'disabled' : 'enabled'}.`,
+      error: `Failed to ${enabled ? 'disable' : 'enable'} ${name}`,
+    });
+    fetchCalculators();
   };
 
-  const handleTogglePublic = async (calculatorId: string, isPublic: boolean) => {
-    try {
-      await fetch(`/api/admin/calculators/${calculatorId}/visibility`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isPublic: !isPublic }),
-      });
-      fetchCalculators();
-    } catch (error) {
-      console.error('Failed to toggle visibility:', error);
-    }
+  const handleTogglePublic = async (calculatorId: string, name: string, isPublic: boolean) => {
+    await adminMutate(`/api/admin/calculators/${calculatorId}/visibility`, {
+      body: { isPublic: !isPublic },
+      success: `${name} is now ${isPublic ? 'private' : 'public'}.`,
+      error: `Failed to change visibility for ${name}`,
+    });
+    fetchCalculators();
   };
 
   const handleUnlockAll = async () => {
-    if (confirm('Are you sure you want to unlock all calculators?')) {
-      try {
-        await fetch('/api/admin/calculators/unlock-all', { method: 'POST' });
-        fetchCalculators();
-      } catch (error) {
-        console.error('Failed to unlock calculators:', error);
-      }
-    }
+    await adminMutate('/api/admin/calculators/unlock-all', {
+      success: 'All calculators unlocked.',
+      error: 'Failed to unlock calculators',
+    });
+    fetchCalculators();
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold text-slate-900">Calculators Management</h2>
-        <button
-          onClick={handleUnlockAll}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-        >
-          Unlock All
-        </button>
+        <ConfirmDialog
+          title="Unlock all calculators?"
+          description="Every calculator is enabled and made public, including any currently restricted to specific roles. Individual visibility settings are overwritten."
+          confirmLabel="Unlock all"
+          onConfirm={handleUnlockAll}
+          trigger={
+            <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+              Unlock All
+            </button>
+          }
+        />
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-x-auto">
         {loading ? (
-          <div className="p-6 text-center">Loading calculators...</div>
+          <TableLoadingState rows={6} columns={6} />
+        ) : loadError ? (
+          <ErrorState
+            title="Could not load calculators"
+            description={loadError}
+            onRetry={fetchCalculators}
+          />
+        ) : calculators.length === 0 ? (
+          <EmptyState
+            title="No calculators configured"
+            description="Calculators appear here once they are registered in the backend."
+          />
         ) : (
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -110,7 +124,8 @@ export function CalculatorsManagement() {
                   <td className="px-6 py-4 text-sm text-slate-600">{calc.version}</td>
                   <td className="px-6 py-4 text-center">
                     <button
-                      onClick={() => handleToggleCalculator(calc.id, calc.enabled)}
+                      onClick={() => handleToggleCalculator(calc.id, calc.name, calc.enabled)}
+                      aria-label={`${calc.enabled ? 'Disable' : 'Enable'} ${calc.name}`}
                       className={`p-2 rounded-lg transition ${
                         calc.enabled
                           ? 'bg-green-100 text-green-600'
@@ -122,7 +137,8 @@ export function CalculatorsManagement() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <button
-                      onClick={() => handleTogglePublic(calc.id, calc.isPublic)}
+                      onClick={() => handleTogglePublic(calc.id, calc.name, calc.isPublic)}
+                      aria-label={`Make ${calc.name} ${calc.isPublic ? 'private' : 'public'}`}
                       className={`p-2 rounded-lg transition ${
                         calc.isPublic
                           ? 'bg-blue-100 text-blue-600'

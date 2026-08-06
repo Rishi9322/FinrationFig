@@ -1,13 +1,12 @@
 import React from 'react';
 import { AdminSidebar } from './AdminSidebar';
-import { getCurrentUser } from '../../../lib/auth';
+import { getCurrentUser, canAccessAdmin } from '../../../lib/auth';
 import { Navigate } from 'react-router';
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = getCurrentUser();
 
-  // Check if user has admin role
-  if (!user || (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN')) {
+  if (!canAccessAdmin(user)) {
     return <Navigate to="/access-denied" />;
   }
 

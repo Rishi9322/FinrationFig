@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '../../components/admin/AdminLayout';
 import { Shield, Plus, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { ConfirmDialog } from '../../components/admin/ConfirmDialog';
+import { adminMutate } from '../../components/admin/adminFetch';
+import { EmptyState, ErrorState, TableLoadingState } from '../../components/ui/states';
 
 interface Permission {
   id: string;
@@ -15,18 +19,25 @@ export function AdminPermissionsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedRole, setSelectedRole] = useState('USER');
   const [selectedCalculator, setSelectedCalculator] = useState('');
+  const [calculatorError, setCalculatorError] = useState('');
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     fetchPermissions();
   }, []);
 
   const fetchPermissions = async () => {
+    setLoading(true);
+    setLoadError('');
     try {
       const response = await fetch('/api/admin/permissions');
+      if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
       const data = await response.json();
       setPermissions(data.permissions || []);
     } catch (error) {
-      console.error('Failed to fetch permissions:', error);
+      const description = error instanceof Error ? error.message : 'Request failed.';
+      setLoadError(description);
+      toast.error('Could not load permissions', { description });
     } finally {
       setLoading(false);
     }
@@ -34,35 +45,27 @@ export function AdminPermissionsPage() {
 
   const handleGrantAccess = async () => {
     if (!selectedCalculator) {
-      alert('Please select a calculator');
+      setCalculatorError('Select a calculator to grant access to.');
       return;
     }
+    setCalculatorError('');
 
-    try {
-      await fetch('/api/admin/permissions/grant', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          role: selectedRole,
-          calculatorId: selectedCalculator
-        })
-      });
-      fetchPermissions();
-      setSelectedCalculator('');
-    } catch (error) {
-      console.error('Failed to grant access:', error);
-    }
+    const ok = await adminMutate('/api/admin/permissions/grant', {
+      body: { role: selectedRole, calculatorId: selectedCalculator },
+      success: `Access granted to ${selectedRole}.`,
+      error: 'Failed to grant access',
+    });
+    if (ok) setSelectedCalculator('');
+    fetchPermissions();
   };
 
-  const handleRevokeAccess = async (permissionId: string) => {
-    try {
-      await fetch(`/api/admin/permissions/${permissionId}`, {
-        method: 'DELETE'
-      });
-      fetchPermissions();
-    } catch (error) {
-      console.error('Failed to revoke access:', error);
-    }
+  const handleRevokeAccess = async (perm: Permission) => {
+    await adminMutate(`/api/admin/permissions/${perm.id}`, {
+      method: 'DELETE',
+      success: `Revoked ${perm.calculatorName} from ${perm.role}.`,
+      error: `Failed to revoke ${perm.calculatorName}`,
+    });
+    fetchPermissions();
   };
 
   return (
@@ -76,8 +79,9 @@ export function AdminPermissionsPage() {
         <div className="bg-white rounded-lg shadow p-6">
           <h3 className="text-lg font-semibold text-slate-900 mb-4">Grant Calculator Access</h3>
           
-          <div className="flex gap-4 mb-6">
+          <div className="flex gap-4 mb-2">
             <select
+              aria-label="Role"
               value={selectedRole}
               onChange={(e) => setSelectedRole(e.target.value)}
               className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -88,9 +92,19 @@ export function AdminPermissionsPage() {
             </select>
 
             <select
+              aria-label="Calculator"
+              aria-invalid={!!calculatorError}
+              aria-describedby={calculatorError ? 'calculator-error' : undefined}
               value={selectedCalculator}
-              onChange={(e) => setSelectedCalculator(e.target.value)}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 flex-1"
+              onChange={(e) => {
+                setSelectedCalculator(e.target.value);
+                setCalculatorError('');
+              }}
+              className={`px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 flex-1 ${
+                calculatorError
+                  ? 'border-red-500 focus:ring-red-500'
+                  : 'border-slate-300 focus:ring-blue-500'
+              }`}
             >
               <option value="">Select Calculator...</option>
               <option value="debt-equity">Debt to Equity</option>
@@ -109,11 +123,27 @@ export function AdminPermissionsPage() {
               Grant Access
             </button>
           </div>
+          {calculatorError && (
+            <p id="calculator-error" role="alert" className="text-sm text-red-600 mb-6">
+              {calculatorError}
+            </p>
+          )}
         </div>
 
         <div className="bg-white rounded-lg shadow overflow-x-auto">
           {loading ? (
-            <div className="p-6 text-center">Loading permissions...</div>
+            <TableLoadingState rows={4} columns={4} />
+          ) : loadError ? (
+            <ErrorState
+              title="Could not load permissions"
+              description={loadError}
+              onRetry={fetchPermissions}
+            />
+          ) : permissions.length === 0 ? (
+            <EmptyState
+              title="No permissions granted yet"
+              description="Grant a role access to a calculator using the form above."
+            />
           ) : (
             <table className="w-full">
               <thead className="bg-slate-50 border-b border-slate-200">
@@ -137,12 +167,21 @@ export function AdminPermissionsPage() {
                       {new Date(perm.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-sm">
-                      <button
-                        onClick={() => handleRevokeAccess(perm.id)}
-                        className="p-1 hover:bg-red-100 rounded"
-                      >
-                        <Trash2 size={16} className="text-red-600" />
-                      </button>
+                      <ConfirmDialog
+                        title={`Revoke ${perm.calculatorName}?`}
+                        description={`Every user with the ${perm.role} role immediately loses access to ${perm.calculatorName}. You can grant it again from this page.`}
+                        confirmLabel="Revoke access"
+                        destructive
+                        onConfirm={() => handleRevokeAccess(perm)}
+                        trigger={
+                          <button
+                            aria-label={`Revoke ${perm.calculatorName} from ${perm.role}`}
+                            className="p-1 hover:bg-red-100 rounded"
+                          >
+                            <Trash2 size={16} className="text-red-600" />
+                          </button>
+                        }
+                      />
                     </td>
                   </tr>
                 ))}

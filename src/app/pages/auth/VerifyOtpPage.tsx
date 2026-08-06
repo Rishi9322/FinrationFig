@@ -63,7 +63,7 @@ export default function VerifyOtpPage() {
           <Link to="/" className="inline-flex items-center gap-2">
             <img src="/logoo.png" alt="FinRatio" className="h-14 w-auto sm:h-16" />
           </Link>
-          <p className="text-sm text-[#64748B] mt-3">Verify your email to continue</p>
+          <p className="text-sm text-[#94A3B8] mt-3">Verify your email to continue</p>
         </div>
 
         <div className="bg-[#0D1726] border border-white/8 rounded-2xl p-8">
@@ -83,7 +83,7 @@ export default function VerifyOtpPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#64748B]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+                className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
               />
             </div>
 
@@ -130,7 +130,7 @@ export default function VerifyOtpPage() {
             >
               {isResending ? "Resending OTP..." : "Resend OTP"}
             </button>
-            <p className="text-sm text-[#64748B]">
+            <p className="text-sm text-[#94A3B8]">
               Back to{" "}
               <Link to="/auth/signin" className="text-[#2563EB] hover:text-white transition-colors font-medium">
                 Sign in

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { Link } from "react-router"
-import { getCurrentUser } from "../../lib/auth"
+import { getCurrentUser, hasAllCalculatorAccess } from "../../lib/auth"
 import { getUserCalculations, SavedCalculation } from "../../lib/calculationStorage"
 import { CALCULATORS } from "../../lib/calculatorConfig"
 import { RiskBadge } from "../components/ui/RiskBadge"
@@ -48,7 +48,7 @@ export default function DashboardPage() {
   const mostUsedType = getMostUsedCalculator()
   const topCalculators = CALCULATORS.filter((calc) => {
     if (!user) return false
-    if (user.role === "SUPER_ADMIN" || user.role === "ADMIN") return true
+    if (hasAllCalculatorAccess(user)) return true
     return user.calculatorAccess?.includes(calc.id)
   }).slice(0, 3)
 
@@ -83,7 +83,7 @@ Provide a cohesive overall summary of the company's financial health based on th
   if (!user) {
     return (
       <div className="min-h-screen bg-[#050A14] flex items-center justify-center">
-        <p className="text-[#64748B]">Please sign in to view your dashboard.</p>
+        <p className="text-[#94A3B8]">Please sign in to view your dashboard.</p>
       </div>
     )
   }
@@ -100,7 +100,7 @@ Provide a cohesive overall summary of the company's financial health based on th
           >
             Welcome back, {user.name || user.email.split("@")[0]}
           </h1>
-          <p className="text-sm text-[#64748B] mt-1">Your financial analysis overview</p>
+          <p className="text-sm text-[#94A3B8] mt-1">Your financial analysis overview</p>
         </div>
 
         {/* Stat cards */}
@@ -110,7 +110,7 @@ Provide a cohesive overall summary of the company's financial health based on th
               <BarChart3 className="w-5 h-5 text-[#2563EB]" />
             </div>
             <div>
-              <p className="text-xs text-[#64748B] mb-1">Total Analyses</p>
+              <p className="text-xs text-[#94A3B8] mb-1">Total Analyses</p>
               <p className="text-4xl font-['Geist_Mono'] font-medium text-white">{totalCount}</p>
             </div>
           </div>
@@ -120,7 +120,7 @@ Provide a cohesive overall summary of the company's financial health based on th
               <TrendingUp className="w-5 h-5 text-[#10B981]" />
             </div>
             <div>
-              <p className="text-xs text-[#64748B] mb-1">Most Used</p>
+              <p className="text-xs text-[#94A3B8] mb-1">Most Used</p>
               <p className="text-lg font-medium text-white">{mostUsedType ? mostUsedType.name : "—"}</p>
             </div>
           </div>
@@ -153,10 +153,10 @@ Provide a cohesive overall summary of the company's financial health based on th
                         <Icon className="h-4 w-4" />
                       </div>
                     )}
-                    <ArrowRight className="h-4 w-4 text-[#64748B] group-hover:text-[#2563EB] transition-colors opacity-0 group-hover:opacity-100" />
+                    <ArrowRight className="h-4 w-4 text-[#94A3B8] group-hover:text-[#2563EB] transition-colors opacity-0 group-hover:opacity-100" />
                   </div>
                   <p className="text-sm font-medium text-white">{calc.name}</p>
-                  <p className="text-xs text-[#64748B] mt-1 leading-relaxed">{calc.shortDescription}</p>
+                  <p className="text-xs text-[#94A3B8] mt-1 leading-relaxed">{calc.shortDescription}</p>
                 </Link>
               )
             })}
@@ -185,7 +185,7 @@ Provide a cohesive overall summary of the company's financial health based on th
               <div className="p-5 rounded-xl bg-[#2563EB]/5 border border-[#2563EB]/20">
                 <div className="flex items-center gap-2 text-[#2563EB] mb-3">
                   <Sparkles className="w-4 h-4" />
-                  <h4 className="text-xs font-medium uppercase tracking-wider">AI Executive Summary</h4>
+                  <h3 className="text-xs font-medium uppercase tracking-wider">AI Executive Summary</h3>
                 </div>
                 <div className="text-sm text-[#F1F5F9] leading-relaxed whitespace-pre-wrap">
                   {aiAnalysis}
@@ -193,7 +193,7 @@ Provide a cohesive overall summary of the company's financial health based on th
               </div>
             ) : (
               <div className="p-6 rounded-xl border border-dashed border-white/10 text-center">
-                <p className="text-sm text-[#64748B]">Click the button above to generate an AI summary based on your {recentCalcs.length} recent calculations.</p>
+                <p className="text-sm text-[#94A3B8]">Click the button above to generate an AI summary based on your {recentCalcs.length} recent calculations.</p>
               </div>
             )}
           </div>
@@ -207,10 +207,10 @@ Provide a cohesive overall summary of the company's financial health based on th
         ) : totalCount === 0 ? (
           <div className="bg-[#0D1726] border border-white/8 rounded-xl p-14 text-center">
             <div className="w-16 h-16 bg-white/3 border border-white/8 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Icons.Calculator className="h-8 w-8 text-[#64748B]" />
+              <Icons.Calculator className="h-8 w-8 text-[#94A3B8]" />
             </div>
             <h3 className="text-base font-medium text-white mb-2">No analyses yet</h3>
-            <p className="text-sm text-[#64748B] mb-6">Start with a calculator to begin your financial analysis</p>
+            <p className="text-sm text-[#94A3B8] mb-6">Start with a calculator to begin your financial analysis</p>
             <Link
               to="/calculators"
               className="inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white px-6 py-2.5 rounded-xl text-sm font-medium transition-colors"
@@ -227,11 +227,11 @@ Provide a cohesive overall summary of the company's financial health based on th
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-white/8">
-                      <th className="text-left py-3.5 px-5 text-xs font-['Geist_Mono'] text-[#64748B] uppercase tracking-wider">Calculator</th>
-                      <th className="text-left py-3.5 px-5 text-xs font-['Geist_Mono'] text-[#64748B] uppercase tracking-wider">Result</th>
-                      <th className="text-left py-3.5 px-5 text-xs font-['Geist_Mono'] text-[#64748B] uppercase tracking-wider">Risk</th>
-                      <th className="text-left py-3.5 px-5 text-xs font-['Geist_Mono'] text-[#64748B] uppercase tracking-wider">Date</th>
-                      <th className="text-right py-3.5 px-5 text-xs font-['Geist_Mono'] text-[#64748B] uppercase tracking-wider">Action</th>
+                      <th className="text-left py-3.5 px-5 text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-wider">Calculator</th>
+                      <th className="text-left py-3.5 px-5 text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-wider">Result</th>
+                      <th className="text-left py-3.5 px-5 text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-wider">Risk</th>
+                      <th className="text-left py-3.5 px-5 text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-wider">Date</th>
+                      <th className="text-right py-3.5 px-5 text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-wider">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -250,7 +250,7 @@ Provide a cohesive overall summary of the company's financial health based on th
                           <td className="py-3.5 px-5">
                             {result.risk && <RiskBadge risk={result.risk} />}
                           </td>
-                          <td className="py-3.5 px-5 text-[#64748B] font-['Geist_Mono'] text-xs">
+                          <td className="py-3.5 px-5 text-[#94A3B8] font-['Geist_Mono'] text-xs">
                             {new Date(calc.createdAt).toLocaleString("en-IN", {
                               day: "numeric",
                               month: "short",

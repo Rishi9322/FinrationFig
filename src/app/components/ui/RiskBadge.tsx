@@ -9,7 +9,7 @@ export function RiskBadge({ risk }: RiskBadgeProps) {
     low: "bg-[#10B981]/12 text-[#10B981] border-[#10B981]/25",
     moderate: "bg-[#f59e0b]/12 text-[#f59e0b] border-[#f59e0b]/25",
     high: "bg-[#ef4444]/12 text-[#ef4444] border-[#ef4444]/25",
-    "n/a": "bg-white/5 text-[#64748B] border-white/10",
+    "n/a": "bg-white/5 text-[#94A3B8] border-white/10",
   }
 
   const labels = {
