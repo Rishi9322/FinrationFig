@@ -28,10 +28,7 @@ export default function SigninPage() {
     setIsLoading(true)
     try {
       const data = await signin(email, password)
-      if (data.needsVerification) {
-        navigate(`/auth/verify-otp?email=${encodeURIComponent(email)}`)
-        return
-      }
+      // Firebase allows sign-in before the email link is clicked; don't block on it.
       toast.success("Signed in successfully")
       const destination = redirect === "/dashboard" && data.user?.role === "SUPER_ADMIN" ? "/admin" : redirect
       navigate(destination)
