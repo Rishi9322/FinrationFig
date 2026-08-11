@@ -1,30 +1,31 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
+
+// The edge routes now authenticate with the Supabase access token as a Bearer
+// header — no cookies, no CSRF, and never a token in the URL.
+vi.mock("./supabaseClient", () => ({
+  FUNCTIONS_BASE: "https://project.supabase.co/functions/v1/make-server-bd792702",
+  supabase: {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: "jwt-abc" } } }),
+    },
+  },
+}))
+
 import { apiRequest } from "./apiSession"
 
 describe("apiRequest", () => {
-  beforeEach(() => {
-    document.cookie = "finratio_csrf=csrf-value; path=/"
-  })
+  beforeEach(() => vi.clearAllMocks())
 
-  it("sends cookies, echoes the CSRF cookie in a header, and never puts tokens in the URL", async () => {
+  it("attaches the Supabase access token as a Bearer header and keeps it out of the URL", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response("{}"))
     vi.stubGlobal("fetch", fetchMock)
 
-    await apiRequest("/calculations", { method: "POST", body: "{}" })
+    await apiRequest("/admin/users", { method: "POST", body: "{}" })
 
     const [url, init] = fetchMock.mock.calls[0]
+    expect(url).not.toContain("token")
     expect(url).not.toContain("sessionToken")
-    expect(url).not.toContain("csrfToken")
-    expect(init.credentials).toBe("include")
-    expect(init.headers["X-CSRF-Token"]).toBe("csrf-value")
-  })
-
-  it("omits the CSRF header on reads", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response("{}"))
-    vi.stubGlobal("fetch", fetchMock)
-
-    await apiRequest("/auth/me")
-
-    expect(fetchMock.mock.calls[0][1].headers["X-CSRF-Token"]).toBeUndefined()
+    expect(init.headers.Authorization).toBe("Bearer jwt-abc")
+    expect(init.headers["X-CSRF-Token"]).toBeUndefined()
   })
 })

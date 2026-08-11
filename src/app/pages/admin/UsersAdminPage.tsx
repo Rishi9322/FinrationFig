@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react"
+import React, { Fragment, useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import {
   createAdminUser,
@@ -19,10 +19,11 @@ export default function UsersAdminPage() {
   const [features, setFeatures] = useState<CalculatorFeature[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState<string | null>(null)
+  const [editingAccessFor, setEditingAccessFor] = useState<string | null>(null)
+  const [draftAccess, setDraftAccess] = useState<string[]>([])
   const [createForm, setCreateForm] = useState({
     name: "",
     email: "",
-    phoneNumber: "",
     password: "",
     role: "ADMIN" as Role,
     accessMode: "FULL" as AccessMode,
@@ -87,8 +88,8 @@ export default function UsersAdminPage() {
   }
 
   async function handleCreateUser() {
-    if (!createForm.name || !createForm.email || !createForm.phoneNumber || !createForm.password) {
-      toast.error("Fill in name, email, phone number, and password")
+    if (!createForm.name || !createForm.email || !createForm.password) {
+      toast.error("Fill in name, email, and password")
       return
     }
 
@@ -103,7 +104,6 @@ export default function UsersAdminPage() {
       await createAdminUser({
         name: createForm.name,
         email: createForm.email,
-        phoneNumber: createForm.phoneNumber,
         password: createForm.password,
         role: createForm.role,
         calculatorAccessMode: createForm.role === "ADMIN" || createForm.role === "SUPER_ADMIN" ? "FULL" : createForm.accessMode,
@@ -113,7 +113,6 @@ export default function UsersAdminPage() {
       setCreateForm({
         name: "",
         email: "",
-        phoneNumber: "",
         password: "",
         role: "ADMIN",
         accessMode: "FULL",
@@ -166,16 +165,29 @@ export default function UsersAdminPage() {
     }
   }
 
-  async function handleAccessToggle(user: User, slug: string) {
-    setIsSaving(`access-${user.id}-${slug}`)
-    try {
-      const hasAccess = user.calculatorAccess.includes(slug)
-      const next = hasAccess
-        ? user.calculatorAccess.filter((value) => value !== slug)
-        : [...user.calculatorAccess, slug]
+  function openAccessEditor(user: User) {
+    setEditingAccessFor(user.id)
+    setDraftAccess(user.calculatorAccess)
+  }
 
-      await updateUserCalculatorAccess(user.id, next)
+  function closeAccessEditor() {
+    setEditingAccessFor(null)
+    setDraftAccess([])
+  }
+
+  function toggleDraftAccess(slug: string) {
+    setDraftAccess((current) =>
+      current.includes(slug) ? current.filter((value) => value !== slug) : [...current, slug],
+    )
+  }
+
+  /** One request per save, not one per chip. */
+  async function handleSaveAccess(user: User) {
+    setIsSaving(`access-${user.id}`)
+    try {
+      await updateUserCalculatorAccess(user.id, draftAccess)
       await loadAll()
+      closeAccessEditor()
       toast.success("Calculator access updated")
     } catch (err: any) {
       toast.error(err.message || "Failed to update calculator access")
@@ -242,12 +254,6 @@ export default function UsersAdminPage() {
               value={createForm.email}
               onChange={(e) => setCreateForm((current) => ({ ...current, email: e.target.value }))}
               placeholder="Email address"
-              className="bg-[#050A14] border border-white/10 text-white rounded-lg px-3 py-2.5"
-            />
-            <input
-              value={createForm.phoneNumber}
-              onChange={(e) => setCreateForm((current) => ({ ...current, phoneNumber: e.target.value }))}
-              placeholder="Phone number"
               className="bg-[#050A14] border border-white/10 text-white rounded-lg px-3 py-2.5"
             />
             <input
@@ -340,7 +346,6 @@ export default function UsersAdminPage() {
               <tr className="border-b border-white/8">
                 <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Name</th>
                 <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Email</th>
-                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Phone</th>
                 <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Role</th>
                 <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Access Tier</th>
                 <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Enabled Calculators</th>
@@ -349,11 +354,14 @@ export default function UsersAdminPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
-                <tr key={user.id} className="border-b border-white/5 align-top">
+              {users.map((user) => {
+                const locked = user.role !== "USER" || (user.calculatorAccessMode || "CUSTOM") === "FULL"
+                const isEditing = editingAccessFor === user.id
+                return (
+                <Fragment key={user.id}>
+                <tr className="border-b border-white/5 align-middle">
                   <td className="py-4 px-4 text-[#F1F5F9]">{user.name}</td>
                   <td className="py-4 px-4 text-[#cbd5e1]">{user.email}</td>
-                  <td className="py-4 px-4 text-[#cbd5e1]">{user.phoneNumber}</td>
                   <td className="py-4 px-4">
                     <select
                       value={user.role}
@@ -387,32 +395,28 @@ export default function UsersAdminPage() {
                       </span>
                     )}
                   </td>
-                  <td className="py-4 px-4">
-                    <div className="flex flex-wrap gap-1.5 max-w-sm">
-                      {features.map((feature) => {
-                        const active = user.calculatorAccess.includes(feature.slug)
-                        const key = `access-${user.id}-${feature.slug}`
-                        const locked = user.role !== "USER" || (user.calculatorAccessMode || "CUSTOM") === "FULL"
-                        return (
-                          <button
-                            key={feature.slug}
-                            onClick={() => handleAccessToggle(user, feature.slug)}
-                            disabled={isSaving === key || locked}
-                            className={`px-2 py-1 rounded-md text-[11px] border transition-colors ${
-                              active
-                                ? "bg-[#2563EB]/15 border-[#2563EB]/40 text-[#93C5FD]"
-                                : "bg-transparent border-white/15 text-[#94A3B8] hover:border-white/30"
-                            }`}
-                            title={featureMap.get(feature.slug) || feature.slug}
-                          >
-                            {feature.slug}
-                          </button>
-                        )
-                      })}
-                    </div>
-                    {user.role !== "USER" || (user.calculatorAccessMode || "CUSTOM") === "FULL" ? (
-                      <p className="text-[11px] text-[#94A3B8] mt-1.5">Full access covers current and future calculators.</p>
-                    ) : null}
+                  <td className="py-4 px-4 whitespace-nowrap">
+                    {locked ? (
+                      <span className="text-[11px] text-[#94A3B8]" title="Full access covers current and future calculators.">
+                        All calculators
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => (isEditing ? closeAccessEditor() : openAccessEditor(user))}
+                        aria-expanded={isEditing}
+                        className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border border-white/15 text-[#e2e8f0] text-xs hover:border-white/30 transition-colors"
+                        title={
+                          user.calculatorAccess.length
+                            ? user.calculatorAccess.map((slug) => featureMap.get(slug) || slug).join(", ")
+                            : "No calculators enabled"
+                        }
+                      >
+                        <span className="text-[#93C5FD] font-['Geist_Mono']">
+                          {user.calculatorAccess.length}/{features.length}
+                        </span>
+                        <span className="text-[#94A3B8]">{isEditing ? "Close" : "Edit"}</span>
+                      </button>
+                    )}
                   </td>
                   <td className="py-4 px-4">
                     <span
@@ -435,7 +439,60 @@ export default function UsersAdminPage() {
                     </button>
                   </td>
                 </tr>
-              ))}
+
+                {isEditing ? (
+                  <tr className="border-b border-white/5 bg-[#050A14]/60">
+                    <td colSpan={8} className="px-4 py-4">
+                      <p className="text-[11px] text-[#94A3B8] mb-2.5">
+                        Select calculators for <span className="text-[#e2e8f0]">{user.name}</span>, then save. Nothing changes until you do.
+                      </p>
+                      <div className="flex flex-wrap gap-1.5 mb-3">
+                        {features.map((feature) => {
+                          const active = draftAccess.includes(feature.slug)
+                          return (
+                            <button
+                              key={feature.slug}
+                              onClick={() => toggleDraftAccess(feature.slug)}
+                              aria-pressed={active}
+                              className={`px-2 py-1 rounded-md text-[11px] border transition-colors ${
+                                active
+                                  ? "bg-[#2563EB]/15 border-[#2563EB]/40 text-[#93C5FD]"
+                                  : "bg-transparent border-white/15 text-[#94A3B8] hover:border-white/30"
+                              }`}
+                              title={featureMap.get(feature.slug) || feature.slug}
+                            >
+                              {feature.slug}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleSaveAccess(user)}
+                          disabled={isSaving === `access-${user.id}`}
+                          className="px-3 py-1.5 text-xs rounded-lg bg-[#2563EB] text-white hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors"
+                        >
+                          {isSaving === `access-${user.id}` ? "Saving..." : "Save access"}
+                        </button>
+                        <button
+                          onClick={closeAccessEditor}
+                          className="px-3 py-1.5 text-xs rounded-lg border border-white/15 text-[#e2e8f0] hover:border-white/30 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => setDraftAccess(draftAccess.length === allFeatureSlugs.length ? [] : allFeatureSlugs)}
+                          className="px-3 py-1.5 text-xs rounded-lg border border-white/15 text-[#94A3B8] hover:border-white/30 transition-colors ml-auto"
+                        >
+                          {draftAccess.length === allFeatureSlugs.length ? "Clear all" : "Select all"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ) : null}
+                </Fragment>
+                )
+              })}
             </tbody>
           </table>
         </div>

@@ -1,31 +1,19 @@
-import { projectId, publicAnonKey } from "../../utils/supabase/info"
+import { supabase, FUNCTIONS_BASE } from "./supabaseClient"
 
-export const API_BASE = `https://${projectId}.supabase.co/functions/v1/make-server-bd792702`
+export const API_BASE = FUNCTIONS_BASE
 
-// The session lives in an HttpOnly, Secure, SameSite=None cookie set by the edge
-// function - it is never readable from JS and never travels in a URL. The CSRF
-// cookie is readable on purpose: we echo it back in a header (double submit).
-function readCookie(name: string): string | null {
-  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-  const match = document.cookie.match(new RegExp(`(?:^|; )${escaped}=([^;]*)`))
-  return match ? decodeURIComponent(match[1]) : null
-}
-
-export function getCsrfToken(): string | null {
-  return readCookie("__Host-finratio_csrf") || readCookie("finratio_csrf")
-}
-
-export function apiRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
-  const method = (options.method || "GET").toUpperCase()
-  const csrfToken = getCsrfToken()
+// The only routes left on the edge function need the service role (AI proxy,
+// admin, account export/delete). They authenticate with the Supabase access
+// token as a Bearer header — no cookies, so nothing to CSRF-protect.
+export async function apiRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
 
   return fetch(`${API_BASE}${endpoint}`, {
     ...options,
-    credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${publicAnonKey}`,
-      ...(csrfToken && method !== "GET" ? { "X-CSRF-Token": csrfToken } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   })

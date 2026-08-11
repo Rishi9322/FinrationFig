@@ -3,33 +3,13 @@ import { Link, useNavigate } from "react-router"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { signupSchema } from "../../../lib/validations"
 import { signup } from "../../../lib/auth"
+import { OAuthButtons } from "../../components/auth/OAuthButtons"
 import { toast } from "sonner"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../components/ui/select"
-
-const COUNTRY_CODES = [
-  { country: "India", code: "+91", flag: "IN" },
-  { country: "United States / Canada", code: "+1", flag: "US/CA" },
-  { country: "United Kingdom", code: "+44", flag: "GB" },
-  { country: "United Arab Emirates", code: "+971", flag: "AE" },
-  { country: "Singapore", code: "+65", flag: "SG" },
-  { country: "Australia", code: "+61", flag: "AU" },
-  { country: "Germany", code: "+49", flag: "DE" },
-  { country: "France", code: "+33", flag: "FR" },
-  { country: "Japan", code: "+81", flag: "JP" },
-]
 
 export default function SignupPage() {
   const navigate = useNavigate()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
-  const [countryCode, setCountryCode] = useState("+91")
-  const [phoneNumber, setPhoneNumber] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -53,11 +33,9 @@ export default function SignupPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setErrors({})
-    const phoneNumberWithCountryCode = `${countryCode}${phoneNumber.replace(/[^\d]/g, "")}`
     const result = signupSchema.safeParse({
       name,
       email,
-      phoneNumber: phoneNumberWithCountryCode,
       password,
       confirmPassword,
     })
@@ -71,8 +49,8 @@ export default function SignupPage() {
     }
     setIsLoading(true)
     try {
-      await signup({ name, email, phoneNumber: phoneNumberWithCountryCode, password, confirmPassword })
-      toast.success("Account created. Check your email for the OTP.")
+      await signup({ name, email, password, confirmPassword })
+      toast.success("Account created. Check your email to verify.")
       navigate(`/auth/verify-otp?email=${encodeURIComponent(email)}`)
     } catch (error: any) {
       const message = error.message || "An error occurred. Please try again."
@@ -144,50 +122,6 @@ export default function SignupPage() {
                 }`}
               />
               {errors.email && <p className="text-xs text-[#ef4444]">{errors.email}</p>}
-            </div>
-
-            {/* Phone */}
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-[#F1F5F9]">Phone Number</label>
-              <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-2">
-                <Select value={countryCode} onValueChange={setCountryCode}>
-                  <SelectTrigger
-                    className={`h-auto px-3 py-2.5 bg-[#050A14] border rounded-lg text-[#F1F5F9] text-sm focus:ring-1 focus:ring-[#2563EB]/20 ${
-                      errors.phoneNumber
-                        ? "border-[#ef4444]/50 focus:border-[#ef4444]"
-                        : "border-white/10 focus:border-[#2563EB]/60"
-                    }`}
-                    aria-label="Country code"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-[#0D1726] border-white/10 text-[#F1F5F9]">
-                    {COUNTRY_CODES.map((option) => (
-                      <SelectItem
-                        key={option.code}
-                        value={option.code}
-                        className="focus:bg-[#2563EB]/20 focus:text-white"
-                      >
-                        {option.flag} {option.code}
-                        <span className="sr-only">{option.country}</span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  placeholder="98765 43210"
-                  className={`w-full min-w-0 px-4 py-2.5 bg-[#050A14] border rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#94A3B8]/50 focus:outline-none transition-colors ${
-                    errors.phoneNumber
-                      ? "border-[#ef4444]/50 focus:border-[#ef4444]"
-                      : "border-white/10 focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20"
-                  }`}
-                />
-              </div>
-              {errors.phoneNumber && <p className="text-xs text-[#ef4444]">{errors.phoneNumber}</p>}
             </div>
 
             {/* Password */}
@@ -274,6 +208,14 @@ export default function SignupPage() {
               )}
             </button>
           </form>
+
+          <div className="flex items-center gap-3 my-5">
+            <div className="h-px flex-1 bg-white/8" />
+            <span className="text-xs text-[#94A3B8]">or</span>
+            <div className="h-px flex-1 bg-white/8" />
+          </div>
+
+          <OAuthButtons />
 
           <p className="text-sm text-center text-[#94A3B8] mt-6">
             Already have an account?{" "}

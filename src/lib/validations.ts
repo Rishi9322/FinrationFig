@@ -1,12 +1,8 @@
 import { z } from "zod"
-import { isValidPhoneNumber } from "libphonenumber-js"
 
 export const signupSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
-  phoneNumber: z.string().refine((value) => isValidPhoneNumber(value), {
-    message: "Please enter a valid phone number",
-  }),
   password: z
     .string()
     .min(10, "Password must be at least 10 characters")
@@ -35,8 +31,6 @@ export const forgotPasswordSchema = z.object({
 })
 
 export const resetPasswordSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  token: z.string().min(16, "Invalid reset token"),
   password: z
     .string()
     .min(10, "Password must be at least 10 characters")

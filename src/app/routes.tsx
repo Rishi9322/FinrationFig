@@ -58,7 +58,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/test-pdf",
-    element: <TestPdfPage />,
+    element: (
+      <ProtectedLayout requiredRole="SUPER_ADMIN">
+        <TestPdfPage />
+      </ProtectedLayout>
+    ),
   },
   {
     path: "/auth/signup",

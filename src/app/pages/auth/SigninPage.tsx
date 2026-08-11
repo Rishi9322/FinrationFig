@@ -2,7 +2,8 @@ import { useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { signinSchema } from "../../../lib/validations"
-import { signin } from "../../../lib/auth"
+import { signin, signInWithMagicLink } from "../../../lib/auth"
+import { OAuthButtons } from "../../components/auth/OAuthButtons"
 import { toast } from "sonner"
 
 export default function SigninPage() {
@@ -15,6 +16,24 @@ export default function SigninPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [magicPending, setMagicPending] = useState(false)
+
+  async function handleMagicLink() {
+    const emailOk = signinSchema.shape.email.safeParse(email).success
+    if (!emailOk) {
+      setError("Enter a valid email to get a magic link")
+      return
+    }
+    setMagicPending(true)
+    try {
+      await signInWithMagicLink(email)
+      toast.success("Magic link sent. Check your email.")
+    } catch (err: any) {
+      toast.error(err.message || "Could not send magic link")
+    } finally {
+      setMagicPending(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -122,6 +141,23 @@ export default function SigninPage() {
               )}
             </button>
           </form>
+
+          <div className="flex items-center gap-3 my-5">
+            <div className="h-px flex-1 bg-white/8" />
+            <span className="text-xs text-[#94A3B8]">or</span>
+            <div className="h-px flex-1 bg-white/8" />
+          </div>
+
+          <OAuthButtons />
+
+          <button
+            type="button"
+            onClick={handleMagicLink}
+            disabled={magicPending}
+            className="w-full mt-2 flex items-center justify-center gap-2 bg-[#050A14] border border-white/10 hover:border-[#2563EB]/60 disabled:opacity-60 text-[#F1F5F9] py-2.5 rounded-lg text-sm font-medium transition-colors"
+          >
+            {magicPending ? "Sending link..." : "Email me a magic link"}
+          </button>
 
           <p className="text-sm text-center text-[#94A3B8] mt-6">
             Don't have an account?{" "}

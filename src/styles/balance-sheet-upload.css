@@ -1,11 +1,36 @@
-.bs-upload{border:1px solid var(--muted, #ddd);padding:12px;border-radius:8px}
-.bs-upload h3{margin:0 0 8px 0}
-.form-row{display:flex;flex-direction:column;margin-bottom:8px}
-.form-row label{font-size:0.9rem;margin-bottom:4px}
-.calc-select{color:#0f172a;background:#fff;border:1px solid #cbd5f5;padding:6px;border-radius:4px}
-.actions{display:flex;gap:8px;margin-top:8px}
-.btn{padding:6px 10px;border-radius:6px;border:1px solid #cbd5f5;background:#fff}
-.btn.primary{background:#0b69ff;color:#fff;border-color:#0b69ff}
-.preview{margin-top:12px}
-.pre-box{max-height:300px;overflow:auto;background:#f8fafc;padding:8px;border-radius:6px;border:1px solid #e2e8f0}
-.message{color:#111}
+/* Dark palette matching the admin and calculator pages. Every rule that sets a
+   background also sets a colour - inheriting the page's light-on-dark text onto
+   a white surface is what made these buttons unreadable. */
+.bs-upload{border:1px solid rgba(255,255,255,0.08);padding:16px;border-radius:12px;background:#0D1726}
+.bs-upload h3{margin:0 0 12px 0;color:#F1F5F9;font-size:1rem}
+
+.form-row{display:flex;flex-direction:column;margin-bottom:12px}
+.form-row label{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.08em;color:#94A3B8;margin-bottom:6px}
+
+.form-row input[type="file"]{color:#cbd5e1;font-size:0.875rem}
+.form-row input[type="file"]::file-selector-button{
+  margin-right:10px;padding:6px 12px;border-radius:8px;cursor:pointer;
+  border:1px solid rgba(255,255,255,0.15);background:transparent;color:#e2e8f0;
+}
+.form-row input[type="file"]::file-selector-button:hover{border-color:rgba(255,255,255,0.3)}
+
+.calc-select{color:#F1F5F9;background:#050A14;border:1px solid rgba(255,255,255,0.1);padding:8px 10px;border-radius:8px;font-size:0.875rem}
+.calc-select:focus-visible{outline:2px solid #2563EB;outline-offset:1px}
+
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.btn{
+  padding:8px 14px;border-radius:8px;font-size:0.8125rem;cursor:pointer;
+  border:1px solid rgba(255,255,255,0.15);background:transparent;color:#e2e8f0;
+  transition:border-color .15s,background-color .15s;
+}
+.btn:hover:not(:disabled){border-color:rgba(255,255,255,0.3)}
+.btn:focus-visible{outline:2px solid #2563EB;outline-offset:1px}
+/* Disabled buttons read as unavailable rather than merely unstyled. */
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{background:#2563EB;color:#fff;border-color:#2563EB}
+.btn.primary:hover:not(:disabled){background:#1d4ed8;border-color:#1d4ed8}
+
+.preview{margin-top:16px}
+.preview summary{color:#e2e8f0;cursor:pointer;font-size:0.875rem;padding:4px 0}
+.pre-box{max-height:300px;overflow:auto;background:#050A14;color:#cbd5e1;padding:12px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);font-size:0.8125rem}
+.message{color:#93C5FD;font-size:0.875rem;margin-bottom:8px}

@@ -1,16 +1,17 @@
-import React, { useMemo, useState } from "react"
-import { Link, useNavigate, useSearchParams } from "react-router"
+import React, { useEffect, useState } from "react"
+import { Link, useNavigate } from "react-router"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { resetPassword } from "../../../lib/auth"
 import { resetPasswordSchema } from "../../../lib/validations"
+import { supabase } from "../../../lib/supabaseClient"
 
 export default function ResetPasswordPage() {
-  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
-  const token = useMemo(() => searchParams.get("token") || "", [searchParams])
-  const email = useMemo(() => searchParams.get("email") || "", [searchParams])
+  // The recovery link establishes a session (detectSessionInUrl). No session on
+  // this page means the link was expired, already used, or opened directly.
+  const [linkValid, setLinkValid] = useState<boolean | null>(null)
 
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -19,11 +20,28 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
+  useEffect(() => {
+    let mounted = true
+    // Wait for supabase-js to parse the recovery token out of the URL.
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!mounted) return
+      if (event === "PASSWORD_RECOVERY" || session) setLinkValid(true)
+    })
+    supabase.auth.getSession().then(({ data }) => {
+      if (mounted && linkValid === null) setLinkValid(Boolean(data.session))
+    })
+    return () => {
+      mounted = false
+      sub.subscription.unsubscribe()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError("")
 
-    const parsed = resetPasswordSchema.safeParse({ email, token, password, confirmPassword })
+    const parsed = resetPasswordSchema.safeParse({ password, confirmPassword })
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message || "Please check your input")
       return
@@ -31,7 +49,8 @@ export default function ResetPasswordPage() {
 
     setIsLoading(true)
     try {
-      await resetPassword({ email, token, password, confirmPassword })
+      await resetPassword({ password, confirmPassword })
+      await supabase.auth.signOut()
       toast.success("Password reset successful. Please sign in.")
       navigate("/auth/signin")
     } catch (err: any) {
@@ -54,6 +73,19 @@ export default function ResetPasswordPage() {
         </div>
 
         <div className="bg-[#0D1726] border border-white/8 rounded-2xl p-8">
+          {linkValid === false ? (
+            <div className="text-center space-y-4">
+              <p className="text-sm text-[#F1F5F9]">
+                This reset link has expired or was already used.
+              </p>
+              <Link
+                to="/auth/forgot-password"
+                className="inline-block w-full bg-[#2563EB] hover:bg-[#1d4ed8] text-white py-3 rounded-xl text-sm font-medium transition-colors"
+              >
+                Request a new link
+              </Link>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-[#F1F5F9]">New Password</label>
@@ -104,6 +136,7 @@ export default function ResetPasswordPage() {
               )}
             </button>
           </form>
+          )}
 
           <p className="text-sm text-center text-[#94A3B8] mt-6">
             Back to{" "}
