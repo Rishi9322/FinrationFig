@@ -1,13 +1,13 @@
-import { supabase, FUNCTIONS_BASE } from "./supabaseClient"
+import { FUNCTIONS_BASE } from "./supabaseClient"
+import { auth } from "./firebaseClient"
 
 export const API_BASE = FUNCTIONS_BASE
 
-// The only routes left on the edge function need the service role (AI proxy,
-// admin, account export/delete). They authenticate with the Supabase access
-// token as a Bearer header — no cookies, so nothing to CSRF-protect.
+// The edge routes that need the service role (AI proxy, admin, account ops)
+// authenticate with the caller's Firebase ID token as a Bearer header. The
+// function verifies it against Google's public keys.
 export async function apiRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
-  const { data } = await supabase.auth.getSession()
-  const token = data.session?.access_token
+  const token = auth.currentUser ? await auth.currentUser.getIdToken() : null
 
   return fetch(`${API_BASE}${endpoint}`, {
     ...options,

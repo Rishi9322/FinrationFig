@@ -1,13 +1,13 @@
 import { Hono } from "npm:hono";
 import { createClient } from "npm:@supabase/supabase-js";
 import { z } from "npm:zod";
+import { jwtVerify, createRemoteJWKSet } from "npm:jose";
 
-// This function used to run a whole custom auth stack. Auth now lives in
-// Supabase Auth (GoTrue); calculations and uploads are read/written client-side
-// under RLS. What's left here is only what genuinely needs the service role:
-// the AI proxy (keeps the provider key server-side), admin user management, and
-// account export/delete. Every route authenticates the caller by their Supabase
-// access token — no cookies, so nothing to CSRF-protect.
+// Auth is Firebase. This function only does what needs the service role: the AI
+// proxy (keeps the OpenRouter key server-side), admin user management, and
+// account export/delete. Every request is authenticated by verifying the
+// caller's Firebase ID token against Google's public keys — so the platform
+// verify_jwt gate is OFF (Firebase tokens are not Supabase-signed).
 
 type Role = "SUPER_ADMIN" | "ADMIN" | "USER";
 
@@ -18,6 +18,15 @@ const MAX_AI_REQUEST_BYTES = 256 * 1024;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const APP_ORIGIN = Deno.env.get("APP_ORIGIN");
+
+// Firebase project identity. The API key is the public web key (safe on clients).
+const FIREBASE_PROJECT_ID = "finratio-1245e";
+const FIREBASE_API_KEY = Deno.env.get("FIREBASE_API_KEY") ?? "AIzaSyAHaDW4hmGF7F2pfBd6enUptGwgpQgTlhg";
+const FIREBASE_JWKS = createRemoteJWKSet(
+  new URL("https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com"),
+);
+const FIREBASE_ISSUER = `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`;
+
 const ALLOWED_ORIGINS = [
   "https://finrat.vercel.app",
   "https://finrat-git-main-rishis-projects-1c080e6c.vercel.app",
@@ -73,7 +82,7 @@ const Schemas = {
   adminCreateUser: z.object({
     name: z.string().trim().min(1).max(120),
     email: z.string().trim().min(3).max(254),
-    password: z.string().min(1).max(200),
+    password: z.string().min(6).max(200),
     role: z.enum(["SUPER_ADMIN", "ADMIN", "USER"]).optional(),
     calculatorAccessMode: z.enum(["FULL", "CUSTOM"]).optional(),
     calculatorAccess: z.array(z.string().max(64)).max(100).optional(),
@@ -82,6 +91,17 @@ const Schemas = {
   accessMode: z.object({ accessMode: z.enum(["FULL", "CUSTOM"]) }),
   calculatorAccess: z.object({ slugs: z.array(z.string().max(64)).max(100) }),
   suspend: z.object({ suspended: z.boolean() }),
+  onboarding: z.object({ businessConstitution: z.string().trim().min(1).max(200) }),
+  calculation: z.object({
+    calculatorType: z.string().trim().min(1).max(64),
+    inputs: z.record(z.string(), z.unknown()).default({}),
+    results: z.record(z.string(), z.unknown()).default({}),
+  }),
+  upload: z.object({
+    filename: z.string().trim().min(1).max(255),
+    contentType: z.string().max(255).nullish(),
+    fileBase64: z.string().min(1).max(Math.ceil((10 * 1024 * 1024 * 4) / 3) + 4),
+  }),
   aiChat: z.object({
     messages: z.array(z.object({
       role: z.enum(["system", "user", "assistant"]).default("user"),
@@ -110,23 +130,41 @@ type Profile = {
   business_constitution: string | null; created_at: string;
 };
 
-// Authenticate the caller by their Supabase access token, then load their
-// profile (the authority on role/status). Returns null and sets the response
-// on any failure.
-async function requireAuth(c: any): Promise<{ profile: Profile; token: string } | null> {
+// Verify the caller's Firebase ID token, then load their profile (the authority
+// on role/status). Auto-provisions a default USER profile if none exists yet.
+async function requireAuth(c: any): Promise<{ profile: Profile; uid: string; token: string } | null> {
   const authorization = c.req.header("Authorization") || c.req.header("authorization") || "";
   const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
   if (!token) { c.status(401); c.res = c.json({ error: "Unauthorized" }); return null; }
 
-  const admin = getSupabaseAdminClient();
-  const { data: userData, error } = await admin.auth.getUser(token);
-  if (error || !userData.user) { c.status(401); c.res = c.json({ error: "Invalid session" }); return null; }
+  let uid: string;
+  let email = "";
+  let name = "";
+  try {
+    const { payload } = await jwtVerify(token, FIREBASE_JWKS, {
+      issuer: FIREBASE_ISSUER,
+      audience: FIREBASE_PROJECT_ID,
+    });
+    uid = String(payload.sub);
+    email = String((payload as any).email ?? "");
+    name = String((payload as any).name ?? "");
+    if (!uid) throw new Error("no sub");
+  } catch (_e) {
+    c.status(401); c.res = c.json({ error: "Invalid session" }); return null;
+  }
 
-  const { data: profile } = await admin.from("profiles").select("*").eq("id", userData.user.id).single();
+  const admin = getSupabaseAdminClient();
+  let { data: profile } = await admin.from("profiles").select("*").eq("id", uid).single();
+  if (!profile) {
+    const insert = await admin.from("profiles")
+      .insert({ id: uid, email: email.toLowerCase(), name: name || email.split("@")[0] })
+      .select("*").single();
+    profile = insert.data;
+  }
   if (!profile) { c.status(401); c.res = c.json({ error: "Profile not found" }); return null; }
   if (profile.status === "SUSPENDED") { c.status(403); c.res = c.json({ error: "Account suspended" }); return null; }
 
-  return { profile: profile as Profile, token };
+  return { profile: profile as Profile, uid, token };
 }
 
 async function requireSuperAdmin(c: any) {
@@ -204,21 +242,28 @@ app.post(`${API_PREFIX}/admin/users`, async (c) => {
     ? CALCULATOR_SLUGS
     : (body.calculatorAccess ?? []).filter((s) => CALCULATOR_SLUGS.includes(s));
 
-  const admin = getSupabaseAdminClient();
-  const { data: created, error } = await admin.auth.admin.createUser({
-    email, password: body.password, email_confirm: true, user_metadata: { name: body.name },
+  // Create the login in Firebase via the Identity Toolkit REST API (no Admin SDK).
+  const signUp = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password: body.password, returnSecureToken: false }),
   });
-  if (error || !created.user) return c.json({ error: error?.message || "Could not create user" }, 400);
+  const signUpData = await signUp.json();
+  if (!signUp.ok) {
+    return c.json({ error: signUpData?.error?.message === "EMAIL_EXISTS" ? "Email already registered" : "Could not create user" }, 400);
+  }
+  const uid = signUpData.localId as string;
 
-  // The trigger created a base profile; set the admin-chosen fields.
+  const admin = getSupabaseAdminClient();
   const { data: profile, error: pErr } = await admin.from("profiles").upsert({
-    id: created.user.id, email, name: body.name, role, status: "ACTIVE",
-    calculator_access_mode: mode, calculator_access: mode === "FULL" ? CALCULATOR_SLUGS : (access.length ? access : [DEFAULT_FEATURE_SLUG]),
+    id: uid, email, name: body.name, role, status: "ACTIVE",
+    calculator_access_mode: mode,
+    calculator_access: mode === "FULL" ? CALCULATOR_SLUGS : (access.length ? access : [DEFAULT_FEATURE_SLUG]),
     updated_at: nowIso(),
   }, { onConflict: "id" }).select("*").single();
   if (pErr || !profile) return c.json({ error: "User created but profile update failed" }, 500);
 
-  await auditLog(c, "admin.create-user", { actorId: auth.profile.id, targetId: created.user.id, outcome: "success", note: role });
+  await auditLog(c, "admin.create-user", { actorId: auth.profile.id, targetId: uid, outcome: "success", note: role });
   return c.json({ message: "User created", user: publicUserView(profile as Profile) }, 201);
 });
 
@@ -297,14 +342,14 @@ app.get(`${API_PREFIX}/me/export`, async (c) => {
   const auth = await requireAuth(c);
   if (!auth) return c.res;
   const admin = getSupabaseAdminClient();
-  const { data: calculations } = await admin.from("calculations").select("*").eq("user_id", auth.profile.id);
+  const { data: calculations } = await admin.from("calculations").select("*").eq("user_id", auth.uid);
   const { data: uploads } = await admin.from("file_uploads")
-    .select("id, filename, content_type, size_bytes, created_at").eq("user_id", auth.profile.id);
-  await auditLog(c, "privacy.export", { actorId: auth.profile.id, outcome: "success" });
+    .select("id, filename, content_type, size_bytes, created_at").eq("user_id", auth.uid);
+  await auditLog(c, "privacy.export", { actorId: auth.uid, outcome: "success" });
   return c.json(
     { exportedAt: nowIso(), profile: publicUserView(auth.profile), calculations: calculations ?? [], uploads: uploads ?? [] },
     200,
-    { "Content-Disposition": `attachment; filename="finratio-export-${auth.profile.id}.json"` },
+    { "Content-Disposition": `attachment; filename="finratio-export-${auth.uid}.json"` },
   );
 });
 
@@ -314,11 +359,18 @@ app.delete(`${API_PREFIX}/me`, async (c) => {
   if (auth.profile.role === "SUPER_ADMIN") {
     return c.json({ error: "Transfer super-admin rights before deleting this account" }, 409);
   }
+  // Delete the Firebase login (accounts:delete accepts the caller's own idToken).
+  await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:delete?key=${FIREBASE_API_KEY}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken: auth.token }),
+  });
+  // No FK cascade to a Firebase user, so remove owned rows explicitly.
   const admin = getSupabaseAdminClient();
-  // Deleting the auth user cascades to profiles, calculations and uploads via FK.
-  const { error } = await admin.auth.admin.deleteUser(auth.profile.id);
-  if (error) return c.json({ error: "Could not delete account" }, 500);
-  await auditLog(c, "privacy.account-deleted", { outcome: "success", note: auth.profile.id });
+  await admin.from("calculations").delete().eq("user_id", auth.uid);
+  await admin.from("file_uploads").delete().eq("user_id", auth.uid);
+  await admin.from("profiles").delete().eq("id", auth.uid);
+  await auditLog(c, "privacy.account-deleted", { outcome: "success", note: auth.uid });
   return c.json({ message: "Account deleted" });
 });
 
@@ -330,7 +382,7 @@ app.post(`${API_PREFIX}/ai/chat`, async (c) => {
   const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
   if (!openRouterKey) return c.json({ error: "AI is not configured" }, 503);
 
-  const allowed = await validateRateLimit(`ai:${auth.profile.id}`, 60, 60 * 60 * 1000);
+  const allowed = await validateRateLimit(`ai:${auth.uid}`, 60, 60 * 60 * 1000);
   if (!allowed) return c.json({ error: "AI request quota exceeded. Try again later." }, 429);
 
   if (Number(c.req.header("Content-Length") ?? 0) > MAX_AI_REQUEST_BYTES) {
@@ -371,6 +423,75 @@ app.post(`${API_PREFIX}/ai/chat`, async (c) => {
       "Cache-Control": "no-store",
     },
   });
+});
+
+// ---- User data. Supabase's Firebase third-party auth doesn't reliably map
+// tokens to the authenticated role for PostgREST, so the client goes through
+// here, where we verify the Firebase token ourselves and use the service role. ----
+app.get(`${API_PREFIX}/me`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.res;
+  return c.json({ user: publicUserView(auth.profile) });
+});
+
+app.post(`${API_PREFIX}/onboarding`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.res;
+  const parsed = await parseBody(c, Schemas.onboarding);
+  if (!parsed.ok) return parsed.response;
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("profiles")
+    .update({ business_constitution: parsed.data.businessConstitution, updated_at: nowIso() })
+    .eq("id", auth.uid).select("*").single();
+  return c.json({ user: publicUserView((data ?? auth.profile) as Profile) });
+});
+
+app.get(`${API_PREFIX}/calculations`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.res;
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("calculations").select("*")
+    .eq("user_id", auth.uid).order("created_at", { ascending: false });
+  return c.json({
+    calculations: (data ?? []).map((r: any) => ({
+      id: r.id, userId: r.user_id, calculatorType: r.calculator_type,
+      inputs: r.inputs, results: r.results, createdAt: r.created_at,
+    })),
+  });
+});
+
+app.post(`${API_PREFIX}/calculations`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.res;
+  const parsed = await parseBody(c, Schemas.calculation);
+  if (!parsed.ok) return parsed.response;
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin.from("calculations").insert({
+    user_id: auth.uid, calculator_type: parsed.data.calculatorType,
+    inputs: parsed.data.inputs, results: parsed.data.results,
+  }).select("*").single();
+  if (error || !data) return c.json({ error: "Could not save calculation" }, 500);
+  return c.json({
+    id: data.id, userId: data.user_id, calculatorType: data.calculator_type,
+    inputs: data.inputs, results: data.results, createdAt: data.created_at,
+  }, 201);
+});
+
+app.post(`${API_PREFIX}/uploads`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.res;
+  const parsed = await parseBody(c, Schemas.upload);
+  if (!parsed.ok) return parsed.response;
+  const decoded = Math.floor((parsed.data.fileBase64.length * 3) / 4);
+  if (decoded > 10 * 1024 * 1024) return c.json({ error: "File exceeds the 10 MB limit" }, 413);
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin.from("file_uploads").insert({
+    user_id: auth.uid, filename: parsed.data.filename,
+    content_type: parsed.data.contentType ?? null, size_bytes: decoded,
+    file_base64: parsed.data.fileBase64,
+  }).select("id").single();
+  if (error || !data) return c.json({ error: "Upload failed" }, 500);
+  return c.json({ id: data.id }, 201);
 });
 
 Deno.serve(app.fetch);

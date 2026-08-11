@@ -50,8 +50,8 @@ export default function SignupPage() {
     setIsLoading(true)
     try {
       await signup({ name, email, password, confirmPassword })
-      toast.success("Account created. Check your email to verify.")
-      navigate(`/auth/verify-otp?email=${encodeURIComponent(email)}`)
+      toast.success("Account created. We've emailed a verification link.")
+      navigate("/dashboard")
     } catch (error: any) {
       const message = error.message || "An error occurred. Please try again."
       if (message.includes("already registered")) {
