@@ -19,6 +19,9 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const APP_ORIGIN = Deno.env.get("APP_ORIGIN");
 const ALLOWED_ORIGINS = [
+  "https://finrat.vercel.app",
+  "https://finrat-git-main-rishis-projects-1c080e6c.vercel.app",
+  "https://finrat-git-deploy-supabase-secr-82a4ba-rishis-projects-1c080e6c.vercel.app",
   "https://finration-fig.vercel.app",
   ...(APP_ORIGIN ? APP_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean) : []),
 ];
