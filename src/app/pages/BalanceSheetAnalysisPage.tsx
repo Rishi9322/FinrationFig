@@ -94,37 +94,37 @@ export default function BalanceSheetAnalysisPage() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <h4 className="font-semibold mb-2">🎯 Multi-Format Support</h4>
+                <h2 className="font-semibold mb-2">🎯 Multi-Format Support</h2>
                 <p className="text-gray-600">
                   Upload balance sheets in any format and the system intelligently extracts data
                 </p>
               </div>
               <div>
-                <h4 className="font-semibold mb-2">🤖 Auto-Classification</h4>
+                <h2 className="font-semibold mb-2">🤖 Auto-Classification</h2>
                 <p className="text-gray-600">
                   AI-powered heuristics automatically categorize assets, liabilities, and equity
                 </p>
               </div>
               <div>
-                <h4 className="font-semibold mb-2">📊 Multiple Calculators</h4>
+                <h2 className="font-semibold mb-2">📊 Multiple Calculators</h2>
                 <p className="text-gray-600">
                   Run any of 12+ financial ratio and metric calculators
                 </p>
               </div>
               <div>
-                <h4 className="font-semibold mb-2">📈 Risk Assessment</h4>
+                <h2 className="font-semibold mb-2">📈 Risk Assessment</h2>
                 <p className="text-gray-600">
                   Get actionable risk levels (Low/Moderate/High) for each metric
                 </p>
               </div>
               <div>
-                <h4 className="font-semibold mb-2">💾 Full History</h4>
+                <h2 className="font-semibold mb-2">💾 Full History</h2>
                 <p className="text-gray-600">
                   All calculations saved with inputs, outputs, and confidence scores
                 </p>
               </div>
               <div>
-                <h4 className="font-semibold mb-2">🔐 Secure</h4>
+                <h2 className="font-semibold mb-2">🔐 Secure</h2>
                 <p className="text-gray-600">
                   Data encrypted and stored in Supabase with user isolation
                 </p>

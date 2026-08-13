@@ -17,6 +17,11 @@ export default defineConfig({
     },
   },
 
+  build: {
+    // Lets DevTools (and error reporting) map minified frames back to source.
+    sourcemap: true,
+  },
+
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
   assetsInclude: ['**/*.svg', '**/*.csv'],
 })

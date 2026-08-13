@@ -516,7 +516,7 @@ export default function HomePage() {
             <p className="text-xs text-[#94A3B8]">Financial Intelligence for Indian Business</p>
           </div>
           <nav className="flex items-center gap-6 text-sm text-[#94A3B8]">
-            <a href="#" className="hover:text-white transition-colors">Home</a>
+            <Link to="/" className="hover:text-white transition-colors">Home</Link>
             <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
             <Link to="/auth/signin" className="hover:text-white transition-colors">Sign In</Link>
             <Link to="/auth/signup" className="hover:text-white transition-colors">Sign Up</Link>

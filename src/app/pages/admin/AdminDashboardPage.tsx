@@ -105,14 +105,14 @@ export function AdminDashboardPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Recent Activity</h3>
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Recent Activity</h2>
             <div className="space-y-4">
               <p className="text-slate-600">Activity feed coming soon...</p>
             </div>
           </div>
 
           <div className="bg-white rounded-lg shadow p-6">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h3>
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h2>
             <div className="space-y-3">
               <Link
                 to="/admin/users"
