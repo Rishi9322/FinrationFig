@@ -28,6 +28,8 @@ const FIREBASE_JWKS = createRemoteJWKSet(
 const FIREBASE_ISSUER = `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`;
 
 const ALLOWED_ORIGINS = [
+  "https://finratio.site",
+  "https://www.finratio.site",
   "https://finrat.vercel.app",
   "https://finrat-git-main-rishis-projects-1c080e6c.vercel.app",
   "https://finrat-git-deploy-supabase-secr-82a4ba-rishis-projects-1c080e6c.vercel.app",

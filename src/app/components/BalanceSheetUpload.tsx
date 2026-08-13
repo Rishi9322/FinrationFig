@@ -71,7 +71,12 @@ export default function BalanceSheetUpload({ userId }: Props) {
           res = calc.calculateDSCR(Number(inputs.netOperatingIncome) || 0, Number(inputs.totalDebtService) || 0)
           break
         case "ebitda":
-          res = calc.calculateEBITDA(Number(inputs.revenue) || 0, Number(inputs.operatingExpenses) || 0)
+          res = calc.calculateEBITDA(
+            Number(inputs.profit) || 0,
+            Number(inputs.depreciation) || 0,
+            Number(inputs.financeCost) || 0,
+            Number(inputs.sales) || 0
+          )
           break
         case "iscr":
           res = calc.calculateISCR(Number(inputs.ebit) || 0, Number(inputs.interestExpense) || 0)

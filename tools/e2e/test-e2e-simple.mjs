@@ -106,10 +106,10 @@ function calculateCurrentRatio(currentAssets, currentLiabilities) {
   }
 }
 
-function calculateEBITDA(revenue, operatingExpenses) {
-  if (revenue < 0 || operatingExpenses < 0) throw new Error("Values cannot be negative")
-  const ebitda = revenue - operatingExpenses
-  const margin = revenue > 0 ? ((ebitda / revenue) * 100) : 0
+function calculateEBITDA(profit, depreciation, financeCost, sales) {
+  if (depreciation < 0 || financeCost < 0 || sales < 0) throw new Error("Values cannot be negative")
+  const ebitda = profit + depreciation + financeCost
+  const margin = sales > 0 ? ((ebitda * 100) / sales) : 0
   let risk = "low"
   let interpretation = "Healthy operating margin — strong profitability"
 
@@ -245,7 +245,7 @@ async function main() {
           result = calculateCurrentRatio(inputs.currentAssets, inputs.currentLiabilities)
           break
         case "ebitda":
-          result = calculateEBITDA(inputs.revenue, inputs.operatingExpenses)
+          result = calculateEBITDA(inputs.profit, inputs.depreciation, inputs.financeCost, inputs.sales)
           break
         case "net-working-capital":
           result = calculateNetWorkingCapital(inputs.currentAssets, inputs.currentLiabilities)

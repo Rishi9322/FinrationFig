@@ -145,7 +145,13 @@ export function mapToCalculator(calculatorType: CalculatorType, parsed: ParsedBa
 
       const conf = ebitda !== undefined ? 0.95 : 0.25
       if (ebitda === undefined) notes.push("Unable to derive EBITDA from parsed income statement; check parsing")
-      return { inputs: { revenue: revenue || 0, ebitda: ebitda ?? 0 }, confidence: conf, notes: notes.join("; ") }
+      // the derived figure is already an add-back total, so it maps onto `profit`
+      // with the other add-backs at zero
+      return {
+        inputs: { profit: ebitda ?? 0, depreciation: 0, financeCost: 0, sales: revenue || 0 },
+        confidence: conf,
+        notes: notes.join("; "),
+      }
     }
 
     case "dscr": {

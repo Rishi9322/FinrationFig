@@ -82,7 +82,7 @@ function runCalculator(calcType, inputs) {
       case "current-ratio":
         return calculateCurrentRatio(Number(inputs.currentAssets) || 0, Number(inputs.currentLiabilities) || 0)
       case "ebitda":
-        return calculateEBITDA(Number(inputs.revenue) || 0, Number(inputs.operatingExpenses) || 0)
+        return calculateEBITDA(Number(inputs.profit) || 0, Number(inputs.depreciation) || 0, Number(inputs.financeCost) || 0, Number(inputs.sales) || 0)
       case "dscr":
         return calculateDSCR(Number(inputs.netOperatingIncome) || 0, Number(inputs.totalDebtService) || 0)
       case "iscr":

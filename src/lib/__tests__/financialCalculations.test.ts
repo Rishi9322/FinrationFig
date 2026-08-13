@@ -32,9 +32,9 @@ describe('financialCalculations', () => {
   })
 
   it('calculates EBITDA and returns currency formatted value', () => {
-    const r = calculateEBITDA(1000, 700)
+    const r = calculateEBITDA(200, 60, 40, 1000)
     expect(r.value).toBe(300)
-    expect(r.details).toContain('EBITDA Margin')
+    expect(r.details).toContain('30.0%')
   })
 
   it('calculates ISCR and enforces non-zero interest', () => {

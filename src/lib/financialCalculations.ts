@@ -177,13 +177,18 @@ export function calculateDSCR(
   }
 }
 
-export function calculateEBITDA(revenue: number, operatingExpenses: number): CalculationResult {
-  if (revenue < 0 || operatingExpenses < 0) {
+export function calculateEBITDA(
+  profit: number,
+  depreciation: number,
+  financeCost: number,
+  sales: number
+): CalculationResult {
+  if (depreciation < 0 || financeCost < 0 || sales < 0) {
     throw new Error("Values cannot be negative")
   }
 
-  const ebitda = revenue - operatingExpenses
-  const margin = revenue > 0 ? ((ebitda / revenue) * 100) : 0
+  const ebitda = profit + depreciation + financeCost
+  const margin = sales > 0 ? ((ebitda * 100) / sales) : 0
   let risk: RiskLevel
   let interpretation: string
 

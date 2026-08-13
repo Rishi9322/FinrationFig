@@ -5,18 +5,19 @@ import { ResultCard } from "../../components/calculators/ResultCard"
 import { CurrencyInput } from "../../components/ui/CurrencyInput"
 
 export default function EbitdaPage() {
-  const [revenue, setRevenue] = useState("")
-  const [operatingExpenses, setOperatingExpenses] = useState("")
+  const [profit, setProfit] = useState("")
+  const [depreciation, setDepreciation] = useState("")
+  const [financeCost, setFinanceCost] = useState("")
+  const [sales, setSales] = useState("")
   const [result, setResult] = useState<CalculationResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const rev = parseFloat(revenue)
-    const expenses = parseFloat(operatingExpenses)
+    const values = [profit, depreciation, financeCost, sales].map(parseFloat)
 
-    if (!isNaN(rev) && !isNaN(expenses) && rev >= 0 && expenses >= 0) {
+    if (values.every((v) => !isNaN(v))) {
       try {
-        setResult(calculateEBITDA(rev, expenses))
+        setResult(calculateEBITDA(values[0], values[1], values[2], values[3]))
         setError(null)
       } catch (e) {
         setError((e as Error).message)
@@ -26,7 +27,7 @@ export default function EbitdaPage() {
       setResult(null)
       setError(null)
     }
-  }, [revenue, operatingExpenses])
+  }, [profit, depreciation, financeCost, sales])
 
   return (
     <CalculatorShell
@@ -38,26 +39,47 @@ export default function EbitdaPage() {
           <ResultCard
             result={result}
             calculatorType="ebitda"
-            inputs={{ revenue: parseFloat(revenue), operatingExpenses: parseFloat(operatingExpenses) }}
+            inputs={{
+              profit: parseFloat(profit),
+              depreciation: parseFloat(depreciation),
+              financeCost: parseFloat(financeCost),
+              sales: parseFloat(sales),
+            }}
           />
         ) : null
       }
     >
       <div className="space-y-4">
         <CurrencyInput
-          label="Revenue"
-          value={revenue}
-          onChange={setRevenue}
-          placeholder="Enter total revenue"
-          helperText="Total sales or income for the period"
+          label="Profit"
+          value={profit}
+          onChange={setProfit}
+          placeholder="Enter profit for the period"
+          helperText="Net profit before adding back depreciation and finance cost"
         />
 
         <CurrencyInput
-          label="Operating Expenses"
-          value={operatingExpenses}
-          onChange={setOperatingExpenses}
-          placeholder="Enter operating expenses"
-          helperText="Costs before interest, tax, depreciation, and amortisation"
+          label="Depreciation"
+          value={depreciation}
+          onChange={setDepreciation}
+          placeholder="Enter depreciation"
+          helperText="Depreciation and amortisation charged for the period"
+        />
+
+        <CurrencyInput
+          label="Finance / Interest Cost"
+          value={financeCost}
+          onChange={setFinanceCost}
+          placeholder="Enter finance cost"
+          helperText="Interest and other finance charges for the period"
+        />
+
+        <CurrencyInput
+          label="Sales"
+          value={sales}
+          onChange={setSales}
+          placeholder="Enter total sales"
+          helperText="Used to express EBITDA as a percentage of sales"
           error={error || undefined}
         />
       </div>
