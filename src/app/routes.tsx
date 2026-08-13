@@ -112,7 +112,7 @@ export const router = createBrowserRouter([
   {
     path: "/dashboard/cma-generator",
     element: (
-      <ProtectedLayout>
+      <ProtectedLayout requiredFeature="cma-generator">
         <CmaGeneratorPage />
       </ProtectedLayout>
     ),
@@ -120,7 +120,7 @@ export const router = createBrowserRouter([
   {
     path: "/doc-parser",
     element: (
-      <ProtectedLayout>
+      <ProtectedLayout requiredFeature="doc-parser">
         <BalanceSheetAnalysisPage />
       </ProtectedLayout>
     ),
@@ -132,7 +132,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/debt-equity",
     element: (
-      <ProtectedLayout requiredFeature="debt-equity">
+      <ProtectedLayout>
         <DebtEquityPage />
       </ProtectedLayout>
     ),
@@ -140,7 +140,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/quasi-debt-equity",
     element: (
-      <ProtectedLayout requiredFeature="quasi-debt-equity">
+      <ProtectedLayout>
         <QuasiDebtEquityPage />
       </ProtectedLayout>
     ),
@@ -148,7 +148,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/current-ratio",
     element: (
-      <ProtectedLayout requiredFeature="current-ratio">
+      <ProtectedLayout>
         <CurrentRatioPage />
       </ProtectedLayout>
     ),
@@ -156,7 +156,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/dscr",
     element: (
-      <ProtectedLayout requiredFeature="dscr">
+      <ProtectedLayout>
         <DscrPage />
       </ProtectedLayout>
     ),
@@ -164,7 +164,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/ebitda",
     element: (
-      <ProtectedLayout requiredFeature="ebitda">
+      <ProtectedLayout>
         <EbitdaPage />
       </ProtectedLayout>
     ),
@@ -172,7 +172,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/iscr",
     element: (
-      <ProtectedLayout requiredFeature="iscr">
+      <ProtectedLayout>
         <IscrPage />
       </ProtectedLayout>
     ),
@@ -180,7 +180,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/net-working-capital",
     element: (
-      <ProtectedLayout requiredFeature="net-working-capital">
+      <ProtectedLayout>
         <NetWorkingCapitalPage />
       </ProtectedLayout>
     ),
@@ -188,7 +188,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/drawing-power",
     element: (
-      <ProtectedLayout requiredFeature="drawing-power">
+      <ProtectedLayout>
         <DrawingPowerPage />
       </ProtectedLayout>
     ),
@@ -196,7 +196,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/ageing",
     element: (
-      <ProtectedLayout requiredFeature="ageing">
+      <ProtectedLayout>
         <AgeingPage />
       </ProtectedLayout>
     ),
@@ -204,7 +204,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/pid",
     element: (
-      <ProtectedLayout requiredFeature="pid">
+      <ProtectedLayout>
         <PidPage />
       </ProtectedLayout>
     ),
@@ -212,7 +212,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/valuation",
     element: (
-      <ProtectedLayout requiredFeature="valuation">
+      <ProtectedLayout>
         <BusinessValuationPage />
       </ProtectedLayout>
     ),
@@ -220,7 +220,7 @@ export const router = createBrowserRouter([
   {
     path: "/calculators/working-capital-cycle",
     element: (
-      <ProtectedLayout requiredFeature="working-capital-cycle">
+      <ProtectedLayout>
         <WorkingCapitalCyclePage />
       </ProtectedLayout>
     ),

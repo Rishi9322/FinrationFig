@@ -44,6 +44,11 @@ const CALCULATOR_SLUGS = [
 ];
 const DEFAULT_FEATURE_SLUG = "pid";
 
+// Calculators are open to every signed-in user. These two are granted per user
+// by an admin, so they are the only slugs a grant actually decides.
+const RESTRICTED_SLUGS = ["cma-generator", "doc-parser"];
+const GRANTABLE_SLUGS = [...CALCULATOR_SLUGS, ...RESTRICTED_SLUGS];
+
 function isAllowedOrigin(origin: string): boolean {
   if (ALLOWED_ORIGINS.includes(origin)) return true;
   return allowDevOrigins && /^http:\/\/(localhost|127\.0\.0\.1):\d{1,5}$/.test(origin);
@@ -177,9 +182,11 @@ async function requireSuperAdmin(c: any) {
 }
 
 function resolvedAccess(p: Profile): string[] {
-  return p.role === "SUPER_ADMIN" || p.role === "ADMIN" || p.calculator_access_mode === "FULL"
-    ? CALCULATOR_SLUGS
-    : p.calculator_access ?? [];
+  if (p.role === "SUPER_ADMIN" || p.role === "ADMIN") return GRANTABLE_SLUGS;
+  // Every calculator is included regardless of mode; only the restricted tools
+  // still depend on an explicit grant, so FULL must not imply them.
+  const granted = (p.calculator_access ?? []).filter((slug) => RESTRICTED_SLUGS.includes(slug));
+  return [...CALCULATOR_SLUGS, ...granted];
 }
 
 function publicUserView(p: Profile) {
@@ -242,7 +249,7 @@ app.post(`${API_PREFIX}/admin/users`, async (c) => {
   const mode = privileged || body.calculatorAccessMode === "FULL" ? "FULL" : "CUSTOM";
   const access = mode === "FULL"
     ? CALCULATOR_SLUGS
-    : (body.calculatorAccess ?? []).filter((s) => CALCULATOR_SLUGS.includes(s));
+    : (body.calculatorAccess ?? []).filter((s) => GRANTABLE_SLUGS.includes(s));
 
   // Create the login in Firebase via the Identity Toolkit REST API (no Admin SDK).
   const signUp = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`, {
@@ -318,7 +325,7 @@ app.put(`${API_PREFIX}/admin/users/:id/calculator-access`, async (c) => {
   if (!auth) return c.res;
   const parsed = await parseBody(c, Schemas.calculatorAccess);
   if (!parsed.ok) return parsed.response;
-  const cleaned = Array.from(new Set(parsed.data.slugs.filter((s) => CALCULATOR_SLUGS.includes(s))));
+  const cleaned = Array.from(new Set(parsed.data.slugs.filter((s) => GRANTABLE_SLUGS.includes(s))));
   const admin = getSupabaseAdminClient();
   const { data, error } = await admin.from("profiles").update({
     calculator_access_mode: "CUSTOM", calculator_access: cleaned, updated_at: nowIso(),

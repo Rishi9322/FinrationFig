@@ -1,16 +1,11 @@
 import { Link } from "react-router"
 import { CALCULATORS } from "../../../lib/calculatorConfig"
 import * as Icons from "lucide-react"
-import { ArrowRight, Lock } from "lucide-react"
-import { getCurrentUser, hasAllCalculatorAccess } from "../../../lib/auth"
+import { ArrowRight } from "lucide-react"
 
+// Every calculator is available to any signed-in user; only the CMA engine and
+// document parser are granted per user, and neither is listed here.
 export default function CalculatorsIndexPage() {
-  const user = getCurrentUser()
-  const allowed = new Set(user?.calculatorAccess || [])
-  const lockedCount = CALCULATORS.filter(
-    (c) => !hasAllCalculatorAccess(user) && !allowed.has(c.id),
-  ).length
-
   return (
     <div className="min-h-screen bg-[#050A14] py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -25,33 +20,18 @@ export default function CalculatorsIndexPage() {
           <p className="text-sm text-[#94A3B8] mt-1.5 max-w-lg leading-relaxed">
             Professional-grade ratio calculators for Indian SME credit assessment and business analysis
           </p>
-          {lockedCount > 0 && (
-            <p className="text-sm text-[#94A3B8] mt-3 max-w-lg leading-relaxed">
-              {lockedCount} {lockedCount === 1 ? "calculator is" : "calculators are"} not included in your
-              plan. Your account administrator can enable {lockedCount === 1 ? "it" : "them"} from the
-              admin console.
-            </p>
-          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {CALCULATORS.map((calculator, i) => {
             const Icon = Icons[calculator.icon as keyof typeof Icons] as React.ComponentType<{ className?: string }>
-            const hasAccess = hasAllCalculatorAccess(user) || allowed.has(calculator.id)
-            const CardContent = (
-              <div className={`bg-[#0D1726] border rounded-xl p-6 h-full transition-all ${
-                hasAccess
-                  ? "border-white/8 hover:border-[#2563EB]/40 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#2563EB]/5"
-                  : "border-white/8 opacity-85"
-              }`}>
+            return (
+              <Link key={calculator.id} to={calculator.path} className="group">
+              <div className="bg-[#0D1726] border border-white/8 rounded-xl p-6 h-full transition-all hover:border-[#2563EB]/40 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[#2563EB]/5">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     {Icon && (
-                      <div className={`p-2 border rounded-lg ${
-                        hasAccess
-                          ? "bg-[#2563EB]/10 border-[#2563EB]/20 text-[#2563EB]"
-                          : "bg-white/5 border-white/15 text-[#94A3B8]"
-                      }`}>
+                      <div className="p-2 border rounded-lg bg-[#2563EB]/10 border-[#2563EB]/20 text-[#2563EB]">
                         <Icon className="h-4 w-4" />
                       </div>
                     )}
@@ -61,30 +41,18 @@ export default function CalculatorsIndexPage() {
                   </span>
                 </div>
 
-                <h2 className={`font-medium mb-2 transition-colors text-base ${hasAccess ? "text-white group-hover:text-[#2563EB]" : "text-[#cbd5e1]"}`}>
+                <h2 className="font-medium mb-2 transition-colors text-base text-white group-hover:text-[#2563EB]">
                   {calculator.name}
                 </h2>
                 <p className="text-xs text-[#94A3B8] leading-relaxed mb-5">{calculator.description}</p>
 
-                {hasAccess ? (
-                  <div className="flex items-center text-xs text-[#2563EB] font-medium group-hover:gap-2 gap-1.5 transition-all">
-                    Open Calculator
-                    <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-xs text-[#94A3B8] font-medium">
-                    <Lock className="h-3.5 w-3.5" />
-                    Not included in your plan
-                  </div>
-                )}
+                <div className="flex items-center text-xs text-[#2563EB] font-medium group-hover:gap-2 gap-1.5 transition-all">
+                  Open Calculator
+                  <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
+                </div>
               </div>
+              </Link>
             )
-
-            if (!hasAccess) {
-              return <div key={calculator.id}>{CardContent}</div>
-            }
-
-            return <Link key={calculator.id} to={calculator.path} className="group">{CardContent}</Link>
           })}
         </div>
       </div>

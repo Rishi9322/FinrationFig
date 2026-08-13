@@ -22,3 +22,13 @@ export const CALCULATOR_FEATURES: CalculatorFeature[] = [
 
 export const CALCULATOR_SLUGS = CALCULATOR_FEATURES.map((f) => f.slug)
 export const DEFAULT_FEATURE_SLUG = "pid"
+
+// The calculators above are open to every signed-in user. These two are not:
+// they are granted per user by an admin, so they are the only entries that
+// appear as toggles in the admin access editor.
+export const RESTRICTED_FEATURES: CalculatorFeature[] = [
+  { slug: "cma-generator", name: "CMA Generator" },
+  { slug: "doc-parser", name: "Document Parser" },
+]
+
+export const RESTRICTED_SLUGS = RESTRICTED_FEATURES.map((f) => f.slug)

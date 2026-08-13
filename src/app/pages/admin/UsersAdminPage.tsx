@@ -167,7 +167,14 @@ export default function UsersAdminPage() {
 
   function openAccessEditor(user: User) {
     setEditingAccessFor(user.id)
-    setDraftAccess(user.calculatorAccess)
+    // calculatorAccess also carries the always-open calculators; only the
+    // grantable tools belong in the editor.
+    setDraftAccess(user.calculatorAccess.filter((slug) => allFeatureSlugs.includes(slug)))
+  }
+
+  /** The restricted tools this user holds, ignoring the always-open calculators. */
+  function grantedFeatures(user: User) {
+    return user.calculatorAccess.filter((slug) => allFeatureSlugs.includes(slug))
   }
 
   function closeAccessEditor() {
@@ -406,13 +413,13 @@ export default function UsersAdminPage() {
                         aria-expanded={isEditing}
                         className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border border-white/15 text-[#e2e8f0] text-xs hover:border-white/30 transition-colors"
                         title={
-                          user.calculatorAccess.length
-                            ? user.calculatorAccess.map((slug) => featureMap.get(slug) || slug).join(", ")
-                            : "No calculators enabled"
+                          grantedFeatures(user).length
+                            ? grantedFeatures(user).map((slug) => featureMap.get(slug) || slug).join(", ")
+                            : "No restricted tools enabled"
                         }
                       >
                         <span className="text-[#93C5FD] font-['Geist_Mono']">
-                          {user.calculatorAccess.length}/{features.length}
+                          {grantedFeatures(user).length}/{features.length}
                         </span>
                         <span className="text-[#94A3B8]">{isEditing ? "Close" : "Edit"}</span>
                       </button>
@@ -444,7 +451,8 @@ export default function UsersAdminPage() {
                   <tr className="border-b border-white/5 bg-[#050A14]/60">
                     <td colSpan={8} className="px-4 py-4">
                       <p className="text-[11px] text-[#94A3B8] mb-2.5">
-                        Select calculators for <span className="text-[#e2e8f0]">{user.name}</span>, then save. Nothing changes until you do.
+                        All calculators are open to every user. Select the restricted tools for{" "}
+                        <span className="text-[#e2e8f0]">{user.name}</span>, then save. Nothing changes until you do.
                       </p>
                       <div className="flex flex-wrap gap-1.5 mb-3">
                         {features.map((feature) => {
@@ -461,7 +469,7 @@ export default function UsersAdminPage() {
                               }`}
                               title={featureMap.get(feature.slug) || feature.slug}
                             >
-                              {feature.slug}
+                              {feature.name}
                             </button>
                           )
                         })}

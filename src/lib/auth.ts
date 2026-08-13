@@ -11,7 +11,7 @@ import {
 } from "firebase/auth"
 import { auth, googleProvider } from "./firebaseClient"
 import { apiCall, apiRequest } from "./apiSession"
-import { CALCULATOR_FEATURES, type CalculatorFeature as CatalogFeature } from "./calculatorFeatures"
+import { RESTRICTED_FEATURES, type CalculatorFeature as CatalogFeature } from "./calculatorFeatures"
 
 export type Role = "SUPER_ADMIN" | "ADMIN" | "USER"
 export type AccountStatus = "ACTIVE" | "SUSPENDED"
@@ -170,8 +170,11 @@ export async function signout() {
   }
 }
 
+// Only the restricted tools are grantable now - every calculator is open to any
+// signed-in user, so listing them as toggles would imply control that no longer
+// exists.
 export async function getCalculatorFeatures(): Promise<CalculatorFeature[]> {
-  return CALCULATOR_FEATURES.map((f: CatalogFeature) => ({ id: f.slug, slug: f.slug, name: f.name }))
+  return RESTRICTED_FEATURES.map((f: CatalogFeature) => ({ id: f.slug, slug: f.slug, name: f.name }))
 }
 
 // ---- Admin operations: service-role edge function (Firebase-token authed). ----
