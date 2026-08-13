@@ -377,12 +377,50 @@ app.delete(`${API_PREFIX}/me`, async (c) => {
 });
 
 // ---- AI proxy: keeps the OpenRouter key server-side ----
+// Every provider below speaks the OpenAI chat-completions shape, so one body
+// serves all three. They are tried in order: the two free tiers first, then the
+// paid gateway, so a throttled free tier degrades instead of failing.
+function chatProviders() {
+  const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
+  const nvidiaKey = Deno.env.get("NVIDIA_API_KEY");
+  const gatewayKey = Deno.env.get("AI_GATEWAY_API_KEY");
+
+  return [
+    openRouterKey && {
+      name: "openrouter",
+      url: "https://openrouter.ai/api/v1/chat/completions",
+      key: openRouterKey,
+      model: Deno.env.get("OPENROUTER_MODEL_NAME") || "google/gemma-4-31b-it:free",
+      headers: {
+        "HTTP-Referer": ALLOWED_ORIGINS[0],
+        "X-Title": "FinRatio",
+      } as Record<string, string>,
+    },
+    nvidiaKey && {
+      name: "nvidia",
+      url: "https://integrate.api.nvidia.com/v1/chat/completions",
+      key: nvidiaKey,
+      model: Deno.env.get("NVIDIA_MODEL_NAME") || "meta/llama-3.3-70b-instruct",
+      headers: {} as Record<string, string>,
+    },
+    gatewayKey && {
+      name: "vercel-ai-gateway",
+      url: "https://ai-gateway.vercel.sh/v1/chat/completions",
+      key: gatewayKey,
+      model: Deno.env.get("AI_GATEWAY_MODEL") || "openai/gpt-5-mini",
+      headers: {} as Record<string, string>,
+    },
+  ].filter(Boolean) as Array<{
+    name: string; url: string; key: string; model: string; headers: Record<string, string>;
+  }>;
+}
+
 app.post(`${API_PREFIX}/ai/chat`, async (c) => {
   const auth = await requireAuth(c);
   if (!auth) return c.res;
 
-  const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
-  if (!openRouterKey) return c.json({ error: "AI is not configured" }, 503);
+  const providers = chatProviders();
+  if (providers.length === 0) return c.json({ error: "AI is not configured" }, 503);
 
   const allowed = await validateRateLimit(`ai:${auth.uid}`, 60, 60 * 60 * 1000);
   if (!allowed) return c.json({ error: "AI request quota exceeded. Try again later." }, 429);
@@ -395,36 +433,60 @@ app.post(`${API_PREFIX}/ai/chat`, async (c) => {
   if (!parsed.ok) return parsed.response;
   const body = parsed.data;
 
-  const upstream = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${openRouterKey}`,
-      "HTTP-Referer": ALLOWED_ORIGINS[ALLOWED_ORIGINS.length - 1],
-      "X-Title": "FinRatio",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: Deno.env.get("OPENROUTER_MODEL_NAME") || "anthropic/claude-3.5-sonnet",
-      messages: body.messages,
-      stream: body.stream === true,
-      ...(body.response_format ? { response_format: body.response_format } : {}),
-      ...(typeof body.temperature === "number" ? { temperature: body.temperature } : {}),
-    }),
-    signal: AbortSignal.timeout(120_000),
-  });
+  const payload = {
+    messages: body.messages,
+    stream: body.stream === true,
+    ...(body.response_format ? { response_format: body.response_format } : {}),
+    ...(typeof body.temperature === "number" ? { temperature: body.temperature } : {}),
+  };
 
-  if (!upstream.ok) {
-    console.error("[ai/chat] upstream error", upstream.status);
-    return c.json({ error: "AI request failed" }, upstream.status === 429 ? 429 : 502);
+  let last: Response | null = null;
+  for (const provider of providers) {
+    let upstream: Response;
+    try {
+      upstream = await fetch(provider.url, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${provider.key}`,
+          "Content-Type": "application/json",
+          ...provider.headers,
+        },
+        body: JSON.stringify({ ...payload, model: provider.model }),
+        signal: AbortSignal.timeout(120_000),
+      });
+    } catch (error) {
+      // Network failure or timeout — treat like an outage and try the next one.
+      console.error(`[ai/chat] ${provider.name} unreachable`, error);
+      continue;
+    }
+
+    if (upstream.ok) {
+      return new Response(upstream.body, {
+        status: 200,
+        headers: {
+          "Content-Type": upstream.headers.get("Content-Type") ?? "application/json",
+          "Cache-Control": "no-store",
+          "X-AI-Provider": provider.name,
+        },
+      });
+    }
+
+    console.error(`[ai/chat] ${provider.name} error`, upstream.status);
+    last = upstream;
+
+    // 4xx other than throttling means the request itself is bad, so failing over
+    // would just repeat it against another provider.
+    if (upstream.status < 500 && upstream.status !== 429) break;
   }
 
-  return new Response(upstream.body, {
-    status: 200,
-    headers: {
-      "Content-Type": upstream.headers.get("Content-Type") ?? "application/json",
-      "Cache-Control": "no-store",
-    },
-  });
+  if (last && last.status === 429) {
+    return c.json(
+      { error: "Every AI provider is rate-limited right now. Please try again in a few seconds." },
+      429,
+      { "Retry-After": last.headers.get("Retry-After") ?? "10" },
+    );
+  }
+  return c.json({ error: "AI request failed" }, 502);
 });
 
 // ---- User data. Supabase's Firebase third-party auth doesn't reliably map
