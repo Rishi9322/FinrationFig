@@ -248,3 +248,42 @@
     padding: 0;
   }
 }
+
+/* Rendered Markdown of the AI credit memorandum. The model replies in Markdown,
+   so these give its headings, tables and lists the surrounding dark styling. */
+.cma-memo > :first-child { margin-top: 0; }
+.cma-memo h1, .cma-memo h2, .cma-memo h3, .cma-memo h4 {
+  color: #F8FAFC;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 1.5rem 0 0.75rem;
+}
+.cma-memo h1 { font-size: 1.25rem; }
+.cma-memo h2 { font-size: 1.1rem; }
+.cma-memo h3 { font-size: 1rem; }
+.cma-memo h4 { font-size: 0.95rem; color: #CBD5E1; }
+.cma-memo p { margin: 0 0 0.85rem; }
+.cma-memo strong { color: #F8FAFC; font-weight: 600; }
+.cma-memo ul, .cma-memo ol { margin: 0 0 0.85rem; padding-left: 1.35rem; }
+.cma-memo li { margin-bottom: 0.35rem; }
+.cma-memo hr { border: 0; border-top: 1px solid #1A2030; margin: 1.5rem 0; }
+.cma-memo code {
+  background: #131A24;
+  border-radius: 4px;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.875em;
+}
+.cma-memo table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1rem;
+  font-size: 0.875rem;
+}
+.cma-memo th, .cma-memo td {
+  border: 1px solid #1A2030;
+  padding: 0.45rem 0.65rem;
+  text-align: left;
+}
+.cma-memo th { background: #131A24; color: #F8FAFC; font-weight: 600; }
+/* Figures read better right-aligned, and every numeric column in a CMA is money. */
+.cma-memo td + td, .cma-memo th + th { text-align: right; }

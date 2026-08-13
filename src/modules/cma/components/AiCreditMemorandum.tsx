@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useCma } from '../context/CmaContext';
 import { streamCmaCreditOpinion } from '../../../lib/ai/openrouter';
 
@@ -62,13 +64,18 @@ export function AiCreditMemorandum() {
 
       <div
         ref={scrollRef}
+        className="cma-memo"
         style={{
           backgroundColor: '#0E1218', border: '1px solid #1A2030', borderRadius: '8px',
           padding: '2rem', minHeight: '400px', maxHeight: '600px', overflowY: 'auto',
-          whiteSpace: 'pre-wrap', lineHeight: '1.6', color: '#E2E8F0', fontSize: '0.95rem',
+          lineHeight: '1.6', color: '#E2E8F0', fontSize: '0.95rem',
         }}
       >
-        {creditOpinion || (
+        {creditOpinion ? (
+          // The model replies in Markdown. react-markdown escapes HTML by
+          // default, which matters because this is untrusted model output.
+          <Markdown remarkPlugins={[remarkGfm]}>{creditOpinion}</Markdown>
+        ) : (
           <div style={{ color: '#64748B', fontStyle: 'italic', display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
             Click "Generate Opinion" to stream a credit memorandum from the cloud AI.
           </div>

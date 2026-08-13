@@ -409,7 +409,10 @@ function chatProviders() {
       name: "vercel-ai-gateway",
       url: "https://ai-gateway.vercel.sh/v1/chat/completions",
       key: gatewayKey,
-      model: Deno.env.get("AI_GATEWAY_MODEL") || "openai/gpt-5-mini",
+      // Deliberately not a reasoning model: gpt-5-mini spends ~50s on hidden
+      // reasoning tokens before it writes anything, which is far too slow for a
+      // short summary. Flash answers the same prompt in under ten seconds.
+      model: Deno.env.get("AI_GATEWAY_MODEL") || "google/gemini-2.5-flash",
       headers: {} as Record<string, string>,
     },
   ].filter(Boolean) as Array<{

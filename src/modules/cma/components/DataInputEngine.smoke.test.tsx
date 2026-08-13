@@ -55,13 +55,19 @@ describe("DataInputEngine classification + save flow", () => {
     );
 
     const textarea = screen.getByPlaceholderText(/paste raw financial text/i);
-    fireEvent.change(textarea, { target: { value: "Total Assets 500\nTotal Liabilities 500" } });
+    // The company name must appear in the source: a parsed name that is absent
+    // from the document is treated as leaked from a training example and blanked.
+    fireEvent.change(textarea, {
+      target: { value: "Balance Sheet of Test Co\nTotal Assets 500\nTotal Liabilities 500" },
+    });
 
     fireEvent.click(screen.getByText("Parse & Structure Data"));
 
     await waitFor(() => expect(screen.getByText("Balance Sheet")).toBeInTheDocument());
     expect(screen.getByText(/Confidence: 92%/)).toBeInTheDocument();
-    expect(screen.getByText(/Test Co/)).toBeInTheDocument();
+    // Match the success banner specifically - the name also appears in the
+    // textarea now that the source document names the company.
+    expect(screen.getByText(/Data Parsed Successfully for/)).toHaveTextContent("Test Co");
   });
 
   it("accepts docx/pdf/xlsx/csv in the file input", () => {

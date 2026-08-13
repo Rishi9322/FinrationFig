@@ -91,9 +91,15 @@ function buildLearningContext(rawText: string, sourceFormat?: string) {
   if (examples.length === 0) return "";
 
   return [
-    "Confirmed prior parses for similar CMA inputs:",
+    "FORMAT REFERENCE ONLY - the documents below are NOT the document you are",
+    "parsing. They show the expected output shape for similar inputs. Never copy",
+    "a company name, year, or figure out of them; every value you return must",
+    "come from the primary source content further down.",
     ...examples.map((example, index) => {
-      const parsedPreview = JSON.stringify(example.parsedData, null, 2);
+      // The company name is the field most often echoed into an unrelated parse,
+      // so it never reaches the prompt in the first place.
+      const { company: _company, ...shape } = example.parsedData as Record<string, unknown>;
+      const parsedPreview = JSON.stringify(shape, null, 2);
       return [
         `Example ${index + 1} (${example.sourceFormat}, model: ${example.model}):`,
         `Source preview: ${example.rawPreview}`,
@@ -101,6 +107,38 @@ function buildLearningContext(rawText: string, sourceFormat?: string) {
       ].join("\n");
     }),
   ].join("\n\n");
+}
+
+/**
+ * Few-shot examples leak: when the current document has no clear company name
+ * the model tends to reuse one it saw in an example. The name is the one field
+ * that must appear verbatim in the source, so verify it rather than trust it.
+ */
+export function verifyCompanyAgainstSource(
+  parsed: Record<string, unknown>,
+  rawText: string,
+): Record<string, unknown> {
+  const company = parsed.company;
+  if (typeof company !== "string" || !company.trim()) return parsed;
+
+  const haystack = normalizeForMatch(rawText);
+  // Compare on significant words only, so "M/s. Acme Ltd." still matches "Acme
+  // Limited" in the source while an unrelated name from an example does not.
+  const words = normalizeForMatch(company)
+    .split(" ")
+    .filter((word) => word.length > 2 && !COMPANY_STOPWORDS.has(word));
+
+  if (words.length > 0 && words.every((word) => haystack.includes(word))) return parsed;
+
+  return { ...parsed, company: "" };
+}
+
+const COMPANY_STOPWORDS = new Set([
+  "ms", "ms.", "the", "and", "ltd", "limited", "pvt", "private", "co", "company", "llp", "inc",
+]);
+
+function normalizeForMatch(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 export function recordCmaLearningExample(
@@ -198,7 +236,7 @@ export async function parseCmaFinancialData(rawText: string, options: ParseOptio
           role: "system",
           content: `You are a senior banking CMA analyst in India. Extract financial data from the user's input and return ONLY valid JSON (no markdown, no explanation) with this exact structure:
 {
-  "company": "string",
+  "company": "string - the name as it literally appears in the primary source content. If the document does not name a company, return an empty string. Never take it from an example.",
   "unit": "Rs. Lakhs",
   "years": ["2024-25","2025-26","2026-27"],
   "yearTypes": ["Actual","Provisional","Projected"],
@@ -314,7 +352,7 @@ Auto-compute any missing fields using standard accounting relationships. Verify 
     throw new Error("AI did not return valid JSON");
   }
 
-  return validateCmaShape(parsed);
+  return verifyCompanyAgainstSource(validateCmaShape(parsed), rawText);
 }
 
 /**

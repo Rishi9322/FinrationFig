@@ -28,3 +28,30 @@ describe("validateCmaShape", () => {
     expect(() => validateCmaShape([])).toThrow(/unexpected CMA structure/)
   })
 })
+
+describe('verifyCompanyAgainstSource', () => {
+  it('keeps a company name that appears in the source document', async () => {
+    const { verifyCompanyAgainstSource } = await import('./openrouter');
+    const source = 'BALANCE SHEET OF ACME POLYMERS LIMITED AS AT 31.03.2025';
+
+    const out = verifyCompanyAgainstSource({ company: 'M/s. Acme Polymers Ltd.' }, source);
+
+    expect(out.company).toBe('M/s. Acme Polymers Ltd.');
+  });
+
+  it('blanks a name carried over from a training example', async () => {
+    const { verifyCompanyAgainstSource } = await import('./openrouter');
+    // The name the model returned appears nowhere in the document it parsed.
+    const source = 'BALANCE SHEET OF ACME POLYMERS LIMITED AS AT 31.03.2025';
+
+    const out = verifyCompanyAgainstSource({ company: 'M/s. Spar Coats and Polymers' }, source);
+
+    expect(out.company).toBe('');
+  });
+
+  it('leaves an already-empty company untouched', async () => {
+    const { verifyCompanyAgainstSource } = await import('./openrouter');
+
+    expect(verifyCompanyAgainstSource({ company: '' }, 'anything').company).toBe('');
+  });
+});
