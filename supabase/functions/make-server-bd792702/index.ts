@@ -400,7 +400,9 @@ function chatProviders() {
       name: "nvidia",
       url: "https://integrate.api.nvidia.com/v1/chat/completions",
       key: nvidiaKey,
-      model: Deno.env.get("NVIDIA_MODEL_NAME") || "meta/llama-3.3-70b-instruct",
+      // Not every NVIDIA-hosted model is warm; llama-3.3-70b routinely hangs
+      // past 90s on the free tier, while this one answers in under a second.
+      model: Deno.env.get("NVIDIA_MODEL_NAME") || "nvidia/llama-3.3-nemotron-super-49b-v1.5",
       headers: {} as Record<string, string>,
     },
     gatewayKey && {
@@ -452,7 +454,9 @@ app.post(`${API_PREFIX}/ai/chat`, async (c) => {
           ...provider.headers,
         },
         body: JSON.stringify({ ...payload, model: provider.model }),
-        signal: AbortSignal.timeout(120_000),
+        // Per provider, not per request: a cold model can hang indefinitely, and
+        // failing over after 45s beats making the user wait out a long timeout.
+        signal: AbortSignal.timeout(45_000),
       });
     } catch (error) {
       // Network failure or timeout — treat like an outage and try the next one.
