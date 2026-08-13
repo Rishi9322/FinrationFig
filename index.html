@@ -10,9 +10,10 @@
     <meta name="description" content="FinRatio — financial intelligence for Indian business. Upload a balance sheet and run 12+ ratio calculators, CMA reports and risk assessments." />
     <link rel="canonical" href="https://finratio.site/" />
     <meta name="google-site-verification" content="%VITE_GSC_VERIFICATION%" />
-    <!-- GA4 — init lives in /ga.js so no 'unsafe-inline' is needed in the CSP,
-         and so nothing loads at all until VITE_GA_ID is set. -->
-    <script src="/ga.js" data-ga-id="%VITE_GA_ID%"></script>
+    <!-- Analytics (GA4 + Microsoft Clarity). Init lives in /ga.js so no
+         'unsafe-inline' is needed in the CSP, and so nothing loads until the
+         ids are set and the visitor accepts cookies. -->
+    <script src="/ga.js" data-ga-id="%VITE_GA_ID%" data-clarity-id="%VITE_CLARITY_ID%"></script>
   </head>
   <body>
     <div id="root"></div>

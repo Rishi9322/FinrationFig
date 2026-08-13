@@ -5,21 +5,39 @@
 // Analytics is opt-in: GA is not loaded until the visitor accepts, so no
 // analytics cookie is set before consent.
 (function () {
-  var id = document.currentScript.dataset.gaId
-  if (!id || id.indexOf('G-') !== 0) return
+  var data = document.currentScript.dataset
+  var id = data.gaId
+  var clarityId = data.clarityId
+  var hasGa = id && id.indexOf('G-') === 0
+  // Placeholders survive verbatim when the env var is unset, so require a
+  // plausible id rather than mere presence.
+  var hasClarity = clarityId && clarityId.indexOf('%') !== 0
+  if (!hasGa && !hasClarity) return
 
   var KEY = 'finratio-cookie-consent'
 
   function loadAnalytics() {
-    var s = document.createElement('script')
-    s.async = true
-    s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(id)
-    document.head.appendChild(s)
+    if (hasGa) {
+      var s = document.createElement('script')
+      s.async = true
+      s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(id)
+      document.head.appendChild(s)
 
-    window.dataLayer = window.dataLayer || []
-    window.gtag = function () { window.dataLayer.push(arguments) }
-    window.gtag('js', new Date())
-    window.gtag('config', id)
+      window.dataLayer = window.dataLayer || []
+      window.gtag = function () { window.dataLayer.push(arguments) }
+      window.gtag('js', new Date())
+      window.gtag('config', id)
+    }
+
+    if (hasClarity) {
+      window.clarity = window.clarity || function () {
+        (window.clarity.q = window.clarity.q || []).push(arguments)
+      }
+      var c = document.createElement('script')
+      c.async = true
+      c.src = 'https://www.clarity.ms/tag/' + encodeURIComponent(clarityId)
+      document.head.appendChild(c)
+    }
   }
 
   function showBanner() {
