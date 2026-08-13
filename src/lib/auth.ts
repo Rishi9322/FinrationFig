@@ -215,13 +215,29 @@ export function hasAllCalculatorAccess(user: User | null | undefined): boolean {
   return user?.role === "SUPER_ADMIN" || user?.role === "ADMIN"
 }
 
+// Parsing on every call returned a fresh object each time, so `[user]` in a
+// React dependency array never compared equal and any effect depending on it
+// re-ran forever. Cache by the raw JSON so repeat calls share one reference,
+// while a genuine change to the stored user still yields a new object.
+let cachedUserJson: string | null = null
+let cachedUser: User | null = null
+
 export function getCurrentUser(): User | null {
   const userJson = localStorage.getItem(CURRENT_USER_KEY)
-  if (!userJson) return null
+  if (!userJson) {
+    cachedUserJson = null
+    cachedUser = null
+    return null
+  }
+  if (userJson === cachedUserJson) return cachedUser
   try {
-    return JSON.parse(userJson)
+    cachedUser = JSON.parse(userJson)
+    cachedUserJson = userJson
+    return cachedUser
   } catch {
     localStorage.removeItem(CURRENT_USER_KEY)
+    cachedUserJson = null
+    cachedUser = null
     return null
   }
 }

@@ -133,3 +133,30 @@ describe('API Error Handling', () => {
     expect(errorResponse.error).toBe('Email already registered');
   });
 });
+
+describe('getCurrentUser reference stability', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('returns the same object across calls so React deps stay stable', async () => {
+    const { getCurrentUser, setCurrentUser } = await import('../auth');
+    setCurrentUser({ id: 'u1', name: 'A', email: 'a@b.c' } as never);
+
+    // Identity, not just equality - a new object here re-runs every effect
+    // that lists the user in its dependency array.
+    expect(getCurrentUser()).toBe(getCurrentUser());
+  });
+
+  it('returns a new object once the stored user actually changes', async () => {
+    const { getCurrentUser, setCurrentUser } = await import('../auth');
+    setCurrentUser({ id: 'u1', name: 'A', email: 'a@b.c' } as never);
+    const first = getCurrentUser();
+
+    setCurrentUser({ id: 'u2', name: 'B', email: 'b@b.c' } as never);
+    const second = getCurrentUser();
+
+    expect(second).not.toBe(first);
+    expect(second?.id).toBe('u2');
+  });
+});

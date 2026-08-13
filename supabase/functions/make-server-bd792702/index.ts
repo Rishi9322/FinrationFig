@@ -465,14 +465,22 @@ app.post(`${API_PREFIX}/ai/chat`, async (c) => {
     }
 
     if (upstream.ok) {
-      return new Response(upstream.body, {
-        status: 200,
-        headers: {
-          "Content-Type": upstream.headers.get("Content-Type") ?? "application/json",
-          "Cache-Control": "no-store",
-          "X-AI-Provider": provider.name,
-        },
-      });
+      // Returning a raw Response replaces the one the CORS middleware decorated,
+      // so the headers it set are lost unless they are repeated here. Without
+      // them the browser rejects the reply even though the call succeeded.
+      const headers: Record<string, string> = {
+        "Content-Type": upstream.headers.get("Content-Type") ?? "application/json",
+        "Cache-Control": "no-store",
+        "X-AI-Provider": provider.name,
+        "Access-Control-Expose-Headers": "X-AI-Provider",
+      };
+      const origin = c.req.header("Origin");
+      if (origin && isAllowedOrigin(origin)) {
+        headers["Access-Control-Allow-Origin"] = origin;
+        headers["Access-Control-Allow-Credentials"] = "true";
+        headers["Vary"] = "Origin";
+      }
+      return new Response(upstream.body, { status: 200, headers });
     }
 
     console.error(`[ai/chat] ${provider.name} error`, upstream.status);
