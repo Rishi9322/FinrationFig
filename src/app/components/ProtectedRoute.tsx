@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react"
 import { Navigate, useLocation } from "react-router"
 import { fetchCurrentUser, getCurrentUser, type Role } from "../../lib/auth"
+import { RESTRICTED_FEATURES } from "../../lib/calculatorFeatures"
+import ComingSoonPage from "../pages/ComingSoonPage"
+
+const FEATURE_TITLES: Record<string, string> = Object.fromEntries(
+  RESTRICTED_FEATURES.map((feature) => [feature.slug, feature.name]),
+)
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -59,8 +65,11 @@ export function ProtectedRoute({ children, requiredRole, requiredFeature }: Prot
     return <Navigate to="/access-denied" replace />
   }
 
+  // A missing feature grant is presented as "coming soon" rather than a refusal:
+  // these are tools being rolled out, not sections the user was denied. Role
+  // failures above still read as restricted, because those really are.
   if (requiredFeature && !user.calculatorAccess?.includes(requiredFeature) && user.role === "USER") {
-    return <Navigate to="/access-denied" replace />
+    return <ComingSoonPage title={FEATURE_TITLES[requiredFeature]} />
   }
 
   return <>{children}</>
