@@ -55,10 +55,10 @@ function AnimatedStat({ label, prefix = "", suffix = "", value, decimals = 0, st
 }
 
 const STEPS = [
-  { n: "01", icon: Lock, title: "Create your account", desc: "Sign up in seconds with your email address" },
-  { n: "02", icon: Zap, title: "Enter your financials", desc: "9 inputs: sales, margins, credit terms, ratio data" },
-  { n: "03", icon: RefreshCw, title: "See live results", desc: "Risk badges, ratios, insights — recalculated instantly" },
-  { n: "04", icon: FileText, title: "Save your history", desc: "Every calculation stored securely in the cloud" },
+  { n: "01", icon: FolderOpen, title: "Upload financials", desc: "PDF, DOCX, XLS, or CSV — balance sheet, P&L, or CMA data" },
+  { n: "02", icon: Lock, title: "Review extracted data", desc: "Auto-parsed into RBI CMA format, flagged for anything to confirm" },
+  { n: "03", icon: Zap, title: "See the risk picture", desc: "DSCR, TOL/TNW, current ratio against RBI norms — top concerns surfaced first" },
+  { n: "04", icon: FileText, title: "Generate the credit note", desc: "Banker-ready memo with red flags, covenants, and a recommendation" },
 ]
 
 const FEATURES = [
@@ -159,7 +159,7 @@ export default function HomePage() {
           <div className="inline-flex items-center gap-2 bg-[#2563EB]/10 border border-[#2563EB]/25 rounded-full px-4 py-1.5 mb-8">
             <Zap className="w-3.5 h-3.5 text-[#2563EB]" />
             <span className="text-xs font-['Geist_Mono'] text-[#2563EB] tracking-wide">
-              Financial Intelligence for Indian SMEs
+              For loan consultants, CAs & credit teams
             </span>
           </div>
 
@@ -168,20 +168,20 @@ export default function HomePage() {
             className="text-5xl sm:text-6xl lg:text-7xl font-normal leading-[1.08] tracking-tight mb-6 text-white"
             style={{ fontFamily: "'Instrument Serif', serif" }}
           >
-            Understand Your
+            Lender-Ready
             <br />
             <em className="not-italic text-transparent bg-clip-text"
               style={{ backgroundImage: "linear-gradient(135deg, #2563EB 0%, #10B981 100%)" }}
             >
-              Financial Health
+              Credit Analysis
             </em>
             <br />
-            Instantly
+            in Minutes
           </h1>
 
           <p className="text-lg text-[#94A3B8] max-w-xl mx-auto mb-10 leading-relaxed">
-            9 professional-grade financial ratio calculators with real-time risk assessment,
-            Indian currency formatting, and secure history — built for credit teams and CFOs.
+            Upload financial statements and get an RBI CMA-format analysis with risk flags,
+            covenants, and a banker-ready credit memo — not just a spreadsheet of ratios.
           </p>
 
           {/* CTA row */}
@@ -205,7 +205,7 @@ export default function HomePage() {
           {/* Honest positioning line — no fabricated user counts or star ratings */}
           <div className="flex items-center justify-center gap-2 text-sm text-[#94A3B8]">
             <Zap className="w-3.5 h-3.5 text-[#10B981]" />
-            <span>Free to use — the same 9 formulas banks use, running in your browser</span>
+            <span>Built on the exact RBI CMA ratio set — DSCR, MPBF, TOL/TNW — not generic scoring</span>
           </div>
         </div>
 
@@ -220,53 +220,32 @@ export default function HomePage() {
               <div className="w-3 h-3 rounded-full bg-[#ef4444]/60" />
               <div className="w-3 h-3 rounded-full bg-[#f59e0b]/60" />
               <div className="w-3 h-3 rounded-full bg-[#10B981]/60" />
-              <span className="ml-3 text-xs font-['Geist_Mono'] text-[#94A3B8]">finratio.app / calculators / dscr</span>
+              <span className="ml-3 text-xs font-['Geist_Mono'] text-[#94A3B8]">finratio.app / cma-generator</span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2">
-              {/* Input panel */}
-              <div className="p-6 border-r border-white/8">
-                <p className="text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-widest mb-4">Inputs</p>
+            <div className="p-6">
+              <p className="text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-widest mb-4">Risk Picture</p>
+              <div className="flex items-center gap-2 mb-5">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />
+                <span className="text-base font-medium text-white">Needs Review</span>
+              </div>
+              <div className="grid grid-cols-3 gap-4 mb-5">
                 {[
-                  ["Business Type", "Manufacturer"],
-                  ["Net Annual Sales", "₹5,00,00,000"],
-                  ["Net Profit After Tax", "₹42,00,000"],
-                  ["Total Debt Repayment", "₹38,00,000"],
-                  ["Depreciation", "₹8,00,000"],
-                ].map(([label, val]) => (
-                  <div key={label} className="mb-3">
+                  ["Current Ratio", "1.18", "#F59E0B"],
+                  ["TOL/TNW", "2.74", "#10B981"],
+                  ["Avg DSCR", "1.41", "#F59E0B"],
+                ].map(([label, val, color]) => (
+                  <div key={label as string}>
                     <p className="text-xs text-[#94A3B8] mb-1">{label}</p>
-                    <div className="bg-[#050A14] rounded-lg px-3 py-2 text-sm font-['Geist_Mono'] text-[#F1F5F9] border border-white/8">
-                      {val}
-                    </div>
+                    <p className="font-['Geist_Mono'] font-semibold text-sm" style={{ color: color as string }}>{val}</p>
                   </div>
                 ))}
               </div>
-              {/* Result panel */}
-              <div className="p-6">
-                <p className="text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-widest mb-4">Results</p>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#94A3B8]">DSCR</span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-['Geist_Mono'] text-[#10B981] font-medium">1.32</span>
-                      <span className="text-[10px] bg-[#10B981]/15 text-[#10B981] border border-[#10B981]/25 rounded-full px-2 py-0.5">Low Risk</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#94A3B8]">Annual Repayment</span>
-                    <span className="font-['Geist_Mono'] text-[#F1F5F9] text-sm">₹38,00,000</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-[#94A3B8]">Cash Accrual</span>
-                    <span className="font-['Geist_Mono'] text-[#F1F5F9] text-sm">₹50,00,000</span>
-                  </div>
-                  <div className="mt-4 p-3 rounded-lg bg-[#10B981]/8 border border-[#10B981]/20">
-                    <p className="text-xs text-[#10B981] leading-relaxed">
-                      DSCR of 1.32 indicates adequate debt repayment capacity. Business generates sufficient cash flow to service debt obligations comfortably.
-                    </p>
-                  </div>
-                </div>
-              </div>
+              <p className="text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-widest mb-2">Top Concerns</p>
+              <ul className="text-sm text-[#F1F5F9] space-y-1.5 list-disc list-inside">
+                <li>Current ratio below the RBI norm of 1.33</li>
+                <li>Average DSCR below the 1.5 comfort threshold</li>
+                <li>Trade receivables up sharply year-on-year</li>
+              </ul>
             </div>
           </div>
         </div>
@@ -366,10 +345,13 @@ export default function HomePage() {
               className="text-4xl lg:text-5xl font-normal text-white"
               style={{ fontFamily: "'Instrument Serif', serif" }}
             >
-              9 calculators,
+              The ratio engine
               <br />
-              <em className="not-italic text-[#94A3B8]">one platform</em>
+              <em className="not-italic text-[#94A3B8]">behind every memo</em>
             </h2>
+            <p className="text-[#94A3B8] max-w-lg mx-auto mt-4">
+              Also available standalone, if you just need one number.
+            </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {CALCULATORS.map((calc, i) => (

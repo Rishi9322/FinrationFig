@@ -186,6 +186,7 @@ export async function classifyFinancialDocument(rawText: string, sourceName?: st
   const response = await aiChat({
       response_format: { type: "json_object" },
       temperature: 0,
+      max_tokens: 200,
       messages: [
         {
           role: "system",
@@ -391,10 +392,71 @@ export function validateCmaShape(parsed: unknown): Record<string, unknown> {
   return record;
 }
 
+export type CreditRecommendation = {
+  recommendation: "APPROVE" | "APPROVE WITH CONDITIONS" | "DECLINE";
+  riskRating: "LOW" | "MODERATE" | "HIGH";
+  ccLimit: number | null;
+  tlLimit: number | null;
+  rationale: string;
+  conditionsPrecedent: string[];
+  monitoringPoints: string[];
+};
+
+/**
+ * The narrative memo (streamCmaCreditOpinion) is prose meant to be read once;
+ * this is the same decision as structured data meant to be rendered as a card
+ * and reused (export pack, case list). A separate JSON-mode call rather than
+ * parsing the prose with regex, so the recommendation/limits/covenants are
+ * exact instead of best-effort text matches.
+ */
+export async function generateCreditRecommendation(cmaData: any): Promise<CreditRecommendation> {
+  const response = await aiChat({
+    response_format: { type: "json_object" },
+    temperature: 0,
+    max_tokens: 900,
+    messages: [
+      {
+        role: "system",
+        content: `You are a senior credit analyst at a commercial bank evaluating a term loan and working capital facility application under the RBI CMA framework. Given the applicant's CMA data, return ONLY valid JSON with this exact shape:
+{
+  "recommendation": "APPROVE" | "APPROVE WITH CONDITIONS" | "DECLINE",
+  "riskRating": "LOW" | "MODERATE" | "HIGH",
+  "ccLimit": number | null,
+  "tlLimit": number | null,
+  "rationale": "2-3 sentences citing the specific ratios/trends that drove this decision",
+  "conditionsPrecedent": ["string", ...],
+  "monitoringPoints": ["string - a financial covenant with its numeric threshold, e.g. 'Maintain DSCR >= 1.5'", ...]
+}
+Limits are in ₹ Lakhs. Use exact numbers from the CMA - do not invent figures. If a limit doesn't apply, use null.`,
+      },
+      { role: "user", content: JSON.stringify(cmaData) },
+    ],
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error?.message || `API Error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const parsed = safeJsonParse(data.choices[0].message.content);
+
+  return {
+    recommendation: ["APPROVE", "APPROVE WITH CONDITIONS", "DECLINE"].includes(parsed.recommendation) ? parsed.recommendation : "APPROVE WITH CONDITIONS",
+    riskRating: ["LOW", "MODERATE", "HIGH"].includes(parsed.riskRating) ? parsed.riskRating : "MODERATE",
+    ccLimit: typeof parsed.ccLimit === "number" ? parsed.ccLimit : null,
+    tlLimit: typeof parsed.tlLimit === "number" ? parsed.tlLimit : null,
+    rationale: typeof parsed.rationale === "string" ? parsed.rationale : "",
+    conditionsPrecedent: Array.isArray(parsed.conditionsPrecedent) ? parsed.conditionsPrecedent.filter((s: unknown) => typeof s === "string") : [],
+    monitoringPoints: Array.isArray(parsed.monitoringPoints) ? parsed.monitoringPoints.filter((s: unknown) => typeof s === "string") : [],
+  };
+}
+
 export async function* streamCmaCreditOpinion(cmaData: any) {
   const requestBody = {
     temperature: 0.2,
     stream: true,
+    max_tokens: 1100,
     messages: [
       {
         role: "system",
@@ -422,21 +484,36 @@ The applicant's CMA data is provided. Write a structured credit assessment repor
    - MPBF assessment: justify or question the CC limit
    - Drawing power vs. limit utilization
 7. KEY STRENGTHS (3-5 bullet points)
-8. KEY RISKS & CONCERNS (3-5 bullet points)
-9. CREDIT RECOMMENDATION
-   - APPROVE / APPROVE WITH CONDITIONS / DECLINE
-   - Recommended CC (Working Capital) Limit: ₹ ___ Lakhs
-   - Term Loan eligibility: ₹ ___ Lakhs (if applicable)
-   - Conditions / covenants
-   - Financial covenants to monitor (Current Ratio, DSCR, TOL/TNW thresholds)
-10. OVERALL CREDIT RISK RATING: LOW / MODERATE / HIGH
+8. RED FLAGS
+   - Concrete, numbered issues found in the data itself (e.g. a ratio breaching
+     an RBI norm, a declining trend, a mismatch, a missing figure). Each flag
+     must cite the specific number or trend that triggered it - no generic
+     risk statements. If none, state "No material red flags identified."
+9. QUESTIONS FOR THE BORROWER
+   - 3-6 specific questions a credit officer should ask before sanctioning,
+     each tied to a gap or anomaly noted above (e.g. reason for a receivables
+     spike, nature of unsecured loans, contingent liabilities not in the CMA).
+10. REPAYMENT VIEW
+    - Projected debt servicing capacity from DSCR/interest coverage trend
+    - Term loan tenor feasibility given cash accrual
+    - Sensitivity: what would break repayment (e.g. a sales dip, margin drop)
+11. SUGGESTED COVENANTS
+    - Financial covenants to monitor (Current Ratio, DSCR, TOL/TNW thresholds)
+      with the specific numeric threshold recommended, not just the ratio name
+    - Any non-financial covenants (reporting frequency, end-use certification)
+12. CREDIT RECOMMENDATION
+    - APPROVE / APPROVE WITH CONDITIONS / DECLINE
+    - Recommended CC (Working Capital) Limit: ₹ ___ Lakhs
+    - Term Loan eligibility: ₹ ___ Lakhs (if applicable)
+    - Conditions precedent to sanction
+13. OVERALL CREDIT RISK RATING: LOW / MODERATE / HIGH
     (with brief justification)
 
-Use exact numbers from the CMA. Do not invent figures or ratios. If a required number is missing, state that it is not available in the provided CMA. Write in formal banking language. 500-700 words.`
+Use exact numbers from the CMA. Do not invent figures or ratios. If a required number is missing, state that it is not available in the provided CMA. Write in formal banking language. 700-900 words.`
       },
       {
         role: "user",
-        content: JSON.stringify(cmaData, null, 2)
+        content: JSON.stringify(cmaData)
       }
     ]
   };

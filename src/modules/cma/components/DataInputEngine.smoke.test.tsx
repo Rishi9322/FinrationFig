@@ -16,6 +16,11 @@ vi.mock("../../../lib/uploadStorage", () => ({
 vi.mock("../../../lib/cmaDocumentStorage", () => ({
   saveCmaDocument: vi.fn().mockResolvedValue({ id: "doc-1" }),
   getSavedCmaDocuments: vi.fn().mockResolvedValue([]),
+  updateCmaCaseMeta: vi.fn().mockResolvedValue(undefined),
+  EMPTY_CASE_META: {
+    borrowerName: "", sector: "", facilityType: "", sanctionAmount: "",
+    relationshipManager: "", assignedAnalyst: "", status: "New", notes: "",
+  },
 }))
 
 const classifyResponse = {

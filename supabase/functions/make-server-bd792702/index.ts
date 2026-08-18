@@ -104,6 +104,10 @@ const Schemas = {
     inputs: z.record(z.string(), z.unknown()).default({}),
     results: z.record(z.string(), z.unknown()).default({}),
   }),
+  calculationUpdate: z.object({
+    inputs: z.record(z.string(), z.unknown()).optional(),
+    results: z.record(z.string(), z.unknown()).optional(),
+  }),
   upload: z.object({
     filename: z.string().trim().min(1).max(255),
     contentType: z.string().max(255).nullish(),
@@ -117,6 +121,7 @@ const Schemas = {
     temperature: z.number().min(0).max(2).optional(),
     response_format: z.object({ type: z.string().max(32) }).optional(),
     stream: z.boolean().optional(),
+    max_tokens: z.number().int().min(1).max(8192).optional(),
   }),
 };
 
@@ -385,23 +390,23 @@ app.delete(`${API_PREFIX}/me`, async (c) => {
 
 // ---- AI proxy: keeps the OpenRouter key server-side ----
 // Every provider below speaks the OpenAI chat-completions shape, so one body
-// serves all three. They are tried in order: the two free tiers first, then the
-// paid gateway, so a throttled free tier degrades instead of failing.
+// serves all three. Try the fastest managed route first, then cheaper/free
+// fallbacks so users see first tokens sooner without losing resiliency.
 function chatProviders() {
   const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
   const nvidiaKey = Deno.env.get("NVIDIA_API_KEY");
   const gatewayKey = Deno.env.get("AI_GATEWAY_API_KEY");
 
   return [
-    openRouterKey && {
-      name: "openrouter",
-      url: "https://openrouter.ai/api/v1/chat/completions",
-      key: openRouterKey,
-      model: Deno.env.get("OPENROUTER_MODEL_NAME") || "google/gemma-4-31b-it:free",
-      headers: {
-        "HTTP-Referer": ALLOWED_ORIGINS[0],
-        "X-Title": "FinRatio",
-      } as Record<string, string>,
+    gatewayKey && {
+      name: "vercel-ai-gateway",
+      url: "https://ai-gateway.vercel.sh/v1/chat/completions",
+      key: gatewayKey,
+      // Deliberately not a reasoning model: gpt-5-mini spends ~50s on hidden
+      // reasoning tokens before it writes anything, which is far too slow for a
+      // short summary. Flash answers the same prompt in under ten seconds.
+      model: Deno.env.get("AI_GATEWAY_MODEL") || "google/gemini-2.5-flash",
+      headers: {} as Record<string, string>,
     },
     nvidiaKey && {
       name: "nvidia",
@@ -412,15 +417,15 @@ function chatProviders() {
       model: Deno.env.get("NVIDIA_MODEL_NAME") || "nvidia/llama-3.3-nemotron-super-49b-v1.5",
       headers: {} as Record<string, string>,
     },
-    gatewayKey && {
-      name: "vercel-ai-gateway",
-      url: "https://ai-gateway.vercel.sh/v1/chat/completions",
-      key: gatewayKey,
-      // Deliberately not a reasoning model: gpt-5-mini spends ~50s on hidden
-      // reasoning tokens before it writes anything, which is far too slow for a
-      // short summary. Flash answers the same prompt in under ten seconds.
-      model: Deno.env.get("AI_GATEWAY_MODEL") || "google/gemini-2.5-flash",
-      headers: {} as Record<string, string>,
+    openRouterKey && {
+      name: "openrouter",
+      url: "https://openrouter.ai/api/v1/chat/completions",
+      key: openRouterKey,
+      model: Deno.env.get("OPENROUTER_MODEL_NAME") || "google/gemma-4-31b-it:free",
+      headers: {
+        "HTTP-Referer": ALLOWED_ORIGINS[0],
+        "X-Title": "FinRatio",
+      } as Record<string, string>,
     },
   ].filter(Boolean) as Array<{
     name: string; url: string; key: string; model: string; headers: Record<string, string>;
@@ -450,6 +455,7 @@ app.post(`${API_PREFIX}/ai/chat`, async (c) => {
     stream: body.stream === true,
     ...(body.response_format ? { response_format: body.response_format } : {}),
     ...(typeof body.temperature === "number" ? { temperature: body.temperature } : {}),
+    ...(typeof body.max_tokens === "number" ? { max_tokens: body.max_tokens } : {}),
   };
 
   let last: Response | null = null;
@@ -465,8 +471,9 @@ app.post(`${API_PREFIX}/ai/chat`, async (c) => {
         },
         body: JSON.stringify({ ...payload, model: provider.model }),
         // Per provider, not per request: a cold model can hang indefinitely, and
-        // failing over after 45s beats making the user wait out a long timeout.
-        signal: AbortSignal.timeout(45_000),
+        // failing over after 12s beats making the user wait out a long timeout -
+        // every provider here normally answers well under that.
+        signal: AbortSignal.timeout(12_000),
       });
     } catch (error) {
       // Network failure or timeout — treat like an outage and try the next one.
@@ -561,6 +568,29 @@ app.post(`${API_PREFIX}/calculations`, async (c) => {
     id: data.id, userId: data.user_id, calculatorType: data.calculator_type,
     inputs: data.inputs, results: data.results, createdAt: data.created_at,
   }, 201);
+});
+
+app.put(`${API_PREFIX}/calculations/:id`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.res;
+  const parsed = await parseBody(c, Schemas.calculationUpdate);
+  if (!parsed.ok) return parsed.response;
+  if (!parsed.data.inputs && !parsed.data.results) {
+    return c.json({ error: "Nothing to update" }, 400);
+  }
+  const admin = getSupabaseAdminClient();
+  const patch: Record<string, unknown> = {};
+  if (parsed.data.inputs) patch.inputs = parsed.data.inputs;
+  if (parsed.data.results) patch.results = parsed.data.results;
+  // Scoped by user_id, not just id, so a caller can't patch another user's
+  // saved calculation by guessing/enumerating ids.
+  const { data, error } = await admin.from("calculations").update(patch)
+    .eq("id", c.req.param("id")).eq("user_id", auth.uid).select("*").single();
+  if (error || !data) return c.json({ error: "Calculation not found" }, 404);
+  return c.json({
+    id: data.id, userId: data.user_id, calculatorType: data.calculator_type,
+    inputs: data.inputs, results: data.results, createdAt: data.created_at,
+  });
 });
 
 app.post(`${API_PREFIX}/uploads`, async (c) => {

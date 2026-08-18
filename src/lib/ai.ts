@@ -9,30 +9,21 @@ export async function aiChat(body: {
   temperature?: number
   response_format?: { type: string }
   stream?: boolean
+  max_tokens?: number
 }): Promise<Response> {
-  // The provider's free tier throttles in bursts, so a 429 is usually cleared by
-  // waiting a beat. Retry once rather than surfacing a failure the user would
-  // just resolve by clicking again.
-  for (let attempt = 0; ; attempt++) {
-    const response = await apiRequest("/ai/chat", {
-      method: "POST",
-      body: JSON.stringify(body),
-    })
+  // The server already fails over across three providers on a 429, so a client
+  // retry here would just stack another wait on top of that for no benefit.
+  const response = await apiRequest("/ai/chat", {
+    method: "POST",
+    body: JSON.stringify(body),
+  })
 
-    if (response.ok) return response
+  if (response.ok) return response
 
-    const data = await response.json().catch(() => null)
-
-    if (response.status === 429 && attempt === 0) {
-      const retryAfter = Number(response.headers.get("Retry-After")) || 5
-      await new Promise((resolve) => setTimeout(resolve, Math.min(retryAfter, 15) * 1000))
-      continue
-    }
-
-    const error = new Error(data?.error || `AI request failed (${response.status})`) as Error & { status: number }
-    error.status = response.status
-    throw error
-  }
+  const data = await response.json().catch(() => null)
+  const error = new Error(data?.error || `AI request failed (${response.status})`) as Error & { status: number }
+  error.status = response.status
+  throw error
 }
 
 export async function fetchAIAnalysis(prompt: string): Promise<string> {

@@ -2,11 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useCma } from '../context/CmaContext';
 import { buildCmaExportPayload, classifyFinancialDocument, parseCmaFinancialData, recordCmaLearningExample } from '../../../lib/ai/openrouter';
 import { uploadBalanceSheetFile } from '../../../lib/uploadStorage';
-import { saveCmaDocument, getSavedCmaDocuments, type SavedCmaDocument } from '../../../lib/cmaDocumentStorage';
+import { saveCmaDocument, getSavedCmaDocuments, updateCmaCaseMeta, EMPTY_CASE_META, type SavedCmaDocument, type CaseMeta, type CaseStatus } from '../../../lib/cmaDocumentStorage';
 import { useAuth } from '../../../app/hooks/useAuth';
+import { ManualReview } from './ManualReview';
+
+const CASE_STATUSES: CaseStatus[] = ["New", "Under Review", "Awaiting Docs", "Memo Ready", "Approved", "Declined"];
 
 export function DataInputEngine() {
-  const { loadSampleData, setParsedData, setIsLoading, isLoading, parsedData, computedData, balanceCheck, creditOpinion, classification, setClassification, sourceMeta, setSourceMeta, loadSavedDocument } = useCma();
+  const { loadSampleData, setParsedData, setIsLoading, isLoading, parsedData, computedData, balanceCheck, creditOpinion, classification, setClassification, sourceMeta, setSourceMeta, loadSavedDocument, recommendation } = useCma();
   const { user } = useAuth();
   const [rawText, setRawText] = useState("");
   const [error, setError] = useState("");
@@ -17,6 +20,24 @@ export function DataInputEngine() {
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [savedDocuments, setSavedDocuments] = useState<SavedCmaDocument[]>([]);
+  const [caseMeta, setCaseMeta] = useState<CaseMeta>(EMPTY_CASE_META);
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
+
+  const handleStatusChange = async (doc: SavedCmaDocument, status: CaseStatus) => {
+    setStatusUpdatingId(doc.id);
+    // Optimistic - the case list is the whole point of this control, so it
+    // should feel instant even though the PUT is a real network round trip.
+    setSavedDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, caseMeta: { ...d.caseMeta, status } } : d));
+    try {
+      await updateCmaCaseMeta(doc, { status });
+    } catch {
+      // Revert on failure rather than leave the UI claiming a status that
+      // didn't actually save.
+      setSavedDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, caseMeta: doc.caseMeta } : d));
+    } finally {
+      setStatusUpdatingId(null);
+    }
+  };
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -129,26 +150,23 @@ export function DataInputEngine() {
     if (!rawText.trim()) return;
     setIsLoading(true);
     setError("");
+    setIsClassifying(true);
     try {
-      setIsClassifying(true);
-      try {
-        const result = await classifyFinancialDocument(rawText, sourceName || undefined);
-        setClassification(result);
-      } catch (classifyErr) {
-        setClassification(null);
-      } finally {
-        setIsClassifying(false);
-      }
+      const [classificationResult, parsed] = await Promise.all([
+        classifyFinancialDocument(rawText, sourceName || undefined).catch(() => null),
+        parseCmaFinancialData(rawText, {
+          sourceFormat,
+          sourceName: sourceName || undefined,
+        }),
+      ]);
 
-      const parsed = await parseCmaFinancialData(rawText, {
-        sourceFormat,
-        sourceName: sourceName || undefined,
-      });
+      setClassification(classificationResult);
       setParsedData(parsed);
       setSourceMeta({ sourceName, sourceFormat });
     } catch (err: any) {
       setError(err.message || "Failed to parse data");
     } finally {
+      setIsClassifying(false);
       setIsLoading(false);
     }
   };
@@ -186,8 +204,60 @@ export function DataInputEngine() {
 
   return (
     <div className="cma-input-engine">
+      {user && savedDocuments.length > 0 && (
+        <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#111720', borderRadius: '6px', border: '1px solid #1A2030' }}>
+          <h3 style={{ marginBottom: '1rem', color: '#F8FAFC' }}>Your Cases</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {savedDocuments.map((doc) => {
+              // Status is read off what's already stored - no separate
+              // workflow-state field to keep in sync.
+              const analyzed = Boolean(doc.computedData);
+              const memoReady = Boolean(doc.creditOpinion);
+              const meta = doc.caseMeta;
+              return (
+                <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1A2030', paddingBottom: '0.5rem' }}>
+                  <div>
+                    <div style={{ color: '#E2E8F0', fontWeight: 500 }}>
+                      {meta?.borrowerName || doc.sourceName || doc.parsedData?.company || 'Untitled case'}
+                    </div>
+                    <div style={{ color: '#64748B', fontSize: '0.75rem', marginTop: '0.15rem' }}>
+                      {[meta?.sector, meta?.facilityType, doc.classification?.docType].filter(Boolean).join(' · ') || 'Financial document'}
+                      {' · '}{new Date(doc.createdAt).toLocaleString()}
+                      {meta?.relationshipManager ? ` · RM: ${meta.relationshipManager}` : ''}
+                    </div>
+                    <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+                      <select
+                        value={meta?.status || 'New'}
+                        disabled={statusUpdatingId === doc.id}
+                        onChange={(e) => handleStatusChange(doc, e.target.value as CaseStatus)}
+                        style={{
+                          backgroundColor: '#2563EB22', color: '#60A5FA', border: '1px solid #2563EB55',
+                          borderRadius: '999px', fontSize: '0.75rem', padding: '0.15rem 0.5rem', cursor: 'pointer',
+                        }}
+                      >
+                        {CASE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <span className="cma-badge badge-green">Docs received</span>
+                      <span className={analyzed ? 'cma-badge badge-green' : 'cma-badge badge-amber'}>
+                        {analyzed ? 'Analysis complete' : 'Analysis pending'}
+                      </span>
+                      <span className={memoReady ? 'cma-badge badge-green' : 'cma-badge badge-amber'}>
+                        {memoReady ? 'Memo ready' : 'Memo pending'}
+                      </span>
+                    </div>
+                  </div>
+                  <button className="cma-btn cma-btn-outline" onClick={() => loadSavedDocument(doc)}>
+                    Open
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Data Input Engine</h2>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>New Case: Upload Financials</h2>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <input
             type="file"
@@ -273,7 +343,7 @@ export function DataInputEngine() {
       {parsedData && (
         <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#111720', borderRadius: '6px', border: '1px solid #1A2030' }}>
           <h3 style={{ marginBottom: '1rem', color: '#F8FAFC' }}>
-            Data Parsed Successfully for {parsedData.company} ({parsedData.unit})
+            Data Parsed Successfully for {parsedData.company || '(company not identified)'} ({parsedData.unit})
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ color: '#94A3B8' }}>Balance Check:</span>
@@ -288,6 +358,82 @@ export function DataInputEngine() {
               Warning: Total Assets and Total Liabilities do not match in some years.
             </p>
           )}
+
+          {/* Consolidates real review signals already computed elsewhere - no
+              fabricated per-field confidence scores, only things we actually know. */}
+          {(() => {
+            const reviewItems: string[] = [];
+            if (!parsedData.company) {
+              reviewItems.push('Company name could not be verified against the source document - confirm manually.');
+            }
+            if (!balanceCheck.isBalanced) {
+              reviewItems.push('Balance sheet does not tie out for one or more years.');
+            }
+            if (classification && classification.confidence < 0.6) {
+              reviewItems.push(`Document type detection confidence is low (${Math.round(classification.confidence * 100)}%) - verify this is the intended statement.`);
+            }
+            if (classification && !classification.isFinancialDocument) {
+              reviewItems.push('This document was not identified as a financial statement.');
+            }
+            if (reviewItems.length === 0) return null;
+            return (
+              <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid #F59E0B55', backgroundColor: '#F59E0B11' }}>
+                <div style={{ color: '#F59E0B', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>NEEDS REVIEW</div>
+                <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#E2E8F0', fontSize: '0.85rem' }}>
+                  {reviewItems.map((item, i) => <li key={i}>{item}</li>)}
+                </ul>
+              </div>
+            );
+          })()}
+
+          <ManualReview />
+
+          {user && (
+            <div style={{ marginTop: '1.25rem', padding: '1rem', backgroundColor: '#0E1218', borderRadius: '6px', border: '1px solid #1A2030' }}>
+              <div style={{ color: '#94A3B8', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Case Details
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+                {([
+                  ['borrowerName', 'Borrower Name'],
+                  ['sector', 'Sector'],
+                  ['facilityType', 'Facility Type'],
+                  ['sanctionAmount', 'Sanction Amount (₹ Lakhs)'],
+                  ['relationshipManager', 'Relationship Manager'],
+                  ['assignedAnalyst', 'Assigned Analyst'],
+                ] as const).map(([key, label]) => (
+                  <label key={key} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: '#94A3B8' }}>
+                    {label}
+                    <input
+                      value={caseMeta[key]}
+                      onChange={(e) => setCaseMeta((prev) => ({ ...prev, [key]: e.target.value }))}
+                      style={{ backgroundColor: '#111720', border: '1px solid #1A2030', color: '#F8FAFC', padding: '0.45rem', borderRadius: '4px' }}
+                    />
+                  </label>
+                ))}
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: '#94A3B8' }}>
+                  Status
+                  <select
+                    value={caseMeta.status}
+                    onChange={(e) => setCaseMeta((prev) => ({ ...prev, status: e.target.value as CaseStatus }))}
+                    style={{ backgroundColor: '#111720', border: '1px solid #1A2030', color: '#F8FAFC', padding: '0.45rem', borderRadius: '4px' }}
+                  >
+                    {CASE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </label>
+              </div>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.75rem' }}>
+                Internal Notes
+                <textarea
+                  value={caseMeta.notes}
+                  onChange={(e) => setCaseMeta((prev) => ({ ...prev, notes: e.target.value }))}
+                  rows={2}
+                  style={{ backgroundColor: '#111720', border: '1px solid #1A2030', color: '#F8FAFC', padding: '0.45rem', borderRadius: '4px', resize: 'vertical' }}
+                />
+              </label>
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
             <button
               className="cma-btn cma-btn-outline"
@@ -330,6 +476,8 @@ export function DataInputEngine() {
                     parsedData,
                     computedData,
                     creditOpinion,
+                    caseMeta,
+                    recommendation,
                   });
                   setSaveStatus('Saved to your account.');
                   const docs = await getSavedCmaDocuments(user.id);
@@ -348,26 +496,6 @@ export function DataInputEngine() {
         </div>
       )}
 
-      {user && savedDocuments.length > 0 && (
-        <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#111720', borderRadius: '6px', border: '1px solid #1A2030' }}>
-          <h3 style={{ marginBottom: '1rem', color: '#F8FAFC' }}>My Saved Documents</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {savedDocuments.map((doc) => (
-              <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1A2030', paddingBottom: '0.5rem' }}>
-                <div>
-                  <div style={{ color: '#E2E8F0' }}>{doc.sourceName || doc.parsedData?.company || 'Untitled document'}</div>
-                  <div style={{ color: '#64748B', fontSize: '0.75rem' }}>
-                    {doc.classification?.docType || 'Financial document'} · {new Date(doc.createdAt).toLocaleString()}
-                  </div>
-                </div>
-                <button className="cma-btn cma-btn-outline" onClick={() => loadSavedDocument(doc)}>
-                  Load
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
