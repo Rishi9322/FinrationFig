@@ -9,7 +9,41 @@
     <title>FinRatio SaaS</title>
     <meta name="description" content="FinRatio — financial intelligence for Indian business. Upload a balance sheet and run 12+ ratio calculators, CMA reports and risk assessments." />
     <link rel="canonical" href="https://finratio.site/" />
-    <meta name="google-site-verification" content="%VITE_GSC_VERIFICATION%" />
+    <!-- Google Search Console verification: was shipping the literal
+         Vite-env placeholder text to prod because the var was never set in
+         Vercel - a broken tag is worse than none, so it's removed until
+         the env var is set and a real google-site-verification meta tag is
+         restored here. -->
+
+    <!-- Open Graph / Twitter Card - static, homepage-oriented. Per-route
+         social previews would need per-route og:url too; not worth it until
+         individual calculator pages are actually shared. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="FinRatio" />
+    <meta property="og:title" content="FinRatio — Financial Ratio Analysis for Indian SMEs" />
+    <meta property="og:description" content="Upload a balance sheet and run 12+ ratio calculators, CMA reports and risk assessments." />
+    <meta property="og:url" content="https://finratio.site/" />
+    <meta property="og:image" content="https://finratio.site/logoo.png" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="FinRatio — Financial Ratio Analysis for Indian SMEs" />
+    <meta name="twitter:description" content="Upload a balance sheet and run 12+ ratio calculators, CMA reports and risk assessments." />
+    <meta name="twitter:image" content="https://finratio.site/logoo.png" />
+
+    <!-- JSON-LD: what FinRatio is, in a form both search and AI answer
+         engines can quote directly instead of inferring from rendered JS. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "FinRatio",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Web",
+        "description": "Financial ratio analysis platform for Indian SMEs and credit teams — 12+ ratio calculators (Debt-to-Equity, DSCR, ISCR, EBITDA, Current Ratio, and more), CMA report generation, and AI-assisted credit analysis.",
+        "url": "https://finratio.site/",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" }
+      }
+    </script>
+
     <!-- Analytics (GA4 + Microsoft Clarity). Init lives in /ga.js so no
          'unsafe-inline' is needed in the CSP, and so nothing loads until the
          ids are set and the visitor accepts cookies. -->
