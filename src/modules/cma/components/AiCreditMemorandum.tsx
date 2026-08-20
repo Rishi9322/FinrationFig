@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useCma } from '../context/CmaContext';
-import { streamCmaCreditOpinion, generateCreditRecommendation } from '../../../lib/ai/openrouter';
+import { streamCmaCreditOpinion, generateCreditRecommendation, generateFinancialPrognosis, FinancialPrognosis } from '../../../lib/ai/openrouter';
 import { extractMemoSummary as extractSummary, riskLevelColor as riskColor } from '../../../lib/finance/creditMemoSummary';
+import { getSectorBenchmark, listBenchmarkSectors } from '../../../lib/finance/sectorBenchmarks';
 
 export function AiCreditMemorandum() {
   const {
@@ -12,6 +13,10 @@ export function AiCreditMemorandum() {
     isVerified,
   } = useCma();
   const [error, setError] = useState('');
+  const [sector, setSector] = useState('');
+  const [prognosis, setPrognosis] = useState<FinancialPrognosis | null>(null);
+  const [isPrognosing, setIsPrognosing] = useState(false);
+  const [prognosisError, setPrognosisError] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
   const pendingTextRef = useRef('');
   const flushTimerRef = useRef<number | null>(null);
@@ -81,6 +86,21 @@ export function AiCreditMemorandum() {
       }
       flushPendingText();
       setIsStreaming(false);
+    }
+  };
+
+  const handlePrognosis = async () => {
+    if (!computedData) return;
+    setIsPrognosing(true);
+    setPrognosisError('');
+    try {
+      const benchmark = sector ? getSectorBenchmark(sector) : null;
+      const result = await generateFinancialPrognosis(computedData.ratios ?? {}, benchmark);
+      setPrognosis(result);
+    } catch (err: any) {
+      setPrognosisError(err.message ?? 'Failed to generate prognosis.');
+    } finally {
+      setIsPrognosing(false);
     }
   };
 
@@ -193,6 +213,58 @@ export function AiCreditMemorandum() {
           )}
         </div>
       ) : null}
+
+      <div style={{
+        backgroundColor: '#0E1218', border: '1px solid #1A2030',
+        borderRadius: '8px', padding: '1.1rem 1.25rem', marginBottom: '1rem',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#F8FAFC' }}>Financial Prognosis</div>
+            <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+              AI-estimated outlook, not a statistical forecast — optionally benchmarked against sector medians from ~4,400 Indian listed companies.
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <select
+              value={sector}
+              onChange={(e) => setSector(e.target.value)}
+              className="cma-btn"
+              style={{ backgroundColor: '#0E1218', color: '#E2E8F0', border: '1px solid #1A2030' }}
+            >
+              <option value="">No sector benchmark</option>
+              {listBenchmarkSectors().map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <button className="cma-btn" onClick={handlePrognosis} disabled={isPrognosing || !computedData}>
+              {isPrognosing ? 'Estimating…' : (prognosis ? 'Re-estimate' : 'Estimate Prognosis')}
+            </button>
+          </div>
+        </div>
+
+        {prognosisError && <div style={{ color: '#EF4444', fontSize: '0.85rem', marginTop: '0.75rem' }}>{prognosisError}</div>}
+
+        {prognosis && (
+          <div style={{ marginTop: '0.9rem' }}>
+            <span
+              className="cma-badge"
+              style={{
+                backgroundColor: `${prognosis.outlook === 'IMPROVING' ? '#22C55E' : prognosis.outlook === 'DECLINING' ? '#EF4444' : '#F59E0B'}22`,
+                color: prognosis.outlook === 'IMPROVING' ? '#22C55E' : prognosis.outlook === 'DECLINING' ? '#EF4444' : '#F59E0B',
+              }}
+            >
+              {prognosis.outlook}
+            </span>
+            <p style={{ color: '#E2E8F0', fontSize: '0.85rem', margin: '0.6rem 0' }}>{prognosis.narrative}</p>
+            {prognosis.watchPoints.length > 0 && (
+              <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#94A3B8', fontSize: '0.8rem' }}>
+                {prognosis.watchPoints.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>
 
       <details className="cma-memo-details" open={isStreaming || !recommendation}>
         <summary style={{ cursor: 'pointer', color: '#94A3B8', fontSize: '0.85rem', marginBottom: '0.5rem' }}>

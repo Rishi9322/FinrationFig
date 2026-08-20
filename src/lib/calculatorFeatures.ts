@@ -18,6 +18,8 @@ export const CALCULATOR_FEATURES: CalculatorFeature[] = [
   { slug: "pid", name: "Purchase Invoice Discounting" },
   { slug: "valuation", name: "Business Valuation" },
   { slug: "working-capital-cycle", name: "Working Capital Cycle" },
+  { slug: "cashflow-quality", name: "Quality of Cashflow Ratios" },
+  { slug: "macro-ratios", name: "Macro-Context Ratios" },
 ]
 
 export const CALCULATOR_SLUGS = CALCULATOR_FEATURES.map((f) => f.slug)

@@ -139,6 +139,17 @@ export async function submitOnboarding(businessConstitution: string) {
   return { user: user ? await loadProfile(user) : null }
 }
 
+// Updates the profile row (name, business type). Firebase's own displayName is
+// kept in sync too so it doesn't silently drift from what's shown here.
+export async function updateOwnProfile(params: { name?: string; businessConstitution?: string }) {
+  await apiCall("/me", { method: "PUT", body: JSON.stringify(params) })
+  const firebaseUser = auth.currentUser
+  if (firebaseUser && params.name) {
+    await updateProfile(firebaseUser, { displayName: params.name })
+  }
+  return { user: firebaseUser ? await loadProfile(firebaseUser) : null }
+}
+
 export async function forgotPassword(email: string) {
   try {
     await sendPasswordResetEmail(auth, email)

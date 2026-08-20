@@ -402,6 +402,58 @@ export type CreditRecommendation = {
   monitoringPoints: string[];
 };
 
+export type FinancialPrognosis = {
+  outlook: "IMPROVING" | "STABLE" | "DECLINING";
+  narrative: string;
+  watchPoints: string[];
+};
+
+/**
+ * A qualitative, LLM-generated read on where the business's ratios are headed next
+ * period, given current ratios and (if available) sector-median benchmarks. This is
+ * an AI estimate, not a statistical forecast — no trained predictive model or
+ * industry-wide dataset backs it, so it must always be surfaced as an estimate.
+ */
+export async function generateFinancialPrognosis(
+  currentRatios: Record<string, unknown>,
+  sectorBenchmark: Record<string, unknown> | null
+): Promise<FinancialPrognosis> {
+  const response = await aiChat({
+    response_format: { type: "json_object" },
+    temperature: 0.3,
+    max_tokens: 500,
+    messages: [
+      {
+        role: "system",
+        content: `You are a financial analyst giving a qualitative, forward-looking read on a company's financial ratios for next period, given its current ratios and (if provided) sector-median benchmarks. This is a reasoned estimate, not a statistical model output. Return ONLY valid JSON with this exact shape:
+{
+  "outlook": "IMPROVING" | "STABLE" | "DECLINING",
+  "narrative": "2-4 sentences on the likely direction of key ratios next period and why, referencing the sector benchmark where relevant",
+  "watchPoints": ["string - a specific ratio or trend to monitor", ...]
+}`,
+      },
+      {
+        role: "user",
+        content: JSON.stringify({ currentRatios, sectorBenchmark }),
+      },
+    ],
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error?.message || `API Error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const parsed = safeJsonParse(data.choices[0].message.content);
+
+  return {
+    outlook: ["IMPROVING", "STABLE", "DECLINING"].includes(parsed.outlook) ? parsed.outlook : "STABLE",
+    narrative: typeof parsed.narrative === "string" ? parsed.narrative : "",
+    watchPoints: Array.isArray(parsed.watchPoints) ? parsed.watchPoints.filter((s: unknown) => typeof s === "string") : [],
+  };
+}
+
 /**
  * The narrative memo (streamCmaCreditOpinion) is prose meant to be read once;
  * this is the same decision as structured data meant to be rendered as a card

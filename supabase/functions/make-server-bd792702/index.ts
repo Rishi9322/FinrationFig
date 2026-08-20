@@ -41,6 +41,7 @@ const allowDevOrigins = Deno.env.get("ALLOW_DEV_ORIGINS") === "true";
 const CALCULATOR_SLUGS = [
   "debt-equity", "quasi-debt-equity", "current-ratio", "dscr", "ebitda", "iscr",
   "net-working-capital", "drawing-power", "ageing", "pid", "valuation", "working-capital-cycle",
+  "cashflow-quality", "macro-ratios",
 ];
 const DEFAULT_FEATURE_SLUG = "pid";
 
@@ -99,6 +100,15 @@ const Schemas = {
   calculatorAccess: z.object({ slugs: z.array(z.string().max(64)).max(100) }),
   suspend: z.object({ suspended: z.boolean() }),
   onboarding: z.object({ businessConstitution: z.string().trim().min(1).max(200) }),
+  profileUpdate: z.object({
+    name: z.string().trim().min(1).max(120).optional(),
+    businessConstitution: z.string().trim().max(200).optional(),
+  }),
+  feedback: z.object({
+    type: z.enum(["REVIEW", "FEATURE_REQUEST", "BUG"]),
+    message: z.string().trim().min(1).max(4000),
+    rating: z.number().int().min(1).max(5).optional(),
+  }),
   calculation: z.object({
     calculatorType: z.string().trim().min(1).max(64),
     inputs: z.record(z.string(), z.unknown()).default({}),
@@ -232,6 +242,18 @@ async function validateRateLimit(key: string, limit: number, windowMs: number): 
 }
 
 app.get(`${API_PREFIX}/health`, (c) => c.json({ status: "ok" }));
+
+app.get(`${API_PREFIX}/admin/feedback`, async (c) => {
+  const auth = await requireSuperAdmin(c);
+  if (!auth) return c.res;
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("feedback").select("*").order("created_at", { ascending: false }).limit(500);
+  return c.json({
+    feedback: (data ?? []).map((r: any) => ({
+      id: r.id, userEmail: r.user_email, type: r.type, message: r.message, rating: r.rating, createdAt: r.created_at,
+    })),
+  });
+});
 
 // ---- Admin: user management (SUPER_ADMIN only) ----
 app.get(`${API_PREFIX}/admin/users`, async (c) => {
@@ -525,6 +547,33 @@ app.get(`${API_PREFIX}/me`, async (c) => {
   const auth = await requireAuth(c);
   if (!auth) return c.res;
   return c.json({ user: publicUserView(auth.profile) });
+});
+
+app.put(`${API_PREFIX}/me`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.res;
+  const parsed = await parseBody(c, Schemas.profileUpdate);
+  if (!parsed.ok) return parsed.response;
+  const patch: Record<string, unknown> = { updated_at: nowIso() };
+  if (parsed.data.name !== undefined) patch.name = parsed.data.name;
+  if (parsed.data.businessConstitution !== undefined) patch.business_constitution = parsed.data.businessConstitution;
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("profiles").update(patch).eq("id", auth.uid).select("*").single();
+  return c.json({ user: publicUserView((data ?? auth.profile) as Profile) });
+});
+
+app.post(`${API_PREFIX}/feedback`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.res;
+  const parsed = await parseBody(c, Schemas.feedback);
+  if (!parsed.ok) return parsed.response;
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin.from("feedback").insert({
+    user_id: auth.uid, user_email: auth.profile.email,
+    type: parsed.data.type, message: parsed.data.message, rating: parsed.data.rating ?? null,
+  }).select("*").single();
+  if (error || !data) return c.json({ error: "Could not save feedback" }, 500);
+  return c.json({ id: data.id, createdAt: data.created_at }, 201);
 });
 
 app.post(`${API_PREFIX}/onboarding`, async (c) => {

@@ -22,6 +22,13 @@ export function RiskSnapshot() {
   const tolToTnw = computedData.ratios.tolToTNW[lastIndex] as number;
   const dscrValues = (computedData.dscr.dscrRatio as number[]).filter((v: number) => v > 0);
   const avgDscr = dscrValues.length ? dscrValues.reduce((a, b) => a + b, 0) / dscrValues.length : 0;
+  // Approximated via the indirect method (no cashflow statement in the RBI CMA
+  // format) - only present from the second year onward, since it needs a prior
+  // year to compute the working-capital delta. See cmaCalculations.ts.
+  const cashflowQuality = computedData.ratios.cashflowQuality?.[lastIndex] as
+    | { ncg: { formatted: string; risk: string } | null; ocg: { formatted: string; risk: string } | null; clcc: { formatted: string; risk: string } | null; ocs: { formatted: string; risk: string } | null; qpt: { formatted: string; risk: string } | null }
+    | null
+    | undefined;
 
   const currentRatioSeverity: Severity = currentRatio >= 1.33 ? 'good' : currentRatio >= 1.0 ? 'watch' : 'bad';
   const tolTnwSeverity: Severity = tolToTnw <= 3.0 ? 'good' : tolToTnw <= 4.0 ? 'watch' : 'bad';
@@ -48,6 +55,7 @@ export function RiskSnapshot() {
   }
 
   return (
+    <>
     <div
       style={{
         backgroundColor: '#0E1218', border: `1px solid ${severityColor(overall)}55`,
@@ -93,5 +101,36 @@ export function RiskSnapshot() {
         )}
       </div>
     </div>
+
+    {cashflowQuality && (
+      <div style={{
+        backgroundColor: '#0E1218', border: '1px solid #1A2030', borderRadius: '8px',
+        padding: '1.1rem 1.25rem', marginBottom: '1rem',
+      }}>
+        <div style={{ fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.6rem' }}>
+          Quality of Cashflow (approx., latest year)
+        </div>
+        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+          {[
+            { label: 'NCG', r: cashflowQuality.ncg },
+            { label: 'OCG', r: cashflowQuality.ocg },
+            { label: 'CLCC', r: cashflowQuality.clcc },
+            { label: 'OCS', r: cashflowQuality.ocs },
+            { label: 'QPT', r: cashflowQuality.qpt },
+          ].filter((m) => m.r).map((m) => (
+            <div key={m.label}>
+              <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>{m.label}</div>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: severityColor(m.r!.risk === 'high' ? 'bad' : m.r!.risk === 'moderate' ? 'watch' : 'good') }}>
+                {m.r!.formatted}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: '0.7rem', color: '#64748B', marginTop: '0.6rem' }}>
+          Operating cashflow is estimated from net profit, depreciation, and the change in net working capital — the CMA format has no reported statement of cashflows.
+        </div>
+      </div>
+    )}
+    </>
   );
 }

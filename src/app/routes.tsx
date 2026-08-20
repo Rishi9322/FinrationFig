@@ -30,9 +30,14 @@ import AgeingPage from "./pages/calculators/AgeingPage"
 import PidPage from "./pages/calculators/PidPage"
 import BusinessValuationPage from "./pages/calculators/BusinessValuationPage"
 import WorkingCapitalCyclePage from "./pages/calculators/WorkingCapitalCyclePage"
+import CashflowQualityPage from "./pages/calculators/CashflowQualityPage"
+import MacroRatiosPage from "./pages/calculators/MacroRatiosPage"
 import BalanceSheetAnalysisPage from "./pages/BalanceSheetAnalysisPage"
 import CmaGeneratorPage from "../modules/cma/pages/CmaGeneratorPage"
 import TestPdfPage from "./pages/TestPdfPage"
+import ProfilePage from "./pages/ProfilePage"
+import FeedbackPage from "./pages/FeedbackPage"
+import AdminFeedbackPage from "./pages/admin/AdminFeedbackPage"
 
 function ProtectedLayout({
   children,
@@ -222,6 +227,46 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedLayout>
         <WorkingCapitalCyclePage />
+      </ProtectedLayout>
+    ),
+  },
+  {
+    path: "/calculators/cashflow-quality",
+    element: (
+      <ProtectedLayout>
+        <CashflowQualityPage />
+      </ProtectedLayout>
+    ),
+  },
+  {
+    path: "/calculators/macro-ratios",
+    element: (
+      <ProtectedLayout>
+        <MacroRatiosPage />
+      </ProtectedLayout>
+    ),
+  },
+  {
+    path: "/profile",
+    element: (
+      <ProtectedLayout>
+        <ProfilePage />
+      </ProtectedLayout>
+    ),
+  },
+  {
+    path: "/feedback",
+    element: (
+      <ProtectedLayout>
+        <FeedbackPage />
+      </ProtectedLayout>
+    ),
+  },
+  {
+    path: "/admin/feedback",
+    element: (
+      <ProtectedLayout requiredRole="SUPER_ADMIN">
+        <AdminFeedbackPage />
       </ProtectedLayout>
     ),
   },

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { Link, useLocation, useNavigate } from "react-router"
 import { CALCULATORS } from "../../lib/calculatorConfig"
 import { getCurrentUser, signout, canAccessAdmin, hasAllCalculatorAccess } from "../../lib/auth"
-import { Menu, X, ChevronDown, LogOut } from "lucide-react"
+import { Menu, X, ChevronDown, LogOut, UserCircle, MessageSquarePlus } from "lucide-react"
 import * as Icons from "lucide-react"
 import { toast } from "sonner"
 import {
@@ -147,15 +147,48 @@ export function Navbar() {
                     Admin
                   </Link>
                 )}
+                {canAccessAdmin(user) && (
+                  <Link
+                    to="/admin/feedback"
+                    aria-current={location.pathname === "/admin/feedback" ? "page" : undefined}
+                    className={`text-sm px-4 py-2 rounded-lg transition-colors ${
+                      location.pathname === "/admin/feedback"
+                        ? "text-white bg-white/8"
+                        : "text-[#94A3B8] hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    Feedback Inbox
+                  </Link>
+                )}
                 <div className="h-4 w-px bg-white/10 mx-2" />
-                <span className="text-sm text-[#94A3B8]">{user.name || user.email}</span>
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center gap-1.5 text-sm text-[#94A3B8] hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-colors ml-1"
-                >
-                  <LogOut className="h-3.5 w-3.5" />
-                  Sign Out
-                </button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1.5 text-sm text-[#94A3B8] hover:text-white px-3 py-2 rounded-lg hover:bg-white/5 transition-colors">
+                      <UserCircle className="h-4 w-4" />
+                      {user.name || user.email}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 bg-[#0D1726] border-white/10 rounded-xl shadow-2xl py-1.5">
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#F1F5F9] focus:bg-white/5 hover:bg-white/5 cursor-pointer">
+                        <UserCircle className="h-4 w-4" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/feedback" className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#F1F5F9] focus:bg-white/5 hover:bg-white/5 cursor-pointer">
+                        <MessageSquarePlus className="h-4 w-4" />
+                        Feedback
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <button onClick={handleSignOut} className="flex items-center gap-2 px-4 py-2.5 text-sm text-[#F1F5F9] focus:bg-white/5 hover:bg-white/5 cursor-pointer w-full text-left">
+                        <LogOut className="h-4 w-4" />
+                        Sign Out
+                      </button>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </>
             )}
           </div>
@@ -217,7 +250,32 @@ export function Navbar() {
                       Admin
                     </Link>
                   )}
+                  {canAccessAdmin(user) && (
+                    <Link
+                      to="/admin/feedback"
+                      className="block text-sm text-[#F1F5F9] px-3 py-2.5 rounded-lg hover:bg-white/5"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      Feedback Inbox
+                    </Link>
+                  )}
                   <p className="text-sm text-[#94A3B8] px-3 py-1.5">{user.name || user.email}</p>
+                  <Link
+                    to="/profile"
+                    className="flex items-center gap-2 text-sm text-[#F1F5F9] px-3 py-2.5 rounded-lg hover:bg-white/5"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <UserCircle className="h-4 w-4" />
+                    Profile
+                  </Link>
+                  <Link
+                    to="/feedback"
+                    className="flex items-center gap-2 text-sm text-[#F1F5F9] px-3 py-2.5 rounded-lg hover:bg-white/5"
+                    onClick={() => setMobileOpen(false)}
+                  >
+                    <MessageSquarePlus className="h-4 w-4" />
+                    Feedback
+                  </Link>
                   <button
                     onClick={handleSignOut}
                     className="flex items-center gap-2 text-sm text-[#94A3B8] hover:text-white px-3 py-2.5 rounded-lg hover:bg-white/5 w-full transition-colors"

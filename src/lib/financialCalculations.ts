@@ -11,6 +11,8 @@ export type CalculatorType =
   | "pid"
   | "valuation"
   | "working-capital-cycle"
+  | "cashflow-quality"
+  | "macro-ratios"
   | "cma-document"
 
 export type RiskLevel = "low" | "moderate" | "high" | "n/a"
@@ -427,6 +429,178 @@ export function calculateWorkingCapitalCycles(
     interpretation: "Working capital cycle percentages relative to sales and purchases.",
     risk: "n/a",
   }
+}
+
+// --- Quality-of-cashflow ratios (CFOdigital-style) ---
+// Source: https://www.cfodigital.ai/faqs
+
+export function calculateNCG(netCashflow: number, cash: number): CalculationResult {
+  if (cash === 0) throw new Error("Cash cannot be zero")
+  const ratio = netCashflow / cash
+  return {
+    value: ratio,
+    formatted: ratio.toFixed(2),
+    interpretation:
+      ratio >= 1
+        ? "Cash balance grew over the period through operating, investing, or financing activity"
+        : "Cash balance did not grow over the period",
+    risk: "n/a",
+  }
+}
+
+export function calculateOCG(operatingCashflow: number, cash: number): CalculationResult {
+  if (cash === 0) throw new Error("Cash cannot be zero")
+  const ratio = operatingCashflow / cash
+  let risk: RiskLevel
+  let interpretation: string
+  if (ratio > 1) {
+    risk = "low"
+    interpretation = "Strong cash-generating profile — operations produced multiple times the cash-on-hand"
+  } else if (ratio >= 0) {
+    risk = "moderate"
+    interpretation = "Operations are cash-positive but only partly explain the cash balance"
+  } else {
+    risk = "high"
+    interpretation = "Operations consumed cash — the cash balance relies on non-operating sources"
+  }
+  return { value: ratio, formatted: ratio.toFixed(2), interpretation, risk }
+}
+
+export function calculateCLCC(operatingCashflow: number, currentLiabilities: number): CalculationResult {
+  if (currentLiabilities === 0) throw new Error("Current liabilities cannot be zero")
+  const ratio = operatingCashflow / currentLiabilities
+  let risk: RiskLevel
+  let interpretation: string
+  if (ratio > 1) {
+    risk = "low"
+    interpretation = "Operating cash flow more than covers current liabilities"
+  } else if (ratio >= 0) {
+    risk = "moderate"
+    interpretation = "Operating cash flow only partly covers current liabilities"
+  } else {
+    risk = "high"
+    interpretation = "Operations are cash-negative — short-term obligations depend on external funding"
+  }
+  return { value: ratio, formatted: ratio.toFixed(2), interpretation, risk }
+}
+
+export function calculateOCS(operatingCashflow: number, sales: number): CalculationResult {
+  if (sales === 0) throw new Error("Sales cannot be zero")
+  const ratio = operatingCashflow / sales
+  return {
+    value: ratio,
+    formatted: ratio.toFixed(2),
+    interpretation: `Every ₹1 of sales converted to ₹${ratio.toFixed(2)} of operating cash`,
+    risk: "n/a",
+  }
+}
+
+/** Quality of Payment Terms: +1 at DSO<=30, -1 at DSO>=90, linear between, 0 at 60 days. */
+export function calculateQPT(daysSalesOutstanding: number): CalculationResult {
+  const dso = daysSalesOutstanding
+  let qpt: number
+  if (dso <= 30) qpt = 1
+  else if (dso >= 90) qpt = -1
+  else qpt = 1 - (dso - 30) / 30
+
+  let risk: RiskLevel
+  let interpretation: string
+  if (qpt > 0.3) {
+    risk = "low"
+    interpretation = "Strong collections — receivables turn over quickly"
+  } else if (qpt >= -0.3) {
+    risk = "moderate"
+    interpretation = "Average collection performance"
+  } else {
+    risk = "high"
+    interpretation = "Slow collections — receivables are aging past healthy terms"
+  }
+  return { value: qpt, formatted: qpt.toFixed(2), interpretation, risk }
+}
+
+/**
+ * Quality of Operating-to-Financing Funds Use: -1..+1.
+ * +1: CFop > 0 and CFfin < 0 (profitable, paying down debt/returning capital).
+ * -1: CFop < 0 and CFfin < 0 (burning cash with no external support).
+ * Blended in between based on the relative magnitude of each flow.
+ */
+export function calculateQOFFUR(operatingCashflow: number, financingCashflow: number): CalculationResult {
+  const magnitude = Math.abs(operatingCashflow) + Math.abs(financingCashflow)
+  const qoffur = magnitude === 0 ? 0 : (operatingCashflow - financingCashflow) / magnitude
+
+  let risk: RiskLevel
+  let interpretation: string
+  if (operatingCashflow > 0 && financingCashflow < 0) {
+    risk = "low"
+    interpretation = "Healthy pattern — operations fund debt paydown or capital returns"
+  } else if (operatingCashflow < 0 && financingCashflow < 0) {
+    risk = "high"
+    interpretation = "Cash is being burned with no external financing support — risk of a liquidity shortfall"
+  } else {
+    risk = "moderate"
+    interpretation = "Mixed operating/financing cash flow pattern"
+  }
+  return { value: qoffur, formatted: qoffur.toFixed(2), interpretation, risk }
+}
+
+// --- Macro-context ratios (CFOdigital-style) ---
+// These require externally supplied macro inputs (yield curve spread, inflation, bond yield).
+
+/** Liabilities to Yield Curve Alignment. yieldCurveSpread = short-term rate − long-term rate (as a decimal, e.g. 0.01 = 1%). */
+export function calculateLYCA(
+  yieldCurveSpread: number,
+  currentLiabilities: number,
+  longTermLiabilities: number,
+  totalLiabilities: number
+): CalculationResult {
+  if (totalLiabilities === 0) throw new Error("Total liabilities cannot be zero")
+  const lyca = yieldCurveSpread * ((currentLiabilities - longTermLiabilities) / totalLiabilities)
+  return {
+    value: lyca,
+    formatted: lyca.toFixed(4),
+    interpretation:
+      lyca >= 0
+        ? "Debt structure is favorably aligned with the prevailing yield curve"
+        : "Debt structure is misaligned with the prevailing yield curve — relying on relatively costlier maturities",
+    risk: "n/a",
+  }
+}
+
+/** Inflation-Adjusted Inventory Carry-on Cost. annualInflationRate and daysInInventory as decimals/days. */
+export function calculateIAICOC(
+  inventory: number,
+  totalAssets: number,
+  annualInflationRate: number,
+  daysInInventory: number
+): CalculationResult {
+  if (totalAssets === 0) throw new Error("Total assets cannot be zero")
+  const iaicoc = (inventory / totalAssets) * Math.pow(1 + annualInflationRate, daysInInventory / 365)
+  return {
+    value: iaicoc,
+    formatted: iaicoc.toFixed(4),
+    interpretation: "Higher values indicate more capital tied up in inventory that is losing real value under inflation",
+    risk: "n/a",
+  }
+}
+
+/** ROA relative to the cost of borrowing (e.g. Moody's BAA yield). roa and bondRate as decimals. */
+export function calculateROA2Bond(roa: number, bondRate: number): CalculationResult {
+  if (bondRate === 0) throw new Error("Bond rate cannot be zero")
+  const annualizedRoa = Math.pow(1 + roa, 4) - 1
+  const ratio = annualizedRoa / bondRate
+  let risk: RiskLevel
+  let interpretation: string
+  if (ratio > 1) {
+    risk = "low"
+    interpretation = "Returns on assets exceed the cost of borrowing — capital is being deployed efficiently"
+  } else if (ratio >= 0) {
+    risk = "moderate"
+    interpretation = "Returns on assets are positive but below the cost of borrowing"
+  } else {
+    risk = "high"
+    interpretation = "Negative returns on assets relative to the cost of borrowing"
+  }
+  return { value: ratio, formatted: ratio.toFixed(2), interpretation, risk }
 }
 
 export function calculateValuation(ebitda: number, multiple: number): CalculationResult {

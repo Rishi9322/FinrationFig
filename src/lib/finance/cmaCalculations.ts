@@ -1,4 +1,5 @@
 import { CmaParsedData, CmaComputedData } from "./cmaTypes";
+import { calculateNCG, calculateOCG, calculateCLCC, calculateOCS, calculateQPT } from "../financialCalculations";
 
 export function computeCmaData(parsed: CmaParsedData): CmaComputedData {
   const { operatingStatement, balanceSheet } = parsed;
@@ -141,10 +142,55 @@ export function computeCmaData(parsed: CmaParsedData): CmaComputedData {
     dscrRatio[i] = dscrDenominator[i] === 0 ? 0 : dscrNumerator[i] / dscrDenominator[i];
   }
 
+  // 5. Quality-of-cashflow ratios (CFOdigital-style), approximated from CMA data.
+  // The RBI CMA format has no statement of cashflows, so operating cashflow is
+  // derived via the indirect method (net profit + depreciation, adjusted for the
+  // year-on-year change in net working capital) rather than taken directly from a
+  // reported figure — an approximation, not the audited number. QOFFUR needs
+  // financing cashflow, which isn't derivable from CMA data at all, so it's omitted
+  // here (still available as a manual calculator when the real figure is known).
+  type CashflowQualityYear = {
+    operatingCashflowApprox: number;
+    ncg: ReturnType<typeof calculateNCG> | null;
+    ocg: ReturnType<typeof calculateOCG> | null;
+    clcc: ReturnType<typeof calculateCLCC> | null;
+    ocs: ReturnType<typeof calculateOCS> | null;
+    qpt: ReturnType<typeof calculateQPT> | null;
+  };
+  const cashflowQuality: (CashflowQualityYear | null)[] = new Array(numYears).fill(null);
+
+  for (let i = 1; i < numYears; i++) {
+    const deltaNWC = netWorkingCapital[i] - netWorkingCapital[i - 1];
+    const operatingCashflowApprox = netProfit[i] + (operatingStatement.depreciationManufacturing[i] || 0) - deltaNWC;
+    const cash = balanceSheet.currentAssets.cashAndBank[i] || 0;
+    const priorCash = balanceSheet.currentAssets.cashAndBank[i - 1] || 0;
+    const cashDelta = cash - priorCash;
+    const cl = totalCLInclBank[i];
+    const sales = operatingStatement.netSales[i] || 0;
+    const receivables =
+      (balanceSheet.currentAssets.tradeReceivablesDomestic[i] || 0) +
+      (balanceSheet.currentAssets.tradeReceivablesExport[i] || 0);
+    const dso = sales > 0 ? (receivables / sales) * 365 : null;
+
+    try {
+      cashflowQuality[i] = {
+        operatingCashflowApprox,
+        ncg: cash !== 0 ? calculateNCG(cashDelta, cash) : null,
+        ocg: cash !== 0 ? calculateOCG(operatingCashflowApprox, cash) : null,
+        clcc: cl !== 0 ? calculateCLCC(operatingCashflowApprox, cl) : null,
+        ocs: sales !== 0 ? calculateOCS(operatingCashflowApprox, sales) : null,
+        qpt: dso !== null ? calculateQPT(dso) : null,
+      };
+    } catch {
+      cashflowQuality[i] = null;
+    }
+  }
+
   return {
     ratios: {
       currentRatio,
       tolToTNW: totalOutsideLiabilities.map((val, i) => tangibleNetWorth[i] === 0 ? 0 : val / tangibleNetWorth[i]),
+      cashflowQuality,
     },
     mpbf: {
       totalCA,

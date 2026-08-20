@@ -1,0 +1,753 @@
+{
+  "Mining & Mineral products": {
+    "sampleSize": 38,
+    "Debtor Days": 38,
+    "Inventory Days": 115,
+    "Days Payable": 87.96,
+    "Cash Conversion Cycle": 51.5,
+    "Working Capital Days": 69.03,
+    "ROCE %": 9,
+    "Operating Cashflow to Sales": 0.09
+  },
+  "Finance": {
+    "sampleSize": 479,
+    "Debtor Days": 0,
+    "Inventory Days": 35.27,
+    "Days Payable": 3,
+    "Cash Conversion Cycle": 4,
+    "Working Capital Days": 68.3,
+    "ROCE %": 2.51,
+    "Operating Cashflow to Sales": 0
+  },
+  "Agro Chemicals": {
+    "sampleSize": 28,
+    "Debtor Days": 93,
+    "Inventory Days": 151,
+    "Days Payable": 108.04,
+    "Cash Conversion Cycle": 134.5,
+    "Working Capital Days": 126,
+    "ROCE %": 16.13,
+    "Operating Cashflow to Sales": 0.06
+  },
+  "IT - Software": {
+    "sampleSize": 236,
+    "Debtor Days": 82.69,
+    "Inventory Days": 9,
+    "Days Payable": 126.01,
+    "Cash Conversion Cycle": 73.5,
+    "Working Capital Days": 75.08,
+    "ROCE %": 12,
+    "Operating Cashflow to Sales": 0.05
+  },
+  "Diversified": {
+    "sampleSize": 19,
+    "Debtor Days": 57,
+    "Inventory Days": 117,
+    "Days Payable": 99.5,
+    "Cash Conversion Cycle": 108.97,
+    "Working Capital Days": 85,
+    "ROCE %": 11.99,
+    "Operating Cashflow to Sales": 0.1
+  },
+  "Entertainment": {
+    "sampleSize": 81,
+    "Debtor Days": 72.08,
+    "Inventory Days": 87.12,
+    "Days Payable": 260.4,
+    "Cash Conversion Cycle": 78.68,
+    "Working Capital Days": 102.21,
+    "ROCE %": 1.43,
+    "Operating Cashflow to Sales": 0.07
+  },
+  "Stock/ Commodity Brokers": {
+    "sampleSize": 42,
+    "Debtor Days": 81.72,
+    "Inventory Days": 59.44,
+    "Days Payable": 2,
+    "Cash Conversion Cycle": 82.77,
+    "Working Capital Days": 5.01,
+    "ROCE %": 6.35,
+    "Operating Cashflow to Sales": -0.05
+  },
+  "Retail": {
+    "sampleSize": 40,
+    "Debtor Days": 21,
+    "Inventory Days": 106.5,
+    "Days Payable": 95.37,
+    "Cash Conversion Cycle": 81.05,
+    "Working Capital Days": 66.53,
+    "ROCE %": 6.5,
+    "Operating Cashflow to Sales": 0.04
+  },
+  "Construction": {
+    "sampleSize": 126,
+    "Debtor Days": 73.5,
+    "Inventory Days": 216,
+    "Days Payable": 174,
+    "Cash Conversion Cycle": 82.37,
+    "Working Capital Days": 248,
+    "ROCE %": 4.59,
+    "Operating Cashflow to Sales": 0
+  },
+  "Trading": {
+    "sampleSize": 425,
+    "Debtor Days": 73.65,
+    "Inventory Days": 23.5,
+    "Days Payable": 50.52,
+    "Cash Conversion Cycle": 87,
+    "Working Capital Days": 123,
+    "ROCE %": 4,
+    "Operating Cashflow to Sales": 0
+  },
+  "Textiles": {
+    "sampleSize": 271,
+    "Debtor Days": 47,
+    "Inventory Days": 117,
+    "Days Payable": 65,
+    "Cash Conversion Cycle": 123.47,
+    "Working Capital Days": 101,
+    "ROCE %": 6,
+    "Operating Cashflow to Sales": 0.06
+  },
+  "Infrastructure Developers & Operators": {
+    "sampleSize": 55,
+    "Debtor Days": 93,
+    "Inventory Days": 159,
+    "Days Payable": 245,
+    "Cash Conversion Cycle": 63.48,
+    "Working Capital Days": 105,
+    "ROCE %": 8,
+    "Operating Cashflow to Sales": 0.05
+  },
+  "Plastic products": {
+    "sampleSize": 90,
+    "Debtor Days": 60,
+    "Inventory Days": 73.96,
+    "Days Payable": 49.01,
+    "Cash Conversion Cycle": 93.94,
+    "Working Capital Days": 85.01,
+    "ROCE %": 7,
+    "Operating Cashflow to Sales": 0.05
+  },
+  "Oil Drill/Allied": {
+    "sampleSize": 5,
+    "Debtor Days": 129.98,
+    "Cash Conversion Cycle": 129.98,
+    "Working Capital Days": 107,
+    "ROCE %": 0.12,
+    "Operating Cashflow to Sales": 0.13
+  },
+  "Realty": {
+    "sampleSize": 134,
+    "Debtor Days": 40.5,
+    "Inventory Days": 1447.31,
+    "Days Payable": 139.77,
+    "Cash Conversion Cycle": 130.5,
+    "Working Capital Days": 636.26,
+    "ROCE %": 3.06,
+    "Operating Cashflow to Sales": 0.13
+  },
+  "Steel": {
+    "sampleSize": 127,
+    "Debtor Days": 39.5,
+    "Inventory Days": 83.5,
+    "Days Payable": 42.81,
+    "Cash Conversion Cycle": 78,
+    "Working Capital Days": 71.5,
+    "ROCE %": 11,
+    "Operating Cashflow to Sales": 0.04
+  },
+  "Pharmaceuticals": {
+    "sampleSize": 180,
+    "Debtor Days": 86.26,
+    "Inventory Days": 137.5,
+    "Days Payable": 110.68,
+    "Cash Conversion Cycle": 125,
+    "Working Capital Days": 104,
+    "ROCE %": 12,
+    "Operating Cashflow to Sales": 0.09
+  },
+  "Capital Goods-Non Electrical Equipment": {
+    "sampleSize": 113,
+    "Debtor Days": 72,
+    "Inventory Days": 134.5,
+    "Days Payable": 84.66,
+    "Cash Conversion Cycle": 116,
+    "Working Capital Days": 95,
+    "ROCE %": 15,
+    "Operating Cashflow to Sales": 0.06
+  },
+  "Capital Goods - Electrical Equipment": {
+    "sampleSize": 79,
+    "Debtor Days": 109.92,
+    "Inventory Days": 117.5,
+    "Days Payable": 102,
+    "Cash Conversion Cycle": 142,
+    "Working Capital Days": 105,
+    "ROCE %": 13,
+    "Operating Cashflow to Sales": 0.03
+  },
+  "Chemicals": {
+    "sampleSize": 179,
+    "Debtor Days": 58,
+    "Inventory Days": 80,
+    "Days Payable": 72,
+    "Cash Conversion Cycle": 82,
+    "Working Capital Days": 79.5,
+    "ROCE %": 13,
+    "Operating Cashflow to Sales": 0.09
+  },
+  "Miscellaneous": {
+    "sampleSize": 254,
+    "Debtor Days": 65.08,
+    "Inventory Days": 83,
+    "Days Payable": 67.65,
+    "Cash Conversion Cycle": 83.2,
+    "Working Capital Days": 91.24,
+    "ROCE %": 9.18,
+    "Operating Cashflow to Sales": 0.04
+  },
+  "Healthcare": {
+    "sampleSize": 57,
+    "Debtor Days": 58,
+    "Inventory Days": 43.5,
+    "Days Payable": 148.8,
+    "Cash Conversion Cycle": 15,
+    "Working Capital Days": 38,
+    "ROCE %": 15,
+    "Operating Cashflow to Sales": 0.14
+  },
+  "de Oil & Natural Gas": {
+    "sampleSize": 7,
+    "Debtor Days": 58,
+    "Inventory Days": 478.05,
+    "Days Payable": 187,
+    "Cash Conversion Cycle": 76,
+    "Working Capital Days": 26,
+    "ROCE %": 12,
+    "Operating Cashflow to Sales": 0.37
+  },
+  "Logistics": {
+    "sampleSize": 57,
+    "Debtor Days": 57,
+    "Inventory Days": 6,
+    "Days Payable": 151,
+    "Cash Conversion Cycle": 54,
+    "Working Capital Days": 59,
+    "ROCE %": 11,
+    "Operating Cashflow to Sales": 0.06
+  },
+  "Cement": {
+    "sampleSize": 36,
+    "Debtor Days": 18.5,
+    "Inventory Days": 245,
+    "Days Payable": 231,
+    "Cash Conversion Cycle": 63,
+    "Working Capital Days": 3,
+    "ROCE %": 7,
+    "Operating Cashflow to Sales": 0.08
+  },
+  "Telecomm-Service": {
+    "sampleSize": 13,
+    "Debtor Days": 65.27,
+    "Inventory Days": 429.86,
+    "Days Payable": 378.13,
+    "Cash Conversion Cycle": 65.27,
+    "Working Capital Days": -61,
+    "ROCE %": 2.13,
+    "Operating Cashflow to Sales": 0.1
+  },
+  "Education": {
+    "sampleSize": 21,
+    "Debtor Days": 87,
+    "Inventory Days": 182,
+    "Days Payable": 158.49,
+    "Cash Conversion Cycle": 87,
+    "Working Capital Days": 195.95,
+    "ROCE %": 7,
+    "Operating Cashflow to Sales": 0.04
+  },
+  "Power Generation & Distribution": {
+    "sampleSize": 33,
+    "Debtor Days": 89.5,
+    "Inventory Days": 309.59,
+    "Days Payable": 513.78,
+    "Cash Conversion Cycle": 87.28,
+    "Working Capital Days": 54,
+    "ROCE %": 7,
+    "Operating Cashflow to Sales": 0.27
+  },
+  "Marine Port & Services": {
+    "sampleSize": 3,
+    "Debtor Days": 46,
+    "Cash Conversion Cycle": 46,
+    "Working Capital Days": 5,
+    "ROCE %": 17,
+    "Operating Cashflow to Sales": 0.51
+  },
+  "Gas Distribution": {
+    "sampleSize": 9,
+    "Debtor Days": 23,
+    "Inventory Days": 8,
+    "Days Payable": 26,
+    "Cash Conversion Cycle": 20,
+    "Working Capital Days": -32,
+    "ROCE %": 27,
+    "Operating Cashflow to Sales": 0.16
+  },
+  "Edible Oil": {
+    "sampleSize": 32,
+    "Debtor Days": 16,
+    "Inventory Days": 35,
+    "Days Payable": 18.5,
+    "Cash Conversion Cycle": 35,
+    "Working Capital Days": 67,
+    "ROCE %": 10.6,
+    "Operating Cashflow to Sales": 0.01
+  },
+  "Telecomm Equipment & Infra Services": {
+    "sampleSize": 17,
+    "Debtor Days": 96,
+    "Inventory Days": 295,
+    "Days Payable": 196,
+    "Cash Conversion Cycle": 72.98,
+    "Working Capital Days": 119,
+    "ROCE %": 17,
+    "Operating Cashflow to Sales": 0
+  },
+  "FMCG": {
+    "sampleSize": 113,
+    "Debtor Days": 33.5,
+    "Inventory Days": 87.45,
+    "Days Payable": 46.66,
+    "Cash Conversion Cycle": 72.19,
+    "Working Capital Days": 64,
+    "ROCE %": 10,
+    "Operating Cashflow to Sales": 0.04
+  },
+  "Hotels & Restaurants": {
+    "sampleSize": 58,
+    "Debtor Days": 23,
+    "Inventory Days": 83,
+    "Days Payable": 197.86,
+    "Cash Conversion Cycle": 2.04,
+    "Working Capital Days": -15,
+    "ROCE %": 9.5,
+    "Operating Cashflow to Sales": 0.2
+  },
+  "Engineering": {
+    "sampleSize": 43,
+    "Debtor Days": 86.51,
+    "Inventory Days": 246.71,
+    "Days Payable": 108,
+    "Cash Conversion Cycle": 232,
+    "Working Capital Days": 135.71,
+    "ROCE %": 20,
+    "Operating Cashflow to Sales": 0.03
+  },
+  "Petrochemicals": {
+    "sampleSize": 13,
+    "Debtor Days": 49,
+    "Inventory Days": 69.5,
+    "Days Payable": 50,
+    "Cash Conversion Cycle": 70,
+    "Working Capital Days": 46,
+    "ROCE %": 24,
+    "Operating Cashflow to Sales": 0.08
+  },
+  "Packaging": {
+    "sampleSize": 76,
+    "Debtor Days": 57.64,
+    "Inventory Days": 99,
+    "Days Payable": 53,
+    "Cash Conversion Cycle": 108.5,
+    "Working Capital Days": 89.52,
+    "ROCE %": 9.36,
+    "Operating Cashflow to Sales": 0.07
+  },
+  "Paper": {
+    "sampleSize": 39,
+    "Debtor Days": 35,
+    "Inventory Days": 88,
+    "Days Payable": 65,
+    "Cash Conversion Cycle": 61,
+    "Working Capital Days": 46.11,
+    "ROCE %": 10,
+    "Operating Cashflow to Sales": 0.05
+  },
+  "Fertilizers": {
+    "sampleSize": 27,
+    "Debtor Days": 36,
+    "Inventory Days": 80,
+    "Days Payable": 57,
+    "Cash Conversion Cycle": 75,
+    "Working Capital Days": 78,
+    "ROCE %": 13,
+    "Operating Cashflow to Sales": 0.02
+  },
+  "IT - Hardware": {
+    "sampleSize": 13,
+    "Debtor Days": 98.27,
+    "Inventory Days": 93.64,
+    "Days Payable": 111.27,
+    "Cash Conversion Cycle": 134.63,
+    "Working Capital Days": 106.46,
+    "ROCE %": 6.04,
+    "Operating Cashflow to Sales": 0.13
+  },
+  "E-Commerce/App based Aggregator": {
+    "sampleSize": 24,
+    "Debtor Days": 24,
+    "Inventory Days": 35,
+    "Days Payable": 34.5,
+    "Cash Conversion Cycle": 59.16,
+    "Working Capital Days": 70.51,
+    "ROCE %": 6,
+    "Operating Cashflow to Sales": 0.01
+  },
+  "Castings Forgings & Fastners": {
+    "sampleSize": 53,
+    "Debtor Days": 59.14,
+    "Inventory Days": 146.89,
+    "Days Payable": 86,
+    "Cash Conversion Cycle": 118,
+    "Working Capital Days": 84,
+    "ROCE %": 10.71,
+    "Operating Cashflow to Sales": 0.07
+  },
+  "Auto Ancillaries": {
+    "sampleSize": 110,
+    "Debtor Days": 55.5,
+    "Inventory Days": 88.5,
+    "Days Payable": 79.85,
+    "Cash Conversion Cycle": 63.5,
+    "Working Capital Days": 51.5,
+    "ROCE %": 14.04,
+    "Operating Cashflow to Sales": 0.07
+  },
+  "Leather": {
+    "sampleSize": 21,
+    "Debtor Days": 69.58,
+    "Inventory Days": 220,
+    "Days Payable": 112,
+    "Cash Conversion Cycle": 152.5,
+    "Working Capital Days": 125,
+    "ROCE %": 8,
+    "Operating Cashflow to Sales": 0.09
+  },
+  "Cables": {
+    "sampleSize": 24,
+    "Debtor Days": 98,
+    "Inventory Days": 78,
+    "Days Payable": 70.5,
+    "Cash Conversion Cycle": 118.5,
+    "Working Capital Days": 128,
+    "ROCE %": 14,
+    "Operating Cashflow to Sales": 0.06
+  },
+  "Paints/Varnish": {
+    "sampleSize": 8,
+    "Debtor Days": 64,
+    "Inventory Days": 127.5,
+    "Days Payable": 118.5,
+    "Cash Conversion Cycle": 97,
+    "Working Capital Days": 77,
+    "ROCE %": 18.27,
+    "Operating Cashflow to Sales": 0.07
+  },
+  "Printing & Stationery": {
+    "sampleSize": 17,
+    "Debtor Days": 65,
+    "Inventory Days": 109.59,
+    "Days Payable": 46.11,
+    "Cash Conversion Cycle": 164,
+    "Working Capital Days": 169,
+    "ROCE %": 7,
+    "Operating Cashflow to Sales": 0.06
+  },
+  "Consumer Durables": {
+    "sampleSize": 52,
+    "Debtor Days": 68,
+    "Inventory Days": 119.5,
+    "Days Payable": 88,
+    "Cash Conversion Cycle": 100.76,
+    "Working Capital Days": 84.5,
+    "ROCE %": 14.71,
+    "Operating Cashflow to Sales": 0.03
+  },
+  "Non Ferrous Metals": {
+    "sampleSize": 35,
+    "Debtor Days": 40,
+    "Inventory Days": 62,
+    "Days Payable": 28,
+    "Cash Conversion Cycle": 80,
+    "Working Capital Days": 72.64,
+    "ROCE %": 13,
+    "Operating Cashflow to Sales": 0.03
+  },
+  "Power Infrastructure": {
+    "sampleSize": 3,
+    "Debtor Days": 54,
+    "Cash Conversion Cycle": 54,
+    "Working Capital Days": 42,
+    "Operating Cashflow to Sales": 0.21
+  },
+  "Plantation & Plantation Products": {
+    "sampleSize": 46,
+    "Debtor Days": 27,
+    "Inventory Days": 126,
+    "Days Payable": 59,
+    "Cash Conversion Cycle": 96.81,
+    "Working Capital Days": 73.8,
+    "ROCE %": 8,
+    "Operating Cashflow to Sales": 0.06
+  },
+  "Electronics": {
+    "sampleSize": 18,
+    "Debtor Days": 82.5,
+    "Inventory Days": 235,
+    "Days Payable": 89.5,
+    "Cash Conversion Cycle": 189.21,
+    "Working Capital Days": 126.13,
+    "ROCE %": 15.5,
+    "Operating Cashflow to Sales": 0
+  },
+  "Tyres": {
+    "sampleSize": 10,
+    "Debtor Days": 41,
+    "Inventory Days": 96,
+    "Days Payable": 82,
+    "Cash Conversion Cycle": 75,
+    "Working Capital Days": 35.5,
+    "ROCE %": 9.5,
+    "Operating Cashflow to Sales": 0.08
+  },
+  "Computer Education": {
+    "sampleSize": 9,
+    "Debtor Days": 45,
+    "Inventory Days": 89,
+    "Days Payable": 451,
+    "Cash Conversion Cycle": 45,
+    "Working Capital Days": 19,
+    "ROCE %": 1.49,
+    "Operating Cashflow to Sales": 0.12
+  },
+  "Shipping": {
+    "sampleSize": 10,
+    "Debtor Days": 75.87,
+    "Cash Conversion Cycle": 75.87,
+    "Working Capital Days": 20,
+    "ROCE %": 7,
+    "Operating Cashflow to Sales": 0.24
+  },
+  "Glass & Glass Products": {
+    "sampleSize": 11,
+    "Debtor Days": 38,
+    "Inventory Days": 156,
+    "Days Payable": 141.61,
+    "Cash Conversion Cycle": 77,
+    "Working Capital Days": 56,
+    "ROCE %": 11,
+    "Operating Cashflow to Sales": 0.04
+  },
+  "Diamond Gems and Jewellery": {
+    "sampleSize": 42,
+    "Debtor Days": 69.24,
+    "Inventory Days": 200.2,
+    "Days Payable": 22.5,
+    "Cash Conversion Cycle": 208.5,
+    "Working Capital Days": 189.56,
+    "ROCE %": 9,
+    "Operating Cashflow to Sales": 0.01
+  },
+  "Automobile": {
+    "sampleSize": 19,
+    "Debtor Days": 19,
+    "Inventory Days": 63,
+    "Days Payable": 87,
+    "Cash Conversion Cycle": -13,
+    "Working Capital Days": 18,
+    "ROCE %": 12,
+    "Operating Cashflow to Sales": 0.03
+  },
+  "Ceramic Products": {
+    "sampleSize": 10,
+    "Debtor Days": 51,
+    "Inventory Days": 157,
+    "Days Payable": 147,
+    "Cash Conversion Cycle": 147.87,
+    "Working Capital Days": 87.5,
+    "ROCE %": 5.5,
+    "Operating Cashflow to Sales": 0.06
+  },
+  "Alcoholic Beverages": {
+    "sampleSize": 21,
+    "Debtor Days": 64,
+    "Inventory Days": 193,
+    "Days Payable": 140,
+    "Cash Conversion Cycle": 83,
+    "Working Capital Days": 64,
+    "ROCE %": 13,
+    "Operating Cashflow to Sales": 0.05
+  },
+  "Refractories": {
+    "sampleSize": 9,
+    "Debtor Days": 78.32,
+    "Inventory Days": 134.89,
+    "Days Payable": 106.85,
+    "Cash Conversion Cycle": 106.91,
+    "Working Capital Days": 77.94,
+    "ROCE %": 14.69,
+    "Operating Cashflow to Sales": 0.11
+  },
+  "Bearings": {
+    "sampleSize": 13,
+    "Debtor Days": 78,
+    "Inventory Days": 158,
+    "Days Payable": 94,
+    "Cash Conversion Cycle": 138,
+    "Working Capital Days": 106,
+    "ROCE %": 21.7,
+    "Operating Cashflow to Sales": 0.12
+  },
+  "Sugar": {
+    "sampleSize": 37,
+    "Debtor Days": 17,
+    "Inventory Days": 163,
+    "Days Payable": 67,
+    "Cash Conversion Cycle": 123,
+    "Working Capital Days": 96,
+    "ROCE %": 10,
+    "Operating Cashflow to Sales": 0.09
+  },
+  "Quick Service Restaurant": {
+    "sampleSize": 7,
+    "Debtor Days": 3,
+    "Inventory Days": 38,
+    "Days Payable": 107,
+    "Cash Conversion Cycle": -60,
+    "Working Capital Days": -26,
+    "ROCE %": 10,
+    "Operating Cashflow to Sales": 0.17
+  },
+  "Refineries": {
+    "sampleSize": 8,
+    "Debtor Days": 9.5,
+    "Inventory Days": 39.5,
+    "Days Payable": 25,
+    "Cash Conversion Cycle": 17,
+    "Working Capital Days": 11,
+    "ROCE %": 14.5,
+    "Operating Cashflow to Sales": 0.03
+  },
+  "Cement - Products": {
+    "sampleSize": 8,
+    "Debtor Days": 18.5,
+    "Inventory Days": 176,
+    "Days Payable": 61.5,
+    "Cash Conversion Cycle": 152,
+    "Working Capital Days": 106.5,
+    "ROCE %": 10.5,
+    "Operating Cashflow to Sales": 0.02
+  },
+  "Media - Print/Television/Radio": {
+    "sampleSize": 17,
+    "Debtor Days": 88,
+    "Inventory Days": 62.5,
+    "Days Payable": 117.5,
+    "Cash Conversion Cycle": 80,
+    "Working Capital Days": 76,
+    "ROCE %": 4.53,
+    "Operating Cashflow to Sales": 0.06
+  },
+  "Real Estate Investment Trusts": {
+    "sampleSize": 3,
+    "Debtor Days": 7,
+    "Cash Conversion Cycle": 7,
+    "Working Capital Days": -126,
+    "ROCE %": 4,
+    "Operating Cashflow to Sales": 0.7
+  },
+  "Readymade Garments/ Apparells": {
+    "sampleSize": 17,
+    "Debtor Days": 25.47,
+    "Inventory Days": 170,
+    "Days Payable": 66,
+    "Cash Conversion Cycle": 189,
+    "Working Capital Days": 80,
+    "ROCE %": 10,
+    "Operating Cashflow to Sales": 0.09
+  },
+  "dit Rating Agencies": {
+    "sampleSize": 3,
+    "Debtor Days": 34,
+    "Cash Conversion Cycle": 34,
+    "Working Capital Days": 8,
+    "ROCE %": 20,
+    "Operating Cashflow to Sales": 0.24
+  },
+  "Ship Building": {
+    "sampleSize": 8,
+    "Debtor Days": 49.5,
+    "Inventory Days": 605,
+    "Days Payable": 363.64,
+    "Cash Conversion Cycle": 193,
+    "Working Capital Days": 42,
+    "ROCE %": 7,
+    "Operating Cashflow to Sales": 0.03
+  },
+  "Infrastructure Investment Trusts": {
+    "sampleSize": 7,
+    "Debtor Days": 6,
+    "Cash Conversion Cycle": 6,
+    "Working Capital Days": 0,
+    "ROCE %": 8,
+    "Operating Cashflow to Sales": 0.58
+  },
+  "Dry cells": {
+    "sampleSize": 4,
+    "Debtor Days": 54,
+    "Inventory Days": 105.5,
+    "Days Payable": 56,
+    "Cash Conversion Cycle": 87.5,
+    "Working Capital Days": 84.5,
+    "ROCE %": 7,
+    "Operating Cashflow to Sales": 0.04
+  },
+  "Insurance": {
+    "sampleSize": 8,
+    "Debtor Days": 0,
+    "Cash Conversion Cycle": 0,
+    "Working Capital Days": -133.5,
+    "ROCE %": 15,
+    "Operating Cashflow to Sales": 0.09
+  },
+  "Air Transport Service": {
+    "sampleSize": 7,
+    "Debtor Days": 39,
+    "Cash Conversion Cycle": 20,
+    "Working Capital Days": -57,
+    "ROCE %": 4,
+    "Operating Cashflow to Sales": 0.07
+  },
+  "Tobacco Products": {
+    "sampleSize": 7,
+    "Debtor Days": 15,
+    "Inventory Days": 200,
+    "Days Payable": 59,
+    "Cash Conversion Cycle": 131,
+    "Working Capital Days": 28,
+    "ROCE %": 10.03,
+    "Operating Cashflow to Sales": 0.14
+  },
+  "Ferro Alloys": {
+    "sampleSize": 3,
+    "Debtor Days": 22,
+    "Inventory Days": 81,
+    "Days Payable": 51,
+    "Cash Conversion Cycle": 94,
+    "Working Capital Days": 64,
+    "ROCE %": 26,
+    "Operating Cashflow to Sales": 0.06
+  }
+}

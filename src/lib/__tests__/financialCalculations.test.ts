@@ -6,6 +6,15 @@ import {
   calculateEBITDA,
   calculateISCR,
   calculatePID,
+  calculateNCG,
+  calculateOCG,
+  calculateCLCC,
+  calculateOCS,
+  calculateQPT,
+  calculateQOFFUR,
+  calculateLYCA,
+  calculateIAICOC,
+  calculateROA2Bond,
 } from '../financialCalculations'
 
 describe('financialCalculations', () => {
@@ -59,5 +68,31 @@ describe('financialCalculations', () => {
     expect(typeof out.netPidBenefit).toBe('number')
     expect(typeof out.totalProfitIncrease).toBe('number')
     expect(out.interpretation.length).toBeGreaterThan(10)
+  })
+
+  it('calculates the quality-of-cashflow ratios (CFOdigital-style)', () => {
+    expect(calculateNCG(50, 100).value).toBeCloseTo(0.5)
+    expect(calculateOCG(120, 100).risk).toBe('low')
+    expect(calculateOCG(-20, 100).risk).toBe('high')
+    expect(calculateCLCC(150, 100).risk).toBe('low')
+    expect(calculateOCS(80, 400).value).toBeCloseTo(0.2)
+
+    expect(calculateQPT(30).value).toBe(1)
+    expect(calculateQPT(90).value).toBe(-1)
+    expect(calculateQPT(60).value).toBeCloseTo(0)
+
+    expect(calculateQOFFUR(100, -50).risk).toBe('low')
+    expect(calculateQOFFUR(-100, -50).risk).toBe('high')
+  })
+
+  it('calculates the macro-context ratios (CFOdigital-style)', () => {
+    const lyca = calculateLYCA(-0.01, 200, 800, 1000)
+    expect(lyca.value).toBeCloseTo(0.006)
+
+    const iaicoc = calculateIAICOC(100, 1000, 0.06, 150)
+    expect(iaicoc.value).toBeGreaterThan(0.1)
+
+    expect(calculateROA2Bond(0.03, 0.08).risk).toBe('low')
+    expect(() => calculateROA2Bond(0.03, 0)).toThrow()
   })
 })
