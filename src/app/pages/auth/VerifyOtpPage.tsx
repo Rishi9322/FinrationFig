@@ -68,7 +68,7 @@ export default function VerifyOtpPage() {
 
         <div className="bg-[#0D1726] border border-white/8 rounded-2xl p-8">
           <div className="flex items-start gap-3 mb-5 p-3 rounded-lg bg-[#2563EB]/10 border border-[#2563EB]/25">
-            <Mail className="w-4 h-4 text-[#2563EB] mt-0.5" />
+            <Mail className="w-4 h-4 text-[#60A5FA] mt-0.5" />
             <div className="space-y-1">
               <p className="text-sm text-white font-medium">Check your inbox</p>
               <p className="text-xs text-[#93C5FD] break-all">{email || "Enter your email below"}</p>
@@ -126,13 +126,13 @@ export default function VerifyOtpPage() {
               type="button"
               onClick={handleResend}
               disabled={isResending}
-              className="text-sm text-[#2563EB] hover:text-white transition-colors disabled:opacity-60"
+              className="text-sm text-[#60A5FA] hover:text-white transition-colors disabled:opacity-60"
             >
               {isResending ? "Resending OTP..." : "Resend OTP"}
             </button>
             <p className="text-sm text-[#94A3B8]">
               Back to{" "}
-              <Link to="/auth/signin" className="text-[#2563EB] hover:text-white transition-colors font-medium">
+              <Link to="/auth/signin" className="text-[#60A5FA] hover:text-white transition-colors font-medium">
                 Sign in
               </Link>
             </p>

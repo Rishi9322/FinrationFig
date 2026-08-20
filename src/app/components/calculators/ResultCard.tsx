@@ -80,7 +80,7 @@ Provide a short, actionable paragraph explaining what this means for the busines
         <button
           onClick={handleAnalyze}
           disabled={isAnalyzing}
-          className="flex items-center gap-1.5 text-xs font-medium text-[#2563EB] hover:text-white bg-[#2563EB]/10 hover:bg-[#2563EB] px-3 py-1.5 rounded-lg transition-all disabled:opacity-50"
+          className="flex items-center gap-1.5 text-xs font-medium text-[#60A5FA] hover:text-white bg-[#2563EB]/10 hover:bg-[#2563EB] px-3 py-1.5 rounded-lg transition-all disabled:opacity-50"
         >
           {isAnalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
           Analyze
@@ -109,7 +109,7 @@ Provide a short, actionable paragraph explaining what this means for the busines
       {/* AI Analysis */}
       {aiAnalysis && (
         <div className="space-y-2 p-4 rounded-lg bg-[#2563EB]/10 border border-[#2563EB]/20">
-          <div className="flex items-center gap-1.5 text-[#2563EB] mb-2">
+          <div className="flex items-center gap-1.5 text-[#60A5FA] mb-2">
             <Sparkles className="w-4 h-4" />
             <h4 className="text-xs font-medium uppercase tracking-wider">AI Insights</h4>
           </div>

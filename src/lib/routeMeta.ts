@@ -21,6 +21,7 @@ const STATIC_ROUTES: Record<string, RouteMeta> = {
   "/doc-parser": { title: `Document Parser — ${SITE_NAME}`, description: "Upload and parse balance sheets and financial statements for automated ratio extraction." },
   "/profile": { title: `Your Profile — ${SITE_NAME}`, description: "Manage your FinRatio account details." },
   "/feedback": { title: `Feedback — ${SITE_NAME}`, description: "Share a review, feature request, or bug report with the FinRatio team." },
+  "/blog": { title: `Blog — ${SITE_NAME}`, description: "Financial insights for Indian MSMEs — credit, cash flow, and ratio literacy, curated from across the web with full credit to original authors." },
   "/auth/signup": { title: `Sign Up — ${SITE_NAME}`, description: "Create a free FinRatio account to start analyzing your business's financial ratios." },
   "/auth/signin": { title: `Sign In — ${SITE_NAME}`, description: "Sign in to your FinRatio account." },
 }

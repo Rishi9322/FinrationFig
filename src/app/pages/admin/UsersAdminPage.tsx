@@ -215,7 +215,7 @@ export default function UsersAdminPage() {
     <div className="min-h-screen bg-[#050A14] py-8 font-dm-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <p className="text-xs font-['Geist_Mono'] text-[#2563EB] uppercase tracking-widest mb-2">Admin</p>
+          <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-2">Admin</p>
           <h1 className="text-3xl font-normal text-white font-instrument-serif">
             Admin Panel
           </h1>

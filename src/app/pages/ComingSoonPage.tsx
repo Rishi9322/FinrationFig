@@ -12,9 +12,9 @@ export default function ComingSoonPage({ title }: { title?: string }) {
     <div className="min-h-screen bg-[#050A14] flex items-center justify-center px-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <div className="max-w-md w-full bg-[#0D1726] border border-white/8 rounded-2xl p-8 text-center">
         <div className="w-14 h-14 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Sparkles className="h-7 w-7 text-[#2563EB]" />
+          <Sparkles className="h-7 w-7 text-[#60A5FA]" />
         </div>
-        <p className="text-xs font-['Geist_Mono'] text-[#2563EB] uppercase tracking-widest mb-2">
+        <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-2">
           Coming Soon
         </p>
         <h1 className="text-xl text-white font-medium mb-2">{title || "This tool is on the way"}</h1>

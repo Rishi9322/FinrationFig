@@ -93,7 +93,7 @@ Provide a cohesive overall summary of the company's financial health based on th
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-8">
-          <p className="text-xs font-['Geist_Mono'] text-[#2563EB] uppercase tracking-widest mb-2">Dashboard</p>
+          <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-2">Dashboard</p>
           <h1
             className="text-3xl font-normal text-white"
             style={{ fontFamily: "'Instrument Serif', serif" }}
@@ -107,7 +107,7 @@ Provide a cohesive overall summary of the company's financial health based on th
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-8">
           <div className="bg-[#0D1726] border border-white/8 rounded-xl p-6 flex items-start gap-4">
             <div className="w-11 h-11 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-xl flex items-center justify-center shrink-0">
-              <BarChart3 className="w-5 h-5 text-[#2563EB]" />
+              <BarChart3 className="w-5 h-5 text-[#60A5FA]" />
             </div>
             <div>
               <p className="text-xs text-[#94A3B8] mb-1">Total Analyses</p>
@@ -132,7 +132,7 @@ Provide a cohesive overall summary of the company's financial health based on th
             <h2 className="text-base font-medium text-white">Quick Access</h2>
             <Link
               to="/calculators"
-              className="text-xs text-[#2563EB] hover:text-white transition-colors flex items-center gap-1"
+              className="text-xs text-[#60A5FA] hover:text-white transition-colors flex items-center gap-1"
             >
               All calculators
               <ArrowRight className="w-3 h-3" />
@@ -149,11 +149,11 @@ Provide a cohesive overall summary of the company's financial health based on th
                 >
                   <div className="flex items-start justify-between mb-3">
                     {Icon && (
-                      <div className="p-2 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-lg text-[#2563EB]">
+                      <div className="p-2 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-lg text-[#60A5FA]">
                         <Icon className="h-4 w-4" />
                       </div>
                     )}
-                    <ArrowRight className="h-4 w-4 text-[#94A3B8] group-hover:text-[#2563EB] transition-colors opacity-0 group-hover:opacity-100" />
+                    <ArrowRight className="h-4 w-4 text-[#94A3B8] group-hover:text-[#60A5FA] transition-colors opacity-0 group-hover:opacity-100" />
                   </div>
                   <p className="text-sm font-medium text-white">{calc.name}</p>
                   <p className="text-xs text-[#94A3B8] mt-1 leading-relaxed">{calc.shortDescription}</p>
@@ -183,7 +183,7 @@ Provide a cohesive overall summary of the company's financial health based on th
             
             {aiAnalysis ? (
               <div className="p-5 rounded-xl bg-[#2563EB]/5 border border-[#2563EB]/20">
-                <div className="flex items-center gap-2 text-[#2563EB] mb-3">
+                <div className="flex items-center gap-2 text-[#60A5FA] mb-3">
                   <Sparkles className="w-4 h-4" />
                   <h3 className="text-xs font-medium uppercase tracking-wider">AI Executive Summary</h3>
                 </div>
@@ -263,7 +263,7 @@ Provide a cohesive overall summary of the company's financial health based on th
                             <Link
                               to={calculator?.path || "/calculators"}
                               state={{ calculation: calc }}
-                              className="inline-flex items-center gap-1.5 text-xs text-[#2563EB] hover:text-white border border-[#2563EB]/30 hover:border-[#2563EB] hover:bg-[#2563EB] px-3 py-1.5 rounded-lg transition-all"
+                              className="inline-flex items-center gap-1.5 text-xs text-[#60A5FA] hover:text-white border border-[#2563EB]/30 hover:border-[#2563EB] hover:bg-[#2563EB] px-3 py-1.5 rounded-lg transition-all"
                             >
                               Open
                               <ArrowRight className="w-3 h-3" />

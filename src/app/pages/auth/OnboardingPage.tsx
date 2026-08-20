@@ -79,13 +79,13 @@ export default function OnboardingPage() {
       <div className="relative w-full max-w-sm">
         <div className="text-center mb-8">
           <img src="/logoo.png" alt="FinRatio" className="h-14 w-auto mx-auto sm:h-16" />
-          <span className="ml-2 text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#2563EB] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">β</span>
+          <span className="ml-2 text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">β</span>
         </div>
 
         <div className="bg-[#0D1726] border border-white/8 rounded-2xl p-8">
           <div className="text-center mb-6">
             <div className="w-14 h-14 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Building2 className="w-7 h-7 text-[#2563EB]" />
+              <Building2 className="w-7 h-7 text-[#60A5FA]" />
             </div>
             <h2 className="text-lg font-medium text-white mb-1">Business Details</h2>
             <p className="text-xs text-[#94A3B8] leading-relaxed">

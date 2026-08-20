@@ -61,7 +61,7 @@ export default function ProfilePage() {
         <div className="bg-[#0D1726] border border-white/8 rounded-xl p-8">
           <div className="flex items-center gap-4 mb-6 pb-6 border-b border-white/8">
             <div className="w-14 h-14 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-2xl flex items-center justify-center">
-              <UserCircle className="w-7 h-7 text-[#2563EB]" />
+              <UserCircle className="w-7 h-7 text-[#60A5FA]" />
             </div>
             <div>
               <div className="text-white font-medium">{user.name || user.email}</div>

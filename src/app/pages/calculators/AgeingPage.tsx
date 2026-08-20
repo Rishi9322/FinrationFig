@@ -149,7 +149,7 @@ export default function AgeingPage() {
           <p className="text-sm text-[#94A3B8]">Enter each outstanding receivable below</p>
           <button
             onClick={addReceivable}
-            className="flex items-center gap-1.5 text-xs text-[#2563EB] hover:text-white border border-[#2563EB]/30 hover:border-[#2563EB] hover:bg-[#2563EB] px-3 py-1.5 rounded-lg transition-all"
+            className="flex items-center gap-1.5 text-xs text-[#60A5FA] hover:text-white border border-[#2563EB]/30 hover:border-[#2563EB] hover:bg-[#2563EB] px-3 py-1.5 rounded-lg transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
             Add Row

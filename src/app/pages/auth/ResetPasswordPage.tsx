@@ -27,7 +27,7 @@ export default function ResetPasswordPage() {
           </Link>
           <p className="text-sm text-[#94A3B8]">
             Back to{" "}
-            <Link to="/auth/signin" className="text-[#2563EB] hover:text-white transition-colors font-medium">
+            <Link to="/auth/signin" className="text-[#60A5FA] hover:text-white transition-colors font-medium">
               Sign in
             </Link>
           </p>

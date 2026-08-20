@@ -82,7 +82,7 @@ export default function SignupPage() {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
             <img src="/logoo.png" alt="FinRatio" className="h-14 w-auto sm:h-16" />
-            <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#2563EB] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">β</span>
+            <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">β</span>
           </Link>
           <p className="text-sm text-[#94A3B8] mt-3">Create your account</p>
         </div>
@@ -219,7 +219,7 @@ export default function SignupPage() {
 
           <p className="text-sm text-center text-[#94A3B8] mt-6">
             Already have an account?{" "}
-            <Link to="/auth/signin" className="text-[#2563EB] hover:text-white transition-colors font-medium">
+            <Link to="/auth/signin" className="text-[#60A5FA] hover:text-white transition-colors font-medium">
               Sign in
             </Link>
           </p>

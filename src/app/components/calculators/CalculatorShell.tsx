@@ -22,7 +22,7 @@ export function CalculatorShell({ title, description, explainerText, videoUrl, c
         <div className="mb-6">
           <Link
             to="/calculators"
-            className="inline-flex items-center text-sm text-[#94A3B8] hover:text-[#2563EB] transition-colors mb-4 group"
+            className="inline-flex items-center text-sm text-[#94A3B8] hover:text-[#60A5FA] transition-colors mb-4 group"
           >
             <ChevronLeft className="h-4 w-4 mr-1 transition-transform group-hover:-translate-x-0.5" />
             All Calculators
@@ -30,7 +30,7 @@ export function CalculatorShell({ title, description, explainerText, videoUrl, c
           <div className="flex items-center gap-2 mb-3">
             <span className="text-xs font-['Geist_Mono'] text-[#94A3B8]">calculators</span>
             <span className="text-[#94A3B8]/40">/</span>
-            <span className="text-xs font-['Geist_Mono'] text-[#2563EB]">{title.toLowerCase().replace(/\s+/g, "-")}</span>
+            <span className="text-xs font-['Geist_Mono'] text-[#60A5FA]">{title.toLowerCase().replace(/\s+/g, "-")}</span>
           </div>
           <h1
             className="text-3xl font-normal text-white"
@@ -44,7 +44,7 @@ export function CalculatorShell({ title, description, explainerText, videoUrl, c
         <div className="bg-[#0D1726] border border-white/8 rounded-xl mb-6 overflow-hidden">
           <div className={`grid grid-cols-1 ${videoUrl ? "md:grid-cols-2" : ""}`}>
             <div className={`p-6 md:p-8 flex flex-col justify-center ${videoUrl ? "md:border-r border-white/8" : ""}`}>
-              <p className="text-xs font-['Geist_Mono'] text-[#2563EB] uppercase tracking-widest mb-3">
+              <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-3">
                 What is this calculator?
               </p>
               <p className="text-[#94A3B8] text-sm leading-relaxed">
@@ -71,7 +71,7 @@ export function CalculatorShell({ title, description, explainerText, videoUrl, c
                       <div className="relative">
                         <div className="absolute inset-0 rounded-full bg-[#2563EB]/20 scale-125 group-hover:scale-150 transition-transform duration-500" />
                         <div className="w-14 h-14 rounded-full border-2 border-[#2563EB]/60 group-hover:border-[#2563EB] bg-[#2563EB]/10 group-hover:bg-[#2563EB]/20 flex items-center justify-center transition-all duration-200 relative z-10">
-                          <PlayCircle className="w-7 h-7 text-[#2563EB] fill-[#2563EB]/20" />
+                          <PlayCircle className="w-7 h-7 text-[#60A5FA] fill-[#2563EB]/20" />
                         </div>
                       </div>
                       <span className="text-sm text-[#94A3B8] group-hover:text-[#F1F5F9] transition-colors font-medium">

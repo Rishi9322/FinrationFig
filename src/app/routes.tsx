@@ -38,6 +38,9 @@ import TestPdfPage from "./pages/TestPdfPage"
 import ProfilePage from "./pages/ProfilePage"
 import FeedbackPage from "./pages/FeedbackPage"
 import AdminFeedbackPage from "./pages/admin/AdminFeedbackPage"
+import AdminBlogPage from "./pages/admin/AdminBlogPage"
+import BlogIndexPage from "./pages/BlogIndexPage"
+import BlogPostPage from "./pages/BlogPostPage"
 
 function ProtectedLayout({
   children,
@@ -51,7 +54,7 @@ function ProtectedLayout({
   return (
     <ProtectedRoute requiredRole={requiredRole} requiredFeature={requiredFeature}>
       <Navbar />
-      {children}
+      <main>{children}</main>
     </ProtectedRoute>
   )
 }
@@ -97,6 +100,14 @@ export const router = createBrowserRouter([
   {
     path: "/access-denied",
     element: <AccessDeniedPage />,
+  },
+  {
+    path: "/blog",
+    element: (<><Navbar /><BlogIndexPage /></>),
+  },
+  {
+    path: "/blog/:slug",
+    element: (<><Navbar /><BlogPostPage /></>),
   },
   {
     path: "/dashboard",
@@ -267,6 +278,16 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedLayout requiredRole="SUPER_ADMIN">
         <AdminFeedbackPage />
+      </ProtectedLayout>
+    ),
+  },
+  {
+    // ADMIN or SUPER_ADMIN may edit the blog (enforced server-side); the route
+    // itself only requires being signed in, same as other non-role-gated pages.
+    path: "/admin/blog",
+    element: (
+      <ProtectedLayout>
+        <AdminBlogPage />
       </ProtectedLayout>
     ),
   },

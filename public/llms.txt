@@ -1,0 +1,8 @@
+# FinRatio
+
+> Financial ratio analysis and CMA reporting for Indian SMEs. Upload a balance sheet, run 12+ RBI-aligned ratio calculators (D/E, DSCR, ISCR, EBITDA, Current Ratio, Drawing Power, and more), and generate credit-monitoring-arrangement reports with AI-assisted analysis.
+
+- [Home](https://finratio.site/): product overview and calculator suite
+- [Calculators](https://finratio.site/calculators): the full list of financial ratio calculators
+- [Blog](https://finratio.site/blog): financial insights for Indian MSMEs — credit, cash flow, and ratio literacy
+- [Sign Up](https://finratio.site/auth/signup): create a free account

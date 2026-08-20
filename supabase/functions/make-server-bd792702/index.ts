@@ -109,6 +109,15 @@ const Schemas = {
     message: z.string().trim().min(1).max(4000),
     rating: z.number().int().min(1).max(5).optional(),
   }),
+  blogPost: z.object({
+    title: z.string().trim().min(1).max(200),
+    excerpt: z.string().trim().min(1).max(500),
+    content: z.string().trim().min(1).max(50000),
+    coverImageUrl: z.string().trim().max(2000).optional(),
+    sourceName: z.string().trim().max(200).optional(),
+    sourceUrl: z.string().trim().max(2000).optional(),
+    published: z.boolean().optional(),
+  }),
   calculation: z.object({
     calculatorType: z.string().trim().min(1).max(64),
     inputs: z.record(z.string(), z.unknown()).default({}),
@@ -196,6 +205,30 @@ async function requireSuperAdmin(c: any) {
   return auth;
 }
 
+async function requireAdmin(c: any) {
+  const auth = await requireAuth(c);
+  if (!auth) return null;
+  if (auth.profile.role !== "SUPER_ADMIN" && auth.profile.role !== "ADMIN") {
+    c.status(403); c.res = c.json({ error: "Forbidden" }); return null;
+  }
+  return auth;
+}
+
+function slugify(title: string): string {
+  return title.toLowerCase().trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 100) || "post";
+}
+
+function blogPostView(r: any) {
+  return {
+    id: r.id, slug: r.slug, title: r.title, excerpt: r.excerpt, content: r.content,
+    coverImageUrl: r.cover_image_url, sourceName: r.source_name, sourceUrl: r.source_url,
+    published: r.published, authorName: r.author_name, createdAt: r.created_at, updatedAt: r.updated_at,
+  };
+}
+
 function resolvedAccess(p: Profile): string[] {
   if (p.role === "SUPER_ADMIN" || p.role === "ADMIN") return GRANTABLE_SLUGS;
   // Every calculator is included regardless of mode; only the restricted tools
@@ -242,6 +275,82 @@ async function validateRateLimit(key: string, limit: number, windowMs: number): 
 }
 
 app.get(`${API_PREFIX}/health`, (c) => c.json({ status: "ok" }));
+
+// ---- Blog: public reads, ADMIN+ writes ----
+app.get(`${API_PREFIX}/blog`, async (c) => {
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("blog_posts").select("*")
+    .eq("published", true).order("created_at", { ascending: false }).limit(200);
+  return c.json({ posts: (data ?? []).map(blogPostView) });
+});
+
+app.get(`${API_PREFIX}/blog/:slug`, async (c) => {
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("blog_posts").select("*")
+    .eq("slug", c.req.param("slug")).eq("published", true).single();
+  if (!data) return c.json({ error: "Post not found" }, 404);
+  return c.json({ post: blogPostView(data) });
+});
+
+app.get(`${API_PREFIX}/admin/blog`, async (c) => {
+  const auth = await requireAdmin(c);
+  if (!auth) return c.res;
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("blog_posts").select("*").order("created_at", { ascending: false }).limit(500);
+  return c.json({ posts: (data ?? []).map(blogPostView) });
+});
+
+app.post(`${API_PREFIX}/admin/blog`, async (c) => {
+  const auth = await requireAdmin(c);
+  if (!auth) return c.res;
+  const parsed = await parseBody(c, Schemas.blogPost);
+  if (!parsed.ok) return parsed.response;
+  const admin = getSupabaseAdminClient();
+  const base = slugify(parsed.data.title);
+  let slug = base;
+  for (let i = 2; i < 50; i++) {
+    const { data: existing } = await admin.from("blog_posts").select("id").eq("slug", slug).maybeSingle();
+    if (!existing) break;
+    slug = `${base}-${i}`;
+  }
+  const { data, error } = await admin.from("blog_posts").insert({
+    slug, title: parsed.data.title, excerpt: parsed.data.excerpt, content: parsed.data.content,
+    cover_image_url: parsed.data.coverImageUrl || null,
+    source_name: parsed.data.sourceName || null, source_url: parsed.data.sourceUrl || null,
+    published: parsed.data.published ?? false,
+    author_id: auth.uid, author_name: auth.profile.name || auth.profile.email,
+  }).select("*").single();
+  if (error || !data) return c.json({ error: "Could not create post" }, 500);
+  return c.json({ post: blogPostView(data) }, 201);
+});
+
+app.put(`${API_PREFIX}/admin/blog/:id`, async (c) => {
+  const auth = await requireAdmin(c);
+  if (!auth) return c.res;
+  const parsed = await parseBody(c, Schemas.blogPost.partial());
+  if (!parsed.ok) return parsed.response;
+  const patch: Record<string, unknown> = { updated_at: nowIso() };
+  const d = parsed.data;
+  if (d.title !== undefined) patch.title = d.title;
+  if (d.excerpt !== undefined) patch.excerpt = d.excerpt;
+  if (d.content !== undefined) patch.content = d.content;
+  if (d.coverImageUrl !== undefined) patch.cover_image_url = d.coverImageUrl || null;
+  if (d.sourceName !== undefined) patch.source_name = d.sourceName || null;
+  if (d.sourceUrl !== undefined) patch.source_url = d.sourceUrl || null;
+  if (d.published !== undefined) patch.published = d.published;
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin.from("blog_posts").update(patch).eq("id", c.req.param("id")).select("*").single();
+  if (error || !data) return c.json({ error: "Post not found" }, 404);
+  return c.json({ post: blogPostView(data) });
+});
+
+app.delete(`${API_PREFIX}/admin/blog/:id`, async (c) => {
+  const auth = await requireAdmin(c);
+  if (!auth) return c.res;
+  const admin = getSupabaseAdminClient();
+  await admin.from("blog_posts").delete().eq("id", c.req.param("id"));
+  return c.json({ message: "Post deleted" });
+});
 
 app.get(`${API_PREFIX}/admin/feedback`, async (c) => {
   const auth = await requireSuperAdmin(c);

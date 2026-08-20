@@ -102,7 +102,7 @@ export default function HomePage() {
   }, [])
 
   return (
-    <div
+    <main
       className="min-h-screen bg-[#050A14] text-[#F1F5F9] overflow-x-hidden"
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
@@ -115,7 +115,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-6 lg:px-8 w-full flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/logoo.png" alt="FinRatio" className="h-20 w-auto sm:h-20" />
-            <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#2563EB] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">
+            <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">
               β
             </span>
           </div>
@@ -157,8 +157,8 @@ export default function HomePage() {
         <div className="relative z-10 text-center max-w-4xl mx-auto">
           {/* Eyebrow */}
           <div className="inline-flex items-center gap-2 bg-[#2563EB]/10 border border-[#2563EB]/25 rounded-full px-4 py-1.5 mb-8">
-            <Zap className="w-3.5 h-3.5 text-[#2563EB]" />
-            <span className="text-xs font-['Geist_Mono'] text-[#2563EB] tracking-wide">
+            <Zap className="w-3.5 h-3.5 text-[#60A5FA]" />
+            <span className="text-xs font-['Geist_Mono'] text-[#60A5FA] tracking-wide">
               For loan consultants, CAs & credit teams
             </span>
           </div>
@@ -255,7 +255,7 @@ export default function HomePage() {
       <section id="how-it-works" className="py-28 px-6" ref={howRef}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-xs font-['Geist_Mono'] text-[#2563EB] uppercase tracking-widest mb-3">How It Works</p>
+            <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-3">How It Works</p>
             <h2
               className="text-4xl lg:text-5xl font-normal text-white"
               style={{ fontFamily: "'Instrument Serif', serif" }}
@@ -283,9 +283,9 @@ export default function HomePage() {
                   }}
                 >
                   <div className="w-20 h-20 rounded-2xl bg-[#0D1726] border border-white/8 flex items-center justify-center mb-5 shadow-lg">
-                    <Icon className="w-7 h-7 text-[#2563EB]" />
+                    <Icon className="w-7 h-7 text-[#60A5FA]" />
                   </div>
-                  <span className="font-['Geist_Mono'] text-xs text-[#2563EB] mb-2 tracking-widest">{step.n}</span>
+                  <span className="font-['Geist_Mono'] text-xs text-[#60A5FA] mb-2 tracking-widest">{step.n}</span>
                   <h3 className="font-medium text-white mb-2 text-base">{step.title}</h3>
                   <p className="text-sm text-[#94A3B8] leading-relaxed">{step.desc}</p>
                 </div>
@@ -302,7 +302,7 @@ export default function HomePage() {
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
-              <p className="text-xs font-['Geist_Mono'] text-[#2563EB] uppercase tracking-widest mb-3">Live Preview</p>
+              <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-3">Live Preview</p>
               <h2
                 className="text-4xl lg:text-5xl font-normal text-white mb-5 leading-tight"
                 style={{ fontFamily: "'Instrument Serif', serif" }}
@@ -318,7 +318,7 @@ export default function HomePage() {
               </p>
               <Link
                 to="/auth/signup"
-                className="inline-flex items-center gap-2 text-[#2563EB] hover:text-white border border-[#2563EB]/40 hover:border-[#2563EB] hover:bg-[#2563EB] px-6 py-3 rounded-xl text-sm font-medium transition-all"
+                className="inline-flex items-center gap-2 text-[#60A5FA] hover:text-white border border-[#2563EB]/40 hover:border-[#2563EB] hover:bg-[#2563EB] px-6 py-3 rounded-xl text-sm font-medium transition-all"
               >
                 Try With Your Numbers
                 <ChevronRight className="w-4 h-4" />
@@ -340,7 +340,7 @@ export default function HomePage() {
       <section className="py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <p className="text-xs font-['Geist_Mono'] text-[#2563EB] uppercase tracking-widest mb-3">The Suite</p>
+            <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-3">The Suite</p>
             <h2
               className="text-4xl lg:text-5xl font-normal text-white"
               style={{ fontFamily: "'Instrument Serif', serif" }}
@@ -361,7 +361,7 @@ export default function HomePage() {
               >
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="font-medium text-white text-sm">{calc.name}</h3>
-                  <span className="font-['Geist_Mono'] text-[10px] text-[#2563EB]/60 mt-0.5">
+                  <span className="font-['Geist_Mono'] text-[10px] text-[#60A5FA]/60 mt-0.5">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                 </div>
@@ -378,7 +378,7 @@ export default function HomePage() {
       >
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <p className="text-xs font-['Geist_Mono'] text-[#2563EB] uppercase tracking-widest mb-3">Features</p>
+            <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-3">Features</p>
             <h2
               className="text-4xl lg:text-5xl font-normal text-white"
               style={{ fontFamily: "'Instrument Serif', serif" }}
@@ -402,7 +402,7 @@ export default function HomePage() {
                   }}
                 >
                   <div className="w-10 h-10 rounded-lg bg-[#2563EB]/10 border border-[#2563EB]/20 flex items-center justify-center mb-4">
-                    <Icon className="w-5 h-5 text-[#2563EB]" />
+                    <Icon className="w-5 h-5 text-[#60A5FA]" />
                   </div>
                   <h3 className="font-medium text-white mb-2">{feat.title}</h3>
                   <p className="text-sm text-[#94A3B8] leading-relaxed">{feat.desc}</p>
@@ -417,7 +417,7 @@ export default function HomePage() {
       <section className="py-24 px-6 border-t border-white/8" ref={testiRef}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <p className="text-xs font-['Geist_Mono'] text-[#2563EB] uppercase tracking-widest mb-3">Why FinRatio</p>
+            <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-3">Why FinRatio</p>
             <h2
               className="text-4xl lg:text-5xl font-normal text-white"
               style={{ fontFamily: "'Instrument Serif', serif" }}
@@ -493,7 +493,7 @@ export default function HomePage() {
               >
                 FinRatio
               </span>
-              <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#2563EB] border border-[#2563EB]/30 rounded px-1.5 py-0.5">β</span>
+              <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/30 rounded px-1.5 py-0.5">β</span>
             </div>
             <p className="text-xs text-[#94A3B8]">Financial Intelligence for Indian Business</p>
           </div>
@@ -506,6 +506,6 @@ export default function HomePage() {
           <p className="text-xs text-[#94A3B8]">© 2026 FinRatio. All rights reserved.</p>
         </div>
       </footer>
-    </div>
+    </main>
   )
 }

@@ -134,7 +134,7 @@ export default function MacroRatiosPage() {
     >
       <div className="space-y-6">
         <div className="space-y-4">
-          <p className="text-xs font-['Geist_Mono'] text-[#2563EB] uppercase tracking-widest">Debt vs. Yield Curve (LYCA)</p>
+          <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest">Debt vs. Yield Curve (LYCA)</p>
           <NumberField
             label="Yield Curve Spread"
             value={yieldCurveSpread}
@@ -148,7 +148,7 @@ export default function MacroRatiosPage() {
         </div>
 
         <div className="space-y-4 pt-4 border-t border-white/8">
-          <p className="text-xs font-['Geist_Mono'] text-[#2563EB] uppercase tracking-widest">Inventory Carry Cost (IAICOC)</p>
+          <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest">Inventory Carry Cost (IAICOC)</p>
           <CurrencyInput label="Inventory" value={inventory} onChange={setInventory} />
           <CurrencyInput label="Total Assets" value={totalAssets} onChange={setTotalAssets} />
           <NumberField label="Annual Inflation Rate" value={inflationRate} onChange={setInflationRate} suffix="%" />
@@ -156,7 +156,7 @@ export default function MacroRatiosPage() {
         </div>
 
         <div className="space-y-4 pt-4 border-t border-white/8">
-          <p className="text-xs font-['Geist_Mono'] text-[#2563EB] uppercase tracking-widest">ROA vs. Cost of Borrowing</p>
+          <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest">ROA vs. Cost of Borrowing</p>
           <NumberField label="Quarterly Return on Assets (ROA)" value={roa} onChange={setRoa} suffix="%" />
           <NumberField label="Corporate Bond Yield" value={bondRate} onChange={setBondRate} suffix="%" helperText="e.g. Moody's BAA yield" />
         </div>

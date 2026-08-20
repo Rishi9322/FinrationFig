@@ -17,6 +17,7 @@ const PRIMARY_LINKS = [
   { to: "/dashboard", label: "Dashboard" },
   { to: "/dashboard/cma-generator", label: "CMA Engine" },
   { to: "/doc-parser", label: "Doc Parser" },
+  { to: "/blog", label: "Blog" },
 ]
 
 export function Navbar() {
@@ -63,8 +64,8 @@ export function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex items-center justify-between">
           {/* Wordmark */}
           <Link to="/dashboard" className="flex items-center gap-2">
-            <img src="/logoo.png" alt="FinRatio" className="h-20 w-auto sm:h-11" />
-            <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#2563EB] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">
+            <img src="/logoo.png" alt="FinRatio" width={136} height={91} className="h-20 w-auto sm:h-11" />
+            <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">
               β
             </span>
           </Link>
@@ -117,7 +118,7 @@ export function Navbar() {
                         className="flex items-start gap-3 px-4 py-3 focus:bg-white/5 hover:bg-white/5 transition-colors border-l-2 border-transparent hover:border-[#2563EB] cursor-pointer"
                       >
                         {Icon && (
-                          <div className="p-1.5 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-lg text-[#2563EB] mt-0.5 shrink-0">
+                          <div className="p-1.5 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-lg text-[#60A5FA] mt-0.5 shrink-0">
                             <Icon className="h-3.5 w-3.5" />
                           </div>
                         )}
@@ -196,6 +197,8 @@ export function Navbar() {
           {/* Mobile toggle */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label={mobileOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileOpen}
             className="md:hidden p-2 text-[#94A3B8] hover:text-white transition-colors"
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
