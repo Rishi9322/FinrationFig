@@ -30,7 +30,7 @@ export function RiskSnapshot() {
     | null
     | undefined;
 
-  const currentRatioSeverity: Severity = currentRatio >= 1.33 ? 'good' : currentRatio >= 1.0 ? 'watch' : 'bad';
+  const currentRatioSeverity: Severity = currentRatio >= 1.33 ? 'good' : currentRatio >= 1.18 ? 'watch' : 'bad';
   const tolTnwSeverity: Severity = tolToTnw <= 3.0 ? 'good' : tolToTnw <= 4.0 ? 'watch' : 'bad';
   const dscrSeverity: Severity = avgDscr >= 1.5 ? 'good' : avgDscr >= 1.2 ? 'watch' : 'bad';
 
@@ -42,7 +42,7 @@ export function RiskSnapshot() {
 
   const concerns: string[] = [];
   if (currentRatioSeverity !== 'good') {
-    concerns.push(`Current ratio is ${currentRatio.toFixed(2)}, below the RBI norm of 1.33.`);
+    concerns.push(`Current ratio is ${currentRatio.toFixed(2)}, below the RBI norm of 1.33.${currentRatio < 1.17 ? ' High risk.' : ' Moderate risk.'}`);
   }
   if (tolTnwSeverity !== 'good') {
     concerns.push(`TOL/TNW is ${tolToTnw.toFixed(2)}, above the 3.0 norm - leverage is stretched.`);

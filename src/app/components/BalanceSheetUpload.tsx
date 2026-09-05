@@ -49,7 +49,11 @@ export default function BalanceSheetUpload({ userId }: Props) {
     if (!parsed) return setMessage("Parse a file first")
     const m = mapToCalculator(selectedCalculator, parsed)
     setMapped(m)
-    setMessage("Mapped — review inputs before running calculation")
+    setMessage("Mapped — review and adjust inputs below before running calculation")
+  }
+
+  function updateMappedInput(key: string, value: string) {
+    setMapped((prev: any) => ({ ...prev, inputs: { ...prev.inputs, [key]: value === "" ? "" : Number(value) } }))
   }
 
   function runCalc() {
@@ -179,8 +183,22 @@ export default function BalanceSheetUpload({ userId }: Props) {
           </details>
         )}
         {mapped && (
-          <details>
-            <summary>Mapped Inputs</summary>
+          <details open>
+            <summary>Mapped Inputs (editable — override anything the parser guessed wrong)</summary>
+            {Object.entries(mapped.inputs || {}).map(([key, value]) =>
+              typeof value === "number" ? (
+                <div className="form-row" key={key}>
+                  <label htmlFor={`mapped-${key}`}>{key}</label>
+                  <input
+                    id={`mapped-${key}`}
+                    type="number"
+                    value={value}
+                    onChange={(e) => updateMappedInput(key, e.target.value)}
+                  />
+                </div>
+              ) : null
+            )}
+            {mapped.notes && <div className="message">{mapped.notes}</div>}
             <pre className="pre-box">{JSON.stringify(mapped, null, 2)}</pre>
           </details>
         )}

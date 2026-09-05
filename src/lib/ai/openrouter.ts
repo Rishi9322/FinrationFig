@@ -178,10 +178,12 @@ export type DocumentClassification = {
   docType: string;
   confidence: number;
   reason: string;
+  durationMs?: number;
 };
 
 export async function classifyFinancialDocument(rawText: string, sourceName?: string): Promise<DocumentClassification> {
   const excerpt = truncateText(rawText, 4000, 1000);
+  const startedAt = performance.now();
 
   const response = await aiChat({
       response_format: { type: "json_object" },
@@ -213,15 +215,19 @@ A document is a financial document if it contains balance sheet, P&L, trial bala
 
   const data = await response.json();
   const parsed = safeJsonParse(data.choices[0].message.content);
+  const durationMs = Math.round(performance.now() - startedAt);
+  console.log(`[openrouter] classifyFinancialDocument took ${durationMs}ms`);
   return {
     isFinancialDocument: Boolean(parsed.isFinancialDocument),
     docType: String(parsed.docType || "Other Financial Statement"),
     confidence: Number(parsed.confidence) || 0,
     reason: String(parsed.reason || ""),
+    durationMs,
   };
 }
 
 export async function parseCmaFinancialData(rawText: string, options: ParseOptions = {}) {
+  const startedAt = performance.now();
   const learningContext = buildLearningContext(rawText, options.sourceFormat);
   const sourceExcerpt = truncateText(rawText);
   const sourceDescriptor = [
@@ -353,7 +359,10 @@ Auto-compute any missing fields using standard accounting relationships. Verify 
     throw new Error("AI did not return valid JSON");
   }
 
-  return verifyCompanyAgainstSource(validateCmaShape(parsed), rawText);
+  const durationMs = Math.round(performance.now() - startedAt);
+  console.log(`[openrouter] parseCmaFinancialData took ${durationMs}ms`);
+  const verified = verifyCompanyAgainstSource(validateCmaShape(parsed), rawText);
+  return { ...verified, _parseDurationMs: durationMs };
 }
 
 /**
@@ -400,12 +409,14 @@ export type CreditRecommendation = {
   rationale: string;
   conditionsPrecedent: string[];
   monitoringPoints: string[];
+  durationMs?: number;
 };
 
 export type FinancialPrognosis = {
   outlook: "IMPROVING" | "STABLE" | "DECLINING";
   narrative: string;
   watchPoints: string[];
+  durationMs?: number;
 };
 
 /**
@@ -418,6 +429,7 @@ export async function generateFinancialPrognosis(
   currentRatios: Record<string, unknown>,
   sectorBenchmark: Record<string, unknown> | null
 ): Promise<FinancialPrognosis> {
+  const startedAt = performance.now();
   const response = await aiChat({
     response_format: { type: "json_object" },
     temperature: 0.3,
@@ -446,11 +458,14 @@ export async function generateFinancialPrognosis(
 
   const data = await response.json();
   const parsed = safeJsonParse(data.choices[0].message.content);
+  const durationMs = Math.round(performance.now() - startedAt);
+  console.log(`[openrouter] generateFinancialPrognosis took ${durationMs}ms`);
 
   return {
     outlook: ["IMPROVING", "STABLE", "DECLINING"].includes(parsed.outlook) ? parsed.outlook : "STABLE",
     narrative: typeof parsed.narrative === "string" ? parsed.narrative : "",
     watchPoints: Array.isArray(parsed.watchPoints) ? parsed.watchPoints.filter((s: unknown) => typeof s === "string") : [],
+    durationMs,
   };
 }
 
@@ -462,6 +477,7 @@ export async function generateFinancialPrognosis(
  * exact instead of best-effort text matches.
  */
 export async function generateCreditRecommendation(cmaData: any): Promise<CreditRecommendation> {
+  const startedAt = performance.now();
   const response = await aiChat({
     response_format: { type: "json_object" },
     temperature: 0,
@@ -492,6 +508,8 @@ Limits are in ₹ Lakhs. Use exact numbers from the CMA - do not invent figures.
 
   const data = await response.json();
   const parsed = safeJsonParse(data.choices[0].message.content);
+  const durationMs = Math.round(performance.now() - startedAt);
+  console.log(`[openrouter] generateCreditRecommendation took ${durationMs}ms`);
 
   return {
     recommendation: ["APPROVE", "APPROVE WITH CONDITIONS", "DECLINE"].includes(parsed.recommendation) ? parsed.recommendation : "APPROVE WITH CONDITIONS",
@@ -501,10 +519,13 @@ Limits are in ₹ Lakhs. Use exact numbers from the CMA - do not invent figures.
     rationale: typeof parsed.rationale === "string" ? parsed.rationale : "",
     conditionsPrecedent: Array.isArray(parsed.conditionsPrecedent) ? parsed.conditionsPrecedent.filter((s: unknown) => typeof s === "string") : [],
     monitoringPoints: Array.isArray(parsed.monitoringPoints) ? parsed.monitoringPoints.filter((s: unknown) => typeof s === "string") : [],
+    durationMs,
   };
 }
 
 export async function* streamCmaCreditOpinion(cmaData: any) {
+  const startedAt = performance.now();
+  let firstChunkAt: number | null = null;
   const requestBody = {
     temperature: 0.2,
     stream: true,
@@ -606,6 +627,10 @@ Use exact numbers from the CMA. Do not invent figures or ratios. If a required n
           try {
             const parsed = JSON.parse(line.slice(6));
             if (parsed.choices[0].delta.content) {
+              if (firstChunkAt === null) {
+                firstChunkAt = performance.now();
+                console.log(`[openrouter] streamCmaCreditOpinion time-to-first-token: ${Math.round(firstChunkAt - startedAt)}ms`);
+              }
               yield parsed.choices[0].delta.content;
             }
           } catch (e) {
@@ -615,6 +640,7 @@ Use exact numbers from the CMA. Do not invent figures or ratios. If a required n
       }
     }
 
+    console.log(`[openrouter] streamCmaCreditOpinion total stream time: ${Math.round(performance.now() - startedAt)}ms`);
     return;
   }
 

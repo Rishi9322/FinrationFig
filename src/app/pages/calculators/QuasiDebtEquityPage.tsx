@@ -59,7 +59,7 @@ export default function QuasiDebtEquityPage() {
           value={quasiDebt}
           onChange={setQuasiDebt}
           placeholder="Enter quasi debt"
-          helperText="Hybrid instruments like preference shares"
+          helperText="Hybrid instruments like preference shares, and directors' unsecured loans"
         />
 
         <CurrencyInput

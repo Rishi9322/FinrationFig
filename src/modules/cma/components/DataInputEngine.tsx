@@ -342,9 +342,14 @@ export function DataInputEngine() {
 
       {parsedData && (
         <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#111720', borderRadius: '6px', border: '1px solid #1A2030' }}>
-          <h3 style={{ marginBottom: '1rem', color: '#F8FAFC' }}>
+          <h3 style={{ marginBottom: '0.25rem', color: '#F8FAFC' }}>
             Data Parsed Successfully for {parsedData.company || '(company not identified)'} ({parsedData.unit})
           </h3>
+          {typeof (parsedData as any)._parseDurationMs === 'number' && (
+            <p style={{ marginBottom: '0.75rem', color: '#94A3B8', fontSize: '0.8rem' }}>
+              AI parse time: {(parsedData as any)._parseDurationMs}ms
+            </p>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ color: '#94A3B8' }}>Balance Check:</span>
             {balanceCheck.isBalanced ? (

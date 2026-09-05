@@ -1,6 +1,18 @@
 import type ParsedBalanceSheet from "./parsedBalanceSheet"
 import type { LineItem, ReceivableItem } from "./parsedBalanceSheet"
 
+// Handles Indian comma-grouped amounts ("12,34,567"), plain commas, and
+// accounting-style negatives in parentheses ("(1,234)").
+function parseAmount(raw: unknown): number {
+  const str = String(raw ?? "").trim()
+  if (!str) return 0
+  const negative = /^\(.*\)$/.test(str)
+  const cleaned = str.replace(/[(),]/g, "").replace(/[^0-9.\-]+/g, "")
+  const value = Number(cleaned)
+  if (isNaN(value)) return 0
+  return negative ? -Math.abs(value) : value
+}
+
 function parseCSVText(text: string): LineItem[] {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
   if (lines.length === 0) return []
@@ -17,14 +29,12 @@ function parseCSVText(text: string): LineItem[] {
     if (hasHeaderName && hasHeaderValue) {
       const idxName = headers.findIndex((h) => /name|account|description/.test(h))
       const idxValue = headers.findIndex((h) => /value|amount|balance|amt/.test(h))
-      return { name: cols[idxName] || cols[0] || "", value: Number(cols[idxValue]) || 0 }
+      return { name: cols[idxName] || cols[0] || "", value: parseAmount(cols[idxValue]) }
     }
 
     // fallback: last column numeric
-    const last = String(cols[cols.length - 1] ?? "")
-    const value = Number(last.replace(/[^0-9.-]+/g, ""))
     const name = cols.slice(0, -1).join(" ") || cols[0]
-    return { name: name || "item", value: isNaN(value) ? 0 : value }
+    return { name: name || "item", value: parseAmount(cols[cols.length - 1]) }
   })
 
   return items.filter((it) => it && (typeof it.value === "number"))
@@ -52,12 +62,10 @@ async function parseXLSXBuffer(buffer: ArrayBuffer): Promise<LineItem[]> {
     if (hasName && hasValue) {
       const idxName = header.findIndex((h: string) => /name|account|description/.test(h))
       const idxValue = header.findIndex((h: string) => /value|amount|balance|amt/.test(h))
-      return { name: String(r[idxName] ?? "").trim(), value: Number(r[idxValue]) || 0 }
+      return { name: String(r[idxName] ?? "").trim(), value: parseAmount(r[idxValue]) }
     }
-    const last = String(r[r.length - 1] ?? "").replace(/[^0-9.-]+/g, "")
-    const value = Number(last)
     const name = r.slice(0, -1).join(" ")
-    return { name: name || String(r[0] ?? ""), value: isNaN(value) ? 0 : value }
+    return { name: name || String(r[0] ?? ""), value: parseAmount(r[r.length - 1]) }
   })
 
   return items
@@ -70,9 +78,12 @@ function tryExtractTotals(items: LineItem[]) {
 
   for (const it of items) {
     const n = it.name.toLowerCase()
-    if (/asset|cash|bank|receivable|inventory|stock|sundry debtors/.test(n)) assets.push(it)
-    else if (/liabilit|payable|creditor|loan|overdraft|debt|tax payable/.test(n)) liabilities.push(it)
+    // Liability/equity patterns are checked first: names like "Bank Overdraft" or
+    // "Bank Borrowings" contain "bank" and would otherwise be misclassified as
+    // assets by the generic cash/bank asset pattern below.
+    if (/liabilit|payable|creditor|overdraft|borrowing|\bdebt\b|tax payable|\bloan\b/.test(n)) liabilities.push(it)
     else if (/equity|capital|reserves|share/.test(n)) equity.push(it)
+    else if (/asset|cash|bank|receivable|inventory|stock|sundry debtors/.test(n)) assets.push(it)
     else {
       // heuristics: amounts > 0.9*max maybe assets
       assets.push(it)

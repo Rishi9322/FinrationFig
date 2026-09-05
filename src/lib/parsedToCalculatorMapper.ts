@@ -69,13 +69,23 @@ export function mapToCalculator(calculatorType: CalculatorType, parsed: ParsedBa
     }
 
     case "quasi-debt-equity": {
-      const quasiNames = [/preference/, /convertible/, /quasi/, /subordinated/]
+      // Director's/unsecured loans are quasi-debt, not standard debt, so they must
+      // be excluded from totalDebt below - otherwise they'd be double-counted.
+      const quasiNames = [/preference/, /convertible/, /quasi/, /subordinated/, /director/, /unsecured/]
       const { sum: quasiSum, matched: quasiMatched } = findAndSumByName(parsed.balanceSheet.liabilities, quasiNames)
-      const debt = mapToCalculator("debt-equity", parsed)
+
+      const debtNames = [/loan/, /borrow/, /debt/, /overdraft/, /bond/]
+      const nonQuasiLiabilities = (parsed.balanceSheet.liabilities || []).filter(
+        (s) => !quasiNames.some((p) => p.test((s.name || "").toLowerCase()))
+      )
+      const { sum: debtSum, matched: debtMatched } = findAndSumByName(nonQuasiLiabilities, debtNames)
+      const totalLiabilities = getTotalLiabilities(parsed)
+      const totalDebt = debtMatched > 0 ? debtSum : totalLiabilities.value - quasiSum
+
       const equity = getTotalEquity(parsed)
 
       return {
-        inputs: { totalDebt: debt.inputs.totalDebt, quasiDebt: quasiSum, equity: equity.value },
+        inputs: { totalDebt, quasiDebt: quasiSum, equity: equity.value },
         confidence: quasiMatched > 0 ? 0.7 : 0.45,
         notes: quasiMatched > 0 ? undefined : "No quasi-debt line found; quasiDebt=0",
       }
