@@ -58,27 +58,38 @@ function currentFirebaseUser(): Promise<FirebaseUser | null> {
   return firstAuthState
 }
 
-// The edge function verifies the Firebase token, auto-creates a default USER
-// profile on first call, and returns it. isVerified reflects Firebase's own
-// email-verification state.
-async function loadProfile(user: FirebaseUser): Promise<User | null> {
-  const data = await apiCall("/me")
+// The edge function verifies the Firebase token and returns the caller's
+// profile. On a brand-new login with no profile yet, it requires a valid
+// invite code (sent as a header, only on the call sites that have one) before
+// it will provision one - see requireAuth() in the edge function.
+async function loadProfile(user: FirebaseUser, inviteCode?: string): Promise<User | null> {
+  const data = await apiCall("/me", inviteCode ? { headers: { "X-Invite-Code": inviteCode } } : {})
   if (!data.user) return null
   const built: User = { ...(data.user as User), isVerified: user.emailVerified }
   setCurrentUser(built)
   return built
 }
 
+// FinRatio is invite-only: a first-time signup must carry a valid code. If the
+// server rejects it, the Firebase account just created is rolled back (still
+// possible in this same fresh session) so the email is free to retry rather
+// than being stuck "already registered" with no usable account.
 export async function signup(params: {
   name: string
   email: string
   password: string
   confirmPassword: string
+  inviteCode: string
 }) {
   if (params.password !== params.confirmPassword) throw new Error("Passwords do not match")
   const cred = await createUserWithEmailAndPassword(auth, params.email, params.password)
   await updateProfile(cred.user, { displayName: params.name })
-  await loadProfile(cred.user) // first /me call auto-creates the profile
+  try {
+    await loadProfile(cred.user, params.inviteCode)
+  } catch (err) {
+    await cred.user.delete().catch(() => {})
+    throw err
+  }
   try {
     await sendEmailVerification(cred.user)
   } catch {

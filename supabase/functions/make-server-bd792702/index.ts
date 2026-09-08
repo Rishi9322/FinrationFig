@@ -80,7 +80,7 @@ app.use("/*", async (c, next) => {
     c.header("Access-Control-Allow-Credentials", "true");
   }
   c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  c.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Invite-Code");
   c.header("Access-Control-Max-Age", "600");
   if (c.req.method === "OPTIONS") return c.json({}, 200);
   await next();
@@ -108,6 +108,17 @@ const Schemas = {
     type: z.enum(["REVIEW", "FEATURE_REQUEST", "BUG"]),
     message: z.string().trim().min(1).max(4000),
     rating: z.number().int().min(1).max(5).optional(),
+  }),
+  createInvite: z.object({
+    code: z.string().trim().toUpperCase().min(4).max(40).regex(/^[A-Z0-9-]+$/, "Letters, numbers, and hyphens only").optional(),
+    note: z.string().trim().max(500).optional(),
+    email: z.string().trim().toLowerCase().min(3).max(254).optional(),
+    startsAt: z.string().datetime().optional(),
+    expiresAt: z.string().datetime().optional(),
+    maxUses: z.number().int().min(1).max(100000).default(1),
+  }),
+  emailInvite: z.object({
+    to: z.string().trim().toLowerCase().min(3).max(254),
   }),
   blogPost: z.object({
     title: z.string().trim().min(1).max(200),
@@ -161,8 +172,21 @@ type Profile = {
   business_constitution: string | null; created_at: string;
 };
 
+// Invite-only access: a brand-new Firebase login (no profiles row yet) may
+// only get one by redeeming a valid invite code, sent by the client as the
+// X-Invite-Code header on that first call. redeem_invite() is an atomic
+// Postgres function (row-locked) so two people can't over-redeem the last slot
+// of a limited-use code by racing each other.
+async function redeemInviteForSignup(code: string, email: string): Promise<string | null> {
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin.rpc("redeem_invite", { p_code: code, p_email: email });
+  if (error) { console.error("[redeem_invite] rpc failed", error); return null; }
+  return Array.isArray(data) && data.length > 0 ? data[0].id : null;
+}
+
 // Verify the caller's Firebase ID token, then load their profile (the authority
-// on role/status). Auto-provisions a default USER profile if none exists yet.
+// on role/status). A first-ever call provisions a default USER profile, but
+// only after redeeming a valid invite code - see redeemInviteForSignup above.
 async function requireAuth(c: any): Promise<{ profile: Profile; uid: string; token: string } | null> {
   const authorization = c.req.header("Authorization") || c.req.header("authorization") || "";
   const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
@@ -187,10 +211,25 @@ async function requireAuth(c: any): Promise<{ profile: Profile; uid: string; tok
   const admin = getSupabaseAdminClient();
   let { data: profile } = await admin.from("profiles").select("*").eq("id", uid).single();
   if (!profile) {
+    const inviteCode = (c.req.header("X-Invite-Code") || "").trim();
+    if (!inviteCode) {
+      c.status(403);
+      c.res = c.json({ error: "FinRatio is invite-only right now. Ask an admin for an invite code." });
+      return null;
+    }
+    const inviteId = await redeemInviteForSignup(inviteCode, email.toLowerCase());
+    if (!inviteId) {
+      c.status(403);
+      c.res = c.json({ error: "That invite code is invalid, expired, already fully used, or reserved for a different email." });
+      return null;
+    }
     const insert = await admin.from("profiles")
       .insert({ id: uid, email: email.toLowerCase(), name: name || email.split("@")[0] })
       .select("*").single();
     profile = insert.data;
+    if (profile) {
+      await admin.from("invite_redemptions").insert({ invite_id: inviteId, user_id: uid, user_email: email.toLowerCase() });
+    }
   }
   if (!profile) { c.status(401); c.res = c.json({ error: "Profile not found" }); return null; }
   if (profile.status === "SUSPENDED") { c.status(403); c.res = c.json({ error: "Account suspended" }); return null; }
@@ -362,6 +401,123 @@ app.get(`${API_PREFIX}/admin/feedback`, async (c) => {
       id: r.id, userEmail: r.user_email, type: r.type, message: r.message, rating: r.rating, createdAt: r.created_at,
     })),
   });
+});
+
+// ---- Admin: invites (SUPER_ADMIN only) ----
+function generateInviteCode(): string {
+  // Base32-ish, no ambiguous characters (0/O, 1/I) - easy to read out loud or retype.
+  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  let code = "";
+  const bytes = new Uint8Array(8);
+  crypto.getRandomValues(bytes);
+  for (const b of bytes) code += alphabet[b % alphabet.length];
+  return `${code.slice(0, 4)}-${code.slice(4)}`;
+}
+
+function inviteView(r: any) {
+  const now = new Date();
+  const startsAt = new Date(r.starts_at);
+  const expiresAt = r.expires_at ? new Date(r.expires_at) : null;
+  const computedStatus =
+    r.status === "REVOKED" ? "REVOKED"
+    : r.use_count >= r.max_uses ? "EXHAUSTED"
+    : expiresAt && now > expiresAt ? "EXPIRED"
+    : now < startsAt ? "SCHEDULED"
+    : "ACTIVE";
+  return {
+    id: r.id, code: r.code, note: r.note, email: r.email, createdBy: r.created_by,
+    startsAt: r.starts_at, expiresAt: r.expires_at, maxUses: r.max_uses, useCount: r.use_count,
+    status: r.status, computedStatus, createdAt: r.created_at,
+  };
+}
+
+app.get(`${API_PREFIX}/admin/invites`, async (c) => {
+  const auth = await requireSuperAdmin(c);
+  if (!auth) return c.res;
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("invites").select("*").order("created_at", { ascending: false }).limit(500);
+  return c.json({ invites: (data ?? []).map(inviteView) });
+});
+
+app.post(`${API_PREFIX}/admin/invites`, async (c) => {
+  const auth = await requireSuperAdmin(c);
+  if (!auth) return c.res;
+  const parsed = await parseBody(c, Schemas.createInvite);
+  if (!parsed.ok) return parsed.response;
+  const body = parsed.data;
+  const code = body.code || generateInviteCode();
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin.from("invites").insert({
+    code, note: body.note || null, email: body.email || null,
+    created_by: auth.uid,
+    starts_at: body.startsAt || nowIso(),
+    expires_at: body.expiresAt || null,
+    max_uses: body.maxUses,
+  }).select("*").single();
+  if (error || !data) {
+    const duplicate = String((error as any)?.message || "").toLowerCase().includes("duplicate");
+    return c.json({ error: duplicate ? "That code is already in use" : "Could not create invite" }, duplicate ? 409 : 500);
+  }
+  await auditLog(c, "admin.invite-create", { actorId: auth.profile.id, outcome: "success", note: code });
+  return c.json({ invite: inviteView(data) }, 201);
+});
+
+app.put(`${API_PREFIX}/admin/invites/:id/revoke`, async (c) => {
+  const auth = await requireSuperAdmin(c);
+  if (!auth) return c.res;
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin.from("invites").update({ status: "REVOKED" }).eq("id", c.req.param("id")).select("*").single();
+  if (error || !data) return c.json({ error: "Invite not found" }, 404);
+  await auditLog(c, "admin.invite-revoke", { actorId: auth.profile.id, outcome: "success", note: data.code });
+  return c.json({ invite: inviteView(data) });
+});
+
+app.get(`${API_PREFIX}/admin/invites/:id/redemptions`, async (c) => {
+  const auth = await requireSuperAdmin(c);
+  if (!auth) return c.res;
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("invite_redemptions").select("*")
+    .eq("invite_id", c.req.param("id")).order("redeemed_at", { ascending: false });
+  return c.json({
+    redemptions: (data ?? []).map((r: any) => ({ id: r.id, userId: r.user_id, userEmail: r.user_email, redeemedAt: r.redeemed_at })),
+  });
+});
+
+app.post(`${API_PREFIX}/admin/invites/:id/email`, async (c) => {
+  const auth = await requireSuperAdmin(c);
+  if (!auth) return c.res;
+  const parsed = await parseBody(c, Schemas.emailInvite);
+  if (!parsed.ok) return parsed.response;
+  const admin = getSupabaseAdminClient();
+  const { data: invite } = await admin.from("invites").select("*").eq("id", c.req.param("id")).single();
+  if (!invite) return c.json({ error: "Invite not found" }, 404);
+
+  const resendKey = Deno.env.get("RESEND_API_KEY");
+  const fromAddress = Deno.env.get("RESEND_FROM_ADDRESS") || "FinRatio <onboarding@finratio.site>";
+  if (!resendKey) return c.json({ error: "Email is not configured (RESEND_API_KEY missing)" }, 503);
+
+  const signupUrl = `${ALLOWED_ORIGINS[0]}/auth/signup?invite=${encodeURIComponent(invite.code)}`;
+  const expiryLine = invite.expires_at ? `This code expires on ${new Date(invite.expires_at).toLocaleString("en-IN")}.` : "This code does not expire.";
+  const send = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${resendKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      from: fromAddress,
+      to: [parsed.data.to],
+      subject: "You're invited to FinRatio",
+      html: `<p>You've been invited to FinRatio.</p>
+        <p>Your invite code: <strong style="font-family:monospace;font-size:16px">${invite.code}</strong></p>
+        <p><a href="${signupUrl}">Sign up with this code</a></p>
+        <p style="color:#64748B;font-size:13px">${expiryLine}</p>`,
+    }),
+  });
+  if (!send.ok) {
+    const body = await send.text().catch(() => "");
+    console.error("[invite email] Resend error", send.status, body);
+    return c.json({ error: "Could not send the invite email" }, 502);
+  }
+  await auditLog(c, "admin.invite-email", { actorId: auth.profile.id, outcome: "success", note: `${invite.code} -> ${parsed.data.to}` });
+  return c.json({ message: "Invite email sent" });
 });
 
 // ---- Admin: user management (SUPER_ADMIN only) ----

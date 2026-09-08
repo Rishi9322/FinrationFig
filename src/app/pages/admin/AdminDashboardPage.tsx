@@ -132,6 +132,12 @@ export function AdminDashboardPage() {
               >
                 Generate Report
               </Link>
+              <Link
+                to="/admin/invites"
+                className="block w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-center"
+              >
+                Manage Invites
+              </Link>
             </div>
           </div>
         </div>

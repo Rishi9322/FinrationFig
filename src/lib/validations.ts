@@ -11,6 +11,7 @@ export const signupSchema = z.object({
     .regex(/[0-9]/, "Password must contain at least one number")
     .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
   confirmPassword: z.string().min(1, "Confirm password is required"),
+  inviteCode: z.string().trim().min(1, "An invite code is required"),
 }).refine((value) => value.password === value.confirmPassword, {
   message: "Passwords do not match",
   path: ["confirmPassword"],

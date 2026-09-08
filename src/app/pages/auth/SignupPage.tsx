@@ -1,18 +1,19 @@
 import { useState } from "react"
-import { Link, useNavigate } from "react-router"
-import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { Link, useNavigate, useSearchParams } from "react-router"
+import { Eye, EyeOff, Loader2, Ticket } from "lucide-react"
 import { signupSchema } from "../../../lib/validations"
 import { signup } from "../../../lib/auth"
-import { OAuthButtons } from "../../components/auth/OAuthButtons"
 import { toast } from "sonner"
 import { ThemeToggle } from "../../components/ThemeToggle"
 
 export default function SignupPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
+  const [inviteCode, setInviteCode] = useState(searchParams.get("invite") || "")
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -39,6 +40,7 @@ export default function SignupPage() {
       email,
       password,
       confirmPassword,
+      inviteCode,
     })
     if (!result.success) {
       const fieldErrors: Record<string, string> = {}
@@ -50,13 +52,15 @@ export default function SignupPage() {
     }
     setIsLoading(true)
     try {
-      await signup({ name, email, password, confirmPassword })
+      await signup({ name, email, password, confirmPassword, inviteCode: inviteCode.trim() })
       toast.success("Account created. We've emailed a verification link.")
       navigate("/dashboard")
     } catch (error: any) {
       const message = error.message || "An error occurred. Please try again."
       if (message.includes("already registered")) {
         setErrors({ email: message })
+      } else if (message.toLowerCase().includes("invite")) {
+        setErrors({ inviteCode: message })
       } else {
         toast.error(message)
       }
@@ -92,6 +96,30 @@ export default function SignupPage() {
         {/* Card */}
         <div className="bg-card border border-foreground/8 rounded-2xl p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Invite code - FinRatio is invite-only right now */}
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-foreground">Invite Code</label>
+              <div className="relative">
+                <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                  placeholder="XXXX-XXXX"
+                  className={`w-full pl-10 pr-4 py-2.5 bg-background border rounded-lg text-foreground text-sm font-['Geist_Mono'] tracking-wide placeholder:text-muted-foreground/50 placeholder:font-sans focus:outline-none transition-colors ${
+                    errors.inviteCode
+                      ? "border-destructive/50 focus:border-destructive"
+                      : "border-foreground/10 focus:border-primary/60 focus:ring-1 focus:ring-primary/20"
+                  }`}
+                />
+              </div>
+              {errors.inviteCode ? (
+                <p className="text-xs text-destructive">{errors.inviteCode}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">FinRatio is invite-only right now - ask whoever invited you for a code.</p>
+              )}
+            </div>
+
             {/* Name */}
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-foreground">Full Name</label>
@@ -210,14 +238,6 @@ export default function SignupPage() {
               )}
             </button>
           </form>
-
-          <div className="flex items-center gap-3 my-5">
-            <div className="h-px flex-1 bg-foreground/8" />
-            <span className="text-xs text-muted-foreground">or</span>
-            <div className="h-px flex-1 bg-foreground/8" />
-          </div>
-
-          <OAuthButtons />
 
           <p className="text-sm text-center text-muted-foreground mt-6">
             Already have an account?{" "}

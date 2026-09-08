@@ -164,6 +164,19 @@ export function Navbar() {
                     Feedback Inbox
                   </Link>
                 )}
+                {canAccessAdmin(user) && (
+                  <Link
+                    to="/admin/invites"
+                    aria-current={location.pathname === "/admin/invites" ? "page" : undefined}
+                    className={`text-sm px-4 py-2 rounded-lg transition-colors ${
+                      location.pathname === "/admin/invites"
+                        ? "text-foreground bg-foreground/8"
+                        : "text-muted-foreground hover:text-foreground hover:bg-foreground/5"
+                    }`}
+                  >
+                    Invites
+                  </Link>
+                )}
                 <div className="h-4 w-px bg-foreground/10 mx-2" />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -267,6 +280,15 @@ export function Navbar() {
                       onClick={() => setMobileOpen(false)}
                     >
                       Feedback Inbox
+                    </Link>
+                  )}
+                  {canAccessAdmin(user) && (
+                    <Link
+                      to="/admin/invites"
+                      className="block text-sm text-foreground px-3 py-2.5 rounded-lg hover:bg-foreground/5"
+                      onClick={() => setMobileOpen(false)}
+                    >
+                      Invites
                     </Link>
                   )}
                   <p className="text-sm text-muted-foreground px-3 py-1.5">{user.name || user.email}</p>
