@@ -7,6 +7,33 @@ type MapperResult = {
   notes?: string
 }
 
+// Sole proprietorships and partnerships report a single "net profit" (there's
+// no tax-before/after split meaningful to the owner's return); every other
+// constitution (Pvt Ltd, Public Ltd, OPC, LLP, ...) reports PBT, and quasi-debt
+// takes the form of a director's/designated-partner's loan rather than a
+// proprietor's-relative or partner's loan. Unknown/missing constitution falls
+// back to the company-style treatment (the more common CMA case).
+type ConstitutionCategory = "individual" | "company"
+
+function categorizeConstitution(businessConstitution?: string): ConstitutionCategory {
+  const c = (businessConstitution || "").toLowerCase()
+  if (c.includes("proprietorship") || (c.includes("partnership") && !c.includes("limited liability"))) {
+    return "individual"
+  }
+  return "company"
+}
+
+/** Case-insensitive search across an income statement's own keys and its nested `profitability`/`profit` block. */
+function findIncomeValue(income: Record<string, any>, patterns: RegExp[]): number | undefined {
+  const profitability = (income.profitability || income.profit || {}) as Record<string, any>
+  for (const bag of [income, profitability]) {
+    for (const [key, value] of Object.entries(bag)) {
+      if (typeof value === "number" && patterns.some((p) => p.test(key.toLowerCase()))) return value
+    }
+  }
+  return undefined
+}
+
 function sumSections(items: { amount: number }[] | undefined) {
   if (!items) return 0
   return items.reduce((s, it) => s + (Number(it.amount) || 0), 0)
@@ -47,9 +74,14 @@ function getTotalEquity(parsed: ParsedBalanceSheet) {
   return { value: sum, confidence: parsed.metadata?.confidence ?? 0.6 }
 }
 
-export function mapToCalculator(calculatorType: CalculatorType, parsed: ParsedBalanceSheet): MapperResult {
+export function mapToCalculator(
+  calculatorType: CalculatorType,
+  parsed: ParsedBalanceSheet,
+  businessConstitution?: string
+): MapperResult {
   const notes: string[] = []
   const income = parsed.incomeStatement || {}
+  const category = categorizeConstitution(businessConstitution)
   switch (calculatorType) {
     case "debt-equity": {
       // Try to pick only debt-like liabilities first
@@ -69,9 +101,16 @@ export function mapToCalculator(calculatorType: CalculatorType, parsed: ParsedBa
     }
 
     case "quasi-debt-equity": {
-      // Director's/unsecured loans are quasi-debt, not standard debt, so they must
-      // be excluded from totalDebt below - otherwise they'd be double-counted.
-      const quasiNames = [/preference/, /convertible/, /quasi/, /subordinated/, /director/, /unsecured/]
+      // Quasi-capital is constitution-specific: a director's/designated-partner's
+      // unsecured loan to a company/LLP; a partner's unsecured loan to a
+      // partnership firm; an unsecured loan from a same-surname relative to a
+      // proprietorship. The parser can't match surnames, so "relative"/"partner"
+      // lines are matched by label instead - these are quasi-debt, not standard
+      // debt, and must be excluded from totalDebt below to avoid double-counting.
+      const quasiNames =
+        category === "individual"
+          ? [/partner/, /proprietor/, /relative/, /unsecured/, /subordinated/, /quasi/]
+          : [/director/, /preference/, /convertible/, /quasi/, /subordinated/, /unsecured/]
       const { sum: quasiSum, matched: quasiMatched } = findAndSumByName(parsed.balanceSheet.liabilities, quasiNames)
 
       const debtNames = [/loan/, /borrow/, /debt/, /overdraft/, /bond/]
@@ -109,19 +148,34 @@ export function mapToCalculator(calculatorType: CalculatorType, parsed: ParsedBa
 
     case "ebitda": {
       // Derive EBITDA using available fields in order of reliability:
+      // 0) Constitution-appropriate profit figure — Net Profit for Proprietorship/
+      //    Partnership, Profit Before Tax for everyone else (Pvt Ltd, Ltd, OPC, LLP...)
       // 1) If operating profit before interest available, add back depreciation/amortisation to get EBITDA
       // 2) Else if balanceSheet/equity contains gross profit, use that (some CMA reports report EBITDA as gross profit)
       // 3) Else fallback to revenue - costOfSales
       const revenue = income.revenue ?? income.sales ?? 0
 
-      // Prefer explicit gross profit from balance sheet equity if present (some CMA reports use this as EBITDA)
       let ebitda: number | undefined
+      const constitutionProfit = findIncomeValue(
+        income,
+        category === "individual" ? [/net\s*profit/, /profit\s*after\s*tax/, /^pat$/] : [/profit\s*before\s*tax/, /^pbt$/]
+      )
+      if (typeof constitutionProfit === "number") {
+        ebitda = constitutionProfit
+        notes.push(
+          category === "individual"
+            ? "EBITDA base taken from Net Profit (Proprietorship/Partnership)"
+            : "EBITDA base taken from Profit Before Tax"
+        )
+      }
+
+      // Prefer explicit gross profit from balance sheet equity if present (some CMA reports use this as EBITDA)
       const bsGrossDirect = parsed.balanceSheet?.equity && (typeof (parsed.balanceSheet?.equity as any)?.["gross profit/loss"] === "number" ? (parsed.balanceSheet as any).equity["gross profit/loss"] : undefined)
       const bsGrossList = parsed.balanceSheet?.equity && (parsed.balanceSheet.equity.find?.((s: any) => (s.name || "").toLowerCase().includes("gross profit"))?.amount)
-      if (typeof bsGrossDirect === "number") {
+      if (ebitda === undefined && typeof bsGrossDirect === "number") {
         ebitda = Number(bsGrossDirect)
         notes.push("EBITDA taken from balanceSheet.equity['gross profit/loss'] (preferred)")
-      } else if (typeof bsGrossList === "number") {
+      } else if (ebitda === undefined && typeof bsGrossList === "number") {
         ebitda = Number(bsGrossList)
         notes.push("EBITDA taken from balanceSheet.equity gross profit entry (preferred)")
       }
@@ -175,7 +229,13 @@ export function mapToCalculator(calculatorType: CalculatorType, parsed: ParsedBa
     }
 
     case "iscr": {
-      const ebit = income.ebit ?? income["operating profit"] ?? 0
+      // Same constitution split as EBITDA: Net Profit for Proprietorship/Partnership,
+      // Profit Before Tax for everyone else, before falling back to EBIT-style fields.
+      const constitutionProfit = findIncomeValue(
+        income,
+        category === "individual" ? [/net\s*profit/, /profit\s*after\s*tax/, /^pat$/] : [/profit\s*before\s*tax/, /^pbt$/]
+      )
+      const ebit = constitutionProfit ?? income.ebit ?? income["operating profit"] ?? 0
       const interestExpense = income.interestExpense ?? income.interest ?? 0
       const conf = ebit && interestExpense ? 0.8 : 0.45
       return { inputs: { ebit, interestExpense }, confidence: conf }

@@ -28,8 +28,6 @@ import NetWorkingCapitalPage from "./pages/calculators/NetWorkingCapitalPage"
 import DrawingPowerPage from "./pages/calculators/DrawingPowerPage"
 import AgeingPage from "./pages/calculators/AgeingPage"
 import PidPage from "./pages/calculators/PidPage"
-import BusinessValuationPage from "./pages/calculators/BusinessValuationPage"
-import WorkingCapitalCyclePage from "./pages/calculators/WorkingCapitalCyclePage"
 import CashflowQualityPage from "./pages/calculators/CashflowQualityPage"
 import MacroRatiosPage from "./pages/calculators/MacroRatiosPage"
 import BalanceSheetAnalysisPage from "./pages/BalanceSheetAnalysisPage"
@@ -222,22 +220,6 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedLayout>
         <PidPage />
-      </ProtectedLayout>
-    ),
-  },
-  {
-    path: "/calculators/valuation",
-    element: (
-      <ProtectedLayout>
-        <BusinessValuationPage />
-      </ProtectedLayout>
-    ),
-  },
-  {
-    path: "/calculators/working-capital-cycle",
-    element: (
-      <ProtectedLayout>
-        <WorkingCapitalCyclePage />
       </ProtectedLayout>
     ),
   },

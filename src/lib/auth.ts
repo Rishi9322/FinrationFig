@@ -2,12 +2,15 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithPhoneNumber,
+  RecaptchaVerifier,
   sendEmailVerification,
   sendPasswordResetEmail,
   updateProfile,
   onAuthStateChanged,
   signOut as firebaseSignOut,
   type User as FirebaseUser,
+  type ConfirmationResult,
 } from "firebase/auth"
 import { auth, googleProvider } from "./firebaseClient"
 import { apiCall, apiRequest } from "./apiSession"
@@ -117,6 +120,30 @@ export async function verifyOTP(_email: string, _otp: string) {
   if (user) await user.reload()
   const loaded = user ? await loadProfile(user) : null
   return { user: loaded }
+}
+
+// Phone OTP sign-in. Firebase requires an invisible reCAPTCHA bound to a DOM
+// node before it will send an SMS; the caller supplies that node's id (it
+// must already be mounted). One verifier is reused for the session.
+let recaptchaVerifier: RecaptchaVerifier | null = null
+export async function sendPhoneOTP(
+  phoneNumber: string,
+  recaptchaContainerId = "recaptcha-container"
+): Promise<ConfirmationResult> {
+  if (!recaptchaVerifier) {
+    recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainerId, { size: "invisible" })
+  }
+  return signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
+}
+
+export async function confirmPhoneOTP(confirmation: ConfirmationResult, code: string) {
+  const cred = await confirmation.confirm(code)
+  const user = await loadProfile(cred.user)
+  if (user?.status === "SUSPENDED") {
+    await firebaseSignOut(auth)
+    throw new Error("Account suspended")
+  }
+  return { user }
 }
 
 export type OAuthProvider = "google"

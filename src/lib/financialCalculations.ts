@@ -60,10 +60,10 @@ export function calculateDebtEquity(totalDebt: number, totalEquity: number): Cal
   let risk: RiskLevel
   let interpretation: string
 
-  if (ratio < 1) {
+  if (ratio <= 3) {
     risk = "low"
     interpretation = "Low leverage — the business is conservatively financed with more equity than debt"
-  } else if (ratio <= 2) {
+  } else if (ratio <= 4) {
     risk = "moderate"
     interpretation = "Moderate leverage — manageable debt levels relative to equity"
   } else {
@@ -95,10 +95,10 @@ export function calculateQuasiDebtEquity(
   let risk: RiskLevel
   let interpretation: string
 
-  if (ratio < 1) {
+  if (ratio <= 3) {
     risk = "low"
     interpretation = "Low leverage — the business is conservatively financed with more equity than debt"
-  } else if (ratio <= 2) {
+  } else if (ratio <= 4) {
     risk = "moderate"
     interpretation = "Moderate leverage — manageable debt levels relative to equity"
   } else {
@@ -129,10 +129,10 @@ export function calculateCurrentRatio(
   let risk: RiskLevel
   let interpretation: string
 
-  if (ratio < 1) {
+  if (ratio < 1.18) {
     risk = "high"
-    interpretation = "Below 1 — the business may struggle to meet short-term obligations"
-  } else if (ratio <= 1.5) {
+    interpretation = "Below 1.18 — the business may struggle to meet short-term obligations"
+  } else if (ratio <= 1.33) {
     risk = "moderate"
     interpretation = "Adequate liquidity — current obligations are covered"
   } else {
@@ -347,6 +347,24 @@ export function calculateAgeing(
     total,
     interpretation,
     risk,
+  }
+}
+
+/**
+ * Debtors/creditors/stock ageing in days: amount x 365 / base.
+ * Debtors and stock are measured against sales; creditors against purchases.
+ */
+export function calculateAgeingDays(
+  debtors: number,
+  creditors: number,
+  stock: number,
+  sales: number,
+  purchases: number
+): { debtorDays: number; creditorDays: number; stockDays: number } {
+  return {
+    debtorDays: sales > 0 ? (debtors * 365) / sales : 0,
+    creditorDays: purchases > 0 ? (creditors * 365) / purchases : 0,
+    stockDays: sales > 0 ? (stock * 365) / sales : 0,
   }
 }
 

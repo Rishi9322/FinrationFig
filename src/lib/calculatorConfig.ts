@@ -95,22 +95,6 @@ export const CALCULATORS: CalculatorConfig[] = [
     icon: "BadgePercent",
   },
   {
-    id: "valuation",
-    name: "Business Valuation",
-    description: "Estimate the value of your business based on EBITDA multiples.",
-    shortDescription: "Estimate business valuation using EBITDA",
-    path: "/calculators/valuation",
-    icon: "BarChart",
-  },
-  {
-    id: "working-capital-cycle",
-    name: "Working Capital Cycle %",
-    description: "Analyze creditors, debtors, and stock as a percentage of purchases or sales.",
-    shortDescription: "Analyze working capital components",
-    path: "/calculators/working-capital-cycle",
-    icon: "RefreshCw",
-  },
-  {
     id: "cashflow-quality",
     name: "Quality of Cashflow Ratios",
     description:
