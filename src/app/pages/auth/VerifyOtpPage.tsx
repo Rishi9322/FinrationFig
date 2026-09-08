@@ -63,7 +63,8 @@ export default function VerifyOtpPage() {
       <div className="relative w-full max-w-sm">
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <img src="/logoo.png" alt="FinRatio" className="h-14 w-auto sm:h-16" />
+            <img src="/logo-mark.png" alt="FinRatio" className="h-14 w-auto sm:h-16" />
+            <span className="text-xl font-semibold text-foreground tracking-tight">FinRatio</span>
           </Link>
           <p className="text-sm text-muted-foreground mt-3">Verify your email to continue</p>
         </div>

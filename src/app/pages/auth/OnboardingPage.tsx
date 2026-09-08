@@ -79,9 +79,10 @@ export default function OnboardingPage() {
       />
 
       <div className="relative w-full max-w-sm">
-        <div className="text-center mb-8">
-          <img src="/logoo.png" alt="FinRatio" className="h-14 w-auto mx-auto sm:h-16" />
-          <span className="ml-2 text-[10px] font-['Geist_Mono'] bg-primary/20 text-link border border-primary/30 rounded px-1.5 py-0.5 leading-none">β</span>
+        <div className="flex items-center justify-center gap-2 mb-8">
+          <img src="/logo-mark.png" alt="FinRatio" className="h-14 w-auto sm:h-16" />
+          <span className="text-xl font-semibold text-foreground tracking-tight">FinRatio</span>
+          <span className="ml-1 text-[10px] font-['Geist_Mono'] bg-primary/20 text-link border border-primary/30 rounded px-1.5 py-0.5 leading-none">β</span>
         </div>
 
         <div className="bg-card border border-foreground/8 rounded-2xl p-8">

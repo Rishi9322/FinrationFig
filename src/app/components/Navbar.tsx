@@ -65,7 +65,8 @@ export function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full flex items-center justify-between">
           {/* Wordmark */}
           <Link to="/dashboard" className="flex items-center gap-2">
-            <img src="/logoo.png" alt="FinRatio" width={136} height={91} className="h-20 w-auto sm:h-11" />
+            <img src="/logo-mark.png" alt="FinRatio" width={136} height={91} className="h-20 w-auto sm:h-11" />
+            <span className="text-lg font-semibold text-foreground tracking-tight">FinRatio</span>
             <span className="text-[10px] font-['Geist_Mono'] bg-primary/20 text-link border border-primary/30 rounded px-1.5 py-0.5 leading-none">
               β
             </span>
