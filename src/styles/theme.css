@@ -4,6 +4,7 @@
    same brand blue/green accents as dark mode so the brand stays recognisable
    across both - see .dark below for the native dark palette. */
 :root {
+  color-scheme: light;
   --font-size: 16px;
   --background: #F8FAFC;
   --foreground: #0F172A;
@@ -17,7 +18,7 @@
   --secondary: #EEF2F7;
   --secondary-foreground: #0F172A;
   --muted: #EEF2F7;
-  --muted-foreground: #64748B;
+  --muted-foreground: #56667A;
   --accent: #10B981;
   --accent-foreground: #ffffff;
   --warning: #F59E0B;
@@ -50,6 +51,7 @@
 
 /* Dark mode - FinRatio's native brand look. */
 .dark {
+  color-scheme: dark;
   --background: #050A14;
   --foreground: #F1F5F9;
   --card: #0D1726;
@@ -218,5 +220,36 @@
   /* Tailwind's reset zeroes this; restore it for anything opting out above. */
   :focus:not(:focus-visible) {
     outline: none;
+  }
+}
+
+/* Themed scrollbars app-wide (the CMA engine already had its own copy of
+   this) - the OS default scrollbar is light-gray regardless of theme and
+   reads as a seam against either surface. */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--muted-foreground) transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--muted-foreground) 45%, transparent);
+    border-radius: 999px;
+    border: 2px solid var(--background);
+    background-clip: padding-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--muted-foreground) 70%, transparent);
+    background-clip: padding-box;
   }
 }
