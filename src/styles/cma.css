@@ -7,6 +7,31 @@
   width: 100%;
 }
 
+/* Themed scrollbars for the terminal's own scroll areas (tabs strip, wide
+   tables) — otherwise the OS default light scrollbar clashes with the dark UI. */
+.cma-container * {
+  scrollbar-width: thin;
+  scrollbar-color: #2A3345 #0E1218;
+}
+
+.cma-container *::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.cma-container *::-webkit-scrollbar-track {
+  background: #0E1218;
+}
+
+.cma-container *::-webkit-scrollbar-thumb {
+  background-color: #2A3345;
+  border-radius: 4px;
+}
+
+.cma-container *::-webkit-scrollbar-thumb:hover {
+  background-color: #3B4658;
+}
+
 .cma-header {
   border-bottom: 1px solid #1A2030;
   padding: 1.5rem 2rem;
