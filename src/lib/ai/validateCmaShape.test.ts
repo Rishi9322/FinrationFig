@@ -44,7 +44,7 @@ describe('verifyCompanyAgainstSource', () => {
     // The name the model returned appears nowhere in the document it parsed.
     const source = 'BALANCE SHEET OF ACME POLYMERS LIMITED AS AT 31.03.2025';
 
-    const out = verifyCompanyAgainstSource({ company: 'M/s. Spar Coats and Polymers' }, source);
+    const out = verifyCompanyAgainstSource({ company: 'M/s. Example Coatings and Polymers' }, source);
 
     expect(out.company).toBe('');
   });

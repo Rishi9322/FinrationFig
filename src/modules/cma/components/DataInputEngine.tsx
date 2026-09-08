@@ -9,7 +9,7 @@ import { ManualReview } from './ManualReview';
 const CASE_STATUSES: CaseStatus[] = ["New", "Under Review", "Awaiting Docs", "Memo Ready", "Approved", "Declined"];
 
 export function DataInputEngine() {
-  const { loadSampleData, setParsedData, setIsLoading, isLoading, parsedData, computedData, balanceCheck, creditOpinion, classification, setClassification, sourceMeta, setSourceMeta, loadSavedDocument, recommendation } = useCma();
+  const { setParsedData, setIsLoading, isLoading, parsedData, computedData, balanceCheck, creditOpinion, classification, setClassification, sourceMeta, setSourceMeta, loadSavedDocument, recommendation } = useCma();
   const { user } = useAuth();
   const [rawText, setRawText] = useState("");
   const [error, setError] = useState("");
@@ -272,9 +272,6 @@ export function DataInputEngine() {
             disabled={isLoading}
           >
             Upload File
-          </button>
-          <button className="cma-btn cma-btn-outline" onClick={loadSampleData}>
-            Load Sample Data
           </button>
         </div>
       </div>
