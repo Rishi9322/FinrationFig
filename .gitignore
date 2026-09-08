@@ -13,6 +13,12 @@ out/
 
 # Personal/unrelated scratch files
 scratch/
+teest/
+
+# Claude Code / agent tooling (session-local, not project source)
+.agents/
+.claude/skills/
+skills-lock.json
 
 # Environment variables
 .env
