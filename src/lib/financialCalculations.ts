@@ -62,13 +62,13 @@ export function calculateDebtEquity(totalDebt: number, totalEquity: number): Cal
 
   if (ratio <= 3) {
     risk = "low"
-    interpretation = "Low leverage — the business is conservatively financed with more equity than debt"
+    interpretation = "Low leverage - the business is conservatively financed with more equity than debt"
   } else if (ratio <= 4) {
     risk = "moderate"
-    interpretation = "Moderate leverage — manageable debt levels relative to equity"
+    interpretation = "Moderate leverage - manageable debt levels relative to equity"
   } else {
     risk = "high"
-    interpretation = "High leverage — elevated financial risk due to significant debt relative to equity"
+    interpretation = "High leverage - elevated financial risk due to significant debt relative to equity"
   }
 
   return {
@@ -97,13 +97,13 @@ export function calculateQuasiDebtEquity(
 
   if (ratio <= 3) {
     risk = "low"
-    interpretation = "Low leverage — the business is conservatively financed with more equity than debt"
+    interpretation = "Low leverage - the business is conservatively financed with more equity than debt"
   } else if (ratio <= 4) {
     risk = "moderate"
-    interpretation = "Moderate leverage — manageable debt levels relative to equity"
+    interpretation = "Moderate leverage - manageable debt levels relative to equity"
   } else {
     risk = "high"
-    interpretation = "High leverage — elevated financial risk due to significant debt relative to equity"
+    interpretation = "High leverage - elevated financial risk due to significant debt relative to equity"
   }
 
   return {
@@ -131,13 +131,13 @@ export function calculateCurrentRatio(
 
   if (ratio < 1.18) {
     risk = "high"
-    interpretation = "Below 1.18 — the business may struggle to meet short-term obligations"
+    interpretation = "Below 1.18 - the business may struggle to meet short-term obligations"
   } else if (ratio <= 1.33) {
     risk = "moderate"
-    interpretation = "Adequate liquidity — current obligations are covered"
+    interpretation = "Adequate liquidity - current obligations are covered"
   } else {
     risk = "low"
-    interpretation = "Strong liquidity position — comfortable short-term cushion"
+    interpretation = "Strong liquidity position - comfortable short-term cushion"
   }
 
   return {
@@ -162,13 +162,13 @@ export function calculateDSCR(
 
   if (ratio < 1) {
     risk = "high"
-    interpretation = "Insufficient cash flow to cover debt obligations — high default risk"
+    interpretation = "Insufficient cash flow to cover debt obligations - high default risk"
   } else if (ratio <= 1.5) {
     risk = "moderate"
-    interpretation = "Marginally adequate coverage — limited buffer for cash flow fluctuations"
+    interpretation = "Marginally adequate coverage - limited buffer for cash flow fluctuations"
   } else {
     risk = "low"
-    interpretation = "Healthy debt service capacity — strong cash flow relative to obligations"
+    interpretation = "Healthy debt service capacity - strong cash flow relative to obligations"
   }
 
   return {
@@ -196,13 +196,13 @@ export function calculateEBITDA(
 
   if (ebitda < 0) {
     risk = "high"
-    interpretation = "Negative EBITDA — the business is operating at a loss"
+    interpretation = "Negative EBITDA - the business is operating at a loss"
   } else if (margin <= 20) {
     risk = "moderate"
-    interpretation = "Thin operating margin — limited profitability buffer"
+    interpretation = "Thin operating margin - limited profitability buffer"
   } else {
     risk = "low"
-    interpretation = "Healthy operating margin — strong profitability"
+    interpretation = "Healthy operating margin - strong profitability"
   }
 
   return {
@@ -225,13 +225,13 @@ export function calculateISCR(ebit: number, interestExpense: number): Calculatio
 
   if (ratio < 1) {
     risk = "high"
-    interpretation = "Cannot cover interest payments — critical financial distress signal"
+    interpretation = "Cannot cover interest payments - critical financial distress signal"
   } else if (ratio <= 1.5) {
     risk = "moderate"
-    interpretation = "Barely covering interest — vulnerable to earnings decline"
+    interpretation = "Barely covering interest - vulnerable to earnings decline"
   } else {
     risk = "low"
-    interpretation = "Comfortable interest coverage — earnings well above interest obligations"
+    interpretation = "Comfortable interest coverage - earnings well above interest obligations"
   }
 
   return {
@@ -252,13 +252,13 @@ export function calculateNetWorkingCapital(
 
   if (nwc < 0) {
     risk = "high"
-    interpretation = "Negative NWC — short-term insolvency risk, liabilities exceed assets"
+    interpretation = "Negative NWC - short-term insolvency risk, liabilities exceed assets"
   } else if (nwc <= 500000) {
     risk = "moderate"
-    interpretation = "Minimal working capital buffer — limited financial flexibility"
+    interpretation = "Minimal working capital buffer - limited financial flexibility"
   } else {
     risk = "low"
-    interpretation = "Strong working capital cushion — well-positioned for operations"
+    interpretation = "Strong working capital cushion - well-positioned for operations"
   }
 
   return {
@@ -333,13 +333,13 @@ export function calculateAgeing(
 
   if (pctOver90 < 10) {
     risk = "low"
-    interpretation = "Low aging risk — most receivables are current and within terms"
+    interpretation = "Low aging risk - most receivables are current and within terms"
   } else if (pctOver90 <= 30) {
     risk = "moderate"
-    interpretation = "Moderate aging — a notable portion of receivables are overdue"
+    interpretation = "Moderate aging - a notable portion of receivables are overdue"
   } else {
     risk = "high"
-    interpretation = "High aging risk — significant overdue receivables require immediate attention"
+    interpretation = "High aging risk - significant overdue receivables require immediate attention"
   }
 
   return {
@@ -473,13 +473,13 @@ export function calculateOCG(operatingCashflow: number, cash: number): Calculati
   let interpretation: string
   if (ratio > 1) {
     risk = "low"
-    interpretation = "Strong cash-generating profile — operations produced multiple times the cash-on-hand"
+    interpretation = "Strong cash-generating profile - operations produced multiple times the cash-on-hand"
   } else if (ratio >= 0) {
     risk = "moderate"
     interpretation = "Operations are cash-positive but only partly explain the cash balance"
   } else {
     risk = "high"
-    interpretation = "Operations consumed cash — the cash balance relies on non-operating sources"
+    interpretation = "Operations consumed cash - the cash balance relies on non-operating sources"
   }
   return { value: ratio, formatted: ratio.toFixed(2), interpretation, risk }
 }
@@ -497,7 +497,7 @@ export function calculateCLCC(operatingCashflow: number, currentLiabilities: num
     interpretation = "Operating cash flow only partly covers current liabilities"
   } else {
     risk = "high"
-    interpretation = "Operations are cash-negative — short-term obligations depend on external funding"
+    interpretation = "Operations are cash-negative - short-term obligations depend on external funding"
   }
   return { value: ratio, formatted: ratio.toFixed(2), interpretation, risk }
 }
@@ -525,13 +525,13 @@ export function calculateQPT(daysSalesOutstanding: number): CalculationResult {
   let interpretation: string
   if (qpt > 0.3) {
     risk = "low"
-    interpretation = "Strong collections — receivables turn over quickly"
+    interpretation = "Strong collections - receivables turn over quickly"
   } else if (qpt >= -0.3) {
     risk = "moderate"
     interpretation = "Average collection performance"
   } else {
     risk = "high"
-    interpretation = "Slow collections — receivables are aging past healthy terms"
+    interpretation = "Slow collections - receivables are aging past healthy terms"
   }
   return { value: qpt, formatted: qpt.toFixed(2), interpretation, risk }
 }
@@ -550,10 +550,10 @@ export function calculateQOFFUR(operatingCashflow: number, financingCashflow: nu
   let interpretation: string
   if (operatingCashflow > 0 && financingCashflow < 0) {
     risk = "low"
-    interpretation = "Healthy pattern — operations fund debt paydown or capital returns"
+    interpretation = "Healthy pattern - operations fund debt paydown or capital returns"
   } else if (operatingCashflow < 0 && financingCashflow < 0) {
     risk = "high"
-    interpretation = "Cash is being burned with no external financing support — risk of a liquidity shortfall"
+    interpretation = "Cash is being burned with no external financing support - risk of a liquidity shortfall"
   } else {
     risk = "moderate"
     interpretation = "Mixed operating/financing cash flow pattern"
@@ -579,7 +579,7 @@ export function calculateLYCA(
     interpretation:
       lyca >= 0
         ? "Debt structure is favorably aligned with the prevailing yield curve"
-        : "Debt structure is misaligned with the prevailing yield curve — relying on relatively costlier maturities",
+        : "Debt structure is misaligned with the prevailing yield curve - relying on relatively costlier maturities",
     risk: "n/a",
   }
 }
@@ -610,7 +610,7 @@ export function calculateROA2Bond(roa: number, bondRate: number): CalculationRes
   let interpretation: string
   if (ratio > 1) {
     risk = "low"
-    interpretation = "Returns on assets exceed the cost of borrowing — capital is being deployed efficiently"
+    interpretation = "Returns on assets exceed the cost of borrowing - capital is being deployed efficiently"
   } else if (ratio >= 0) {
     risk = "moderate"
     interpretation = "Returns on assets are positive but below the cost of borrowing"

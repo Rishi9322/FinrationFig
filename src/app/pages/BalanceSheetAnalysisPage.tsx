@@ -3,7 +3,7 @@ import BalanceSheetUpload from "@/app/components/BalanceSheetUpload"
 import { useAuth } from "@/app/hooks/useAuth"
 
 const STEPS = [
-  { label: "Upload", detail: "Drop a file — any format" },
+  { label: "Upload", detail: "Drop a file - any format" },
   { label: "Auto-parse & map", detail: "Extracted and mapped for you" },
   { label: "Review & save", detail: "Adjust if needed, then save" },
 ]
@@ -20,11 +20,11 @@ export default function BalanceSheetAnalysisPage() {
             Balance Sheet Analysis
           </h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
-            Upload a balance sheet in any format — the calculator, mapping and result all update automatically.
+            Upload a balance sheet in any format - the calculator, mapping and result all update automatically.
           </p>
         </div>
 
-        {/* Three-step strip — replaces the old wall of "how it works" / "features" cards */}
+        {/* Three-step strip - replaces the old wall of "how it works" / "features" cards */}
         <div className="flex items-center gap-2 text-xs font-['Geist_Mono'] text-muted-foreground">
           {STEPS.map((step, i) => (
             <React.Fragment key={step.label}>

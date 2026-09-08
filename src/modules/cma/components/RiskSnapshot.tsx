@@ -127,7 +127,7 @@ export function RiskSnapshot() {
           ))}
         </div>
         <div style={{ fontSize: '0.7rem', color: 'var(--cma-text-faint)', marginTop: '0.6rem' }}>
-          Operating cashflow is estimated from net profit, depreciation, and the change in net working capital — the CMA format has no reported statement of cashflows.
+          Operating cashflow is estimated from net profit, depreciation, and the change in net working capital - the CMA format has no reported statement of cashflows.
         </div>
       </div>
     )}

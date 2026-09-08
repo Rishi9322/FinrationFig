@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest"
 
 // The edge routes authenticate with the caller's Firebase ID token as a Bearer
-// header — never a token in the URL.
+// header - never a token in the URL.
 vi.mock("./supabaseClient", () => ({
   FUNCTIONS_BASE: "https://project.supabase.co/functions/v1/make-server-bd792702",
 }))

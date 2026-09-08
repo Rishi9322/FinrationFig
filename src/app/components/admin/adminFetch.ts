@@ -1,7 +1,7 @@
 import { toast } from "sonner";
 
 /**
- * Admin write requests. Every admin mutation must go through this — a bare
+ * Admin write requests. Every admin mutation must go through this - a bare
  * `fetch` swallows non-2xx responses, so the list refetches and the operator
  * sees what looks like success after a failed write.
  *
@@ -49,7 +49,7 @@ async function describeFailure(res: Response): Promise<string> {
     if (typeof data?.error === "string") return data.error;
     if (typeof data?.message === "string") return data.message;
   } catch {
-    // non-JSON body — fall through to the status line
+    // non-JSON body - fall through to the status line
   }
   return `${res.status} ${res.statusText}`.trim();
 }

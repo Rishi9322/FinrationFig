@@ -327,7 +327,7 @@ export function DataInputEngine() {
             {classification.isFinancialDocument ? classification.docType : 'Not a financial document'}
           </span>
           <span style={{ color: 'var(--cma-text-muted)', fontSize: '0.8rem', marginLeft: '0.75rem' }}>
-            Confidence: {Math.round(classification.confidence * 100)}% — {classification.reason}
+            Confidence: {Math.round(classification.confidence * 100)}% - {classification.reason}
           </span>
           {!classification.isFinancialDocument && (
             <p style={{ color: '#EF4444', fontSize: '0.8rem', marginTop: '0.5rem' }}>

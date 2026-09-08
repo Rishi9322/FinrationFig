@@ -72,7 +72,7 @@ export default function DrawingPowerPage() {
     <CalculatorShell
       title="Drawing Power"
       description="Calculates the maximum working capital limit a business can draw against pledged collateral."
-      explainerText="Drawing Power (DP) is the maximum amount a business can withdraw from its cash credit or overdraft account at any given time, calculated against the value of pledged stock and debtors after applying the bank's prescribed margin. Banks recalculate DP every month based on the latest stock and debtor statements submitted by the borrower. Staying within DP limits is a key compliance requirement — exceeding them triggers irregular account flags in credit monitoring reports."
+      explainerText="Drawing Power (DP) is the maximum amount a business can withdraw from its cash credit or overdraft account at any given time, calculated against the value of pledged stock and debtors after applying the bank's prescribed margin. Banks recalculate DP every month based on the latest stock and debtor statements submitted by the borrower. Staying within DP limits is a key compliance requirement - exceeding them triggers irregular account flags in credit monitoring reports."
       result={
         result ? (
           <ResultCard

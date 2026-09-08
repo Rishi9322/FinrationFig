@@ -56,14 +56,14 @@ function AnimatedStat({ label, prefix = "", suffix = "", value, decimals = 0, st
 }
 
 const STEPS = [
-  { n: "01", icon: FolderOpen, title: "Upload financials", desc: "PDF, DOCX, XLS, or CSV — balance sheet, P&L, or CMA data" },
+  { n: "01", icon: FolderOpen, title: "Upload financials", desc: "PDF, DOCX, XLS, or CSV - balance sheet, P&L, or CMA data" },
   { n: "02", icon: Lock, title: "Review extracted data", desc: "Auto-parsed into RBI CMA format, flagged for anything to confirm" },
-  { n: "03", icon: Zap, title: "See the risk picture", desc: "DSCR, TOL/TNW, current ratio against RBI norms — top concerns surfaced first" },
+  { n: "03", icon: Zap, title: "See the risk picture", desc: "DSCR, TOL/TNW, current ratio against RBI norms - top concerns surfaced first" },
   { n: "04", icon: FileText, title: "Generate the credit note", desc: "Banker-ready memo with red flags, covenants, and a recommendation" },
 ]
 
 const FEATURES = [
-  { icon: Zap, title: "Live recalculation", desc: "Results update on every keystroke — no submit button needed" },
+  { icon: Zap, title: "Live recalculation", desc: "Results update on every keystroke - no submit button needed" },
   { icon: Lock, title: "Secure & private", desc: "OTP auth, encrypted data, zero data sharing" },
   { icon: FolderOpen, title: "Full history", desc: "Every calculation saved and reloadable from your dashboard" },
   { icon: FileText, title: "9 ratio calculators", desc: "D/E, Current Ratio, DSCR, EBITDA, ISCR, NWC, and more" },
@@ -72,7 +72,7 @@ const FEATURES = [
 ]
 
 const PRINCIPLES = [
-  { title: "No black boxes", desc: "Every ratio shows its formula and inputs — nothing is computed off-screen. Audit the math yourself." },
+  { title: "No black boxes", desc: "Every ratio shows its formula and inputs - nothing is computed off-screen. Audit the math yourself." },
   { title: "Built for Indian credit norms", desc: "Lakhs, crores, and the exact ratio set (DSCR, ISCR, Drawing Power) that Indian lenders actually ask for." },
   { title: "No manufactured numbers", desc: "We're early. We'd rather show you real formulas than fake testimonials or inflated user counts." },
 ]
@@ -183,7 +183,7 @@ export default function HomePage() {
 
           <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
             Upload financial statements and get an RBI CMA-format analysis with risk flags,
-            covenants, and a banker-ready credit memo — not just a spreadsheet of ratios.
+            covenants, and a banker-ready credit memo - not just a spreadsheet of ratios.
           </p>
 
           {/* CTA row */}
@@ -204,10 +204,10 @@ export default function HomePage() {
             </a>
           </div>
 
-          {/* Honest positioning line — no fabricated user counts or star ratings */}
+          {/* Honest positioning line - no fabricated user counts or star ratings */}
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Zap className="w-3.5 h-3.5 text-accent" />
-            <span>Built on the exact RBI CMA ratio set — DSCR, MPBF, TOL/TNW — not generic scoring</span>
+            <span>Built on the exact RBI CMA ratio set - DSCR, MPBF, TOL/TNW - not generic scoring</span>
           </div>
         </div>
 
@@ -315,7 +315,7 @@ export default function HomePage() {
               </h2>
               <p className="text-muted-foreground leading-relaxed mb-8">
                 Every input field recalculates the full ratio suite in real time.
-                Risk badges update automatically — Low, Moderate, or High — with
+                Risk badges update automatically - Low, Moderate, or High - with
                 plain-language interpretation for each result.
               </p>
               <Link
@@ -471,7 +471,7 @@ export default function HomePage() {
           >
             Start your first calculation
             <br />
-            <em className="not-italic text-muted-foreground">— free</em>
+            <em className="not-italic text-muted-foreground">- free</em>
           </h2>
           <p className="text-muted-foreground mb-10 text-lg">No credit card. No setup. Just results.</p>
           <Link

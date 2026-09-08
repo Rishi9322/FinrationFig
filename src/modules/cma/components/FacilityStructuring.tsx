@@ -69,7 +69,7 @@ export function FacilityStructuring() {
           <div style={{ fontSize: '0.75rem', color: 'var(--cma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Suggested Term Loan Amount</div>
           <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--cma-text-strong)' }}>₹ {fmt(sizing.maxLoanAmount)} Lakhs</div>
           <p style={{ color: 'var(--cma-text-muted)', fontSize: '0.8rem', marginTop: '0.4rem' }}>
-            At {targetDscr.toFixed(1)}x target DSCR, {tenureYears}-year tenure, {interestRate}% p.a. — cash accrual ₹{fmt(sizing.annualCashAccrual)} Lakhs,
+            At {targetDscr.toFixed(1)}x target DSCR, {tenureYears}-year tenure, {interestRate}% p.a. - cash accrual ₹{fmt(sizing.annualCashAccrual)} Lakhs,
             existing debt service ₹{fmt(sizing.existingDebtService)} Lakhs, leaving ₹{fmt(sizing.maxAnnualEmi)} Lakhs/yr headroom for a new EMI.
           </p>
         </div>

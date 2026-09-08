@@ -40,7 +40,7 @@ export function CalculatorShell({ title, description, explainerText, videoUrl, c
           </h1>
         </div>
 
-        {/* Explainer card — the video half only exists when there is a video to play. */}
+        {/* Explainer card - the video half only exists when there is a video to play. */}
         <div className="bg-card border border-foreground/8 rounded-xl mb-6 overflow-hidden">
           <div className={`grid grid-cols-1 ${videoUrl ? "md:grid-cols-2" : ""}`}>
             <div className={`p-6 md:p-8 flex flex-col justify-center ${videoUrl ? "md:border-r border-foreground/8" : ""}`}>
@@ -83,7 +83,7 @@ export function CalculatorShell({ title, description, explainerText, videoUrl, c
 
                 <DialogContent className="max-w-3xl bg-card border-foreground/10 p-0 gap-0 overflow-hidden">
                   <DialogHeader className="px-5 py-4 border-b border-foreground/8 text-left">
-                    <DialogTitle className="text-sm font-medium text-foreground">{title} — Explainer</DialogTitle>
+                    <DialogTitle className="text-sm font-medium text-foreground">{title} - Explainer</DialogTitle>
                   </DialogHeader>
                   <video src={videoUrl} controls autoPlay className="w-full aspect-video bg-secondary" />
                 </DialogContent>

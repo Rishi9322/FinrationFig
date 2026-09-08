@@ -34,7 +34,7 @@ export default function QuasiDebtEquityPage() {
     <CalculatorShell
       title="Quasi Debt-to-Equity Ratio"
       description="Includes hybrid instruments like preference shares alongside standard debt in the leverage calculation."
-      explainerText="The Quasi D/E Ratio extends the standard D/E calculation by treating hybrid instruments — such as preference shares, compulsorily convertible debentures (CCDs), and subordinated loans — as quasi-debt. Banks and financial institutions use this adjusted ratio during credit appraisal to get a truer picture of a borrower's leverage when hybrid financing is present. It prevents understatement of debt risk in businesses that use structured finance."
+      explainerText="The Quasi D/E Ratio extends the standard D/E calculation by treating hybrid instruments - such as preference shares, compulsorily convertible debentures (CCDs), and subordinated loans - as quasi-debt. Banks and financial institutions use this adjusted ratio during credit appraisal to get a truer picture of a borrower's leverage when hybrid financing is present. It prevents understatement of debt risk in businesses that use structured finance."
       result={
         result ? (
           <ResultCard

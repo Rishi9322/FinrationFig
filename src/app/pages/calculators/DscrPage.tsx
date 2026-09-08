@@ -32,7 +32,7 @@ export default function DscrPage() {
     <CalculatorShell
       title="Debt Service Coverage Ratio"
       description="Determines whether operating income is sufficient to service all debt obligations."
-      explainerText="The Debt Service Coverage Ratio (DSCR) is the single most important ratio for term loan assessment. It answers the question: does the business generate enough cash to repay both the principal and interest on its borrowings? A DSCR above 1.25 is the minimum acceptable threshold for most Indian banks. Ratios below 1.0 indicate the business cannot service its debt from operations alone — a red flag for lenders and credit risk teams."
+      explainerText="The Debt Service Coverage Ratio (DSCR) is the single most important ratio for term loan assessment. It answers the question: does the business generate enough cash to repay both the principal and interest on its borrowings? A DSCR above 1.25 is the minimum acceptable threshold for most Indian banks. Ratios below 1.0 indicate the business cannot service its debt from operations alone - a red flag for lenders and credit risk teams."
       result={
         result ? (
           <ResultCard

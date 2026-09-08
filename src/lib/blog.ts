@@ -35,7 +35,7 @@ export async function getPostBySlug(slug: string): Promise<BlogPost> {
   return data.post
 }
 
-// Admin-only — the edge function enforces ADMIN/SUPER_ADMIN server-side.
+// Admin-only - the edge function enforces ADMIN/SUPER_ADMIN server-side.
 export async function getAdminPosts(): Promise<BlogPost[]> {
   const data = await apiCall("/admin/blog")
   return data.posts || []

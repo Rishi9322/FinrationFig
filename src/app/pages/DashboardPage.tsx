@@ -121,7 +121,7 @@ Provide a cohesive overall summary of the company's financial health based on th
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">Most Used</p>
-              <p className="text-lg font-medium text-foreground">{mostUsedType ? mostUsedType.name : "—"}</p>
+              <p className="text-lg font-medium text-foreground">{mostUsedType ? mostUsedType.name : "-"}</p>
             </div>
           </div>
         </div>

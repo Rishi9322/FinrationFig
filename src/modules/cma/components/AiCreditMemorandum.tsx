@@ -222,7 +222,7 @@ export function AiCreditMemorandum() {
           <div>
             <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--cma-text-strong)' }}>Financial Prognosis</div>
             <div style={{ fontSize: '0.75rem', color: 'var(--cma-text-muted)' }}>
-              AI-estimated outlook, not a statistical forecast — optionally benchmarked against sector medians from ~4,400 Indian listed companies.
+              AI-estimated outlook, not a statistical forecast - optionally benchmarked against sector medians from ~4,400 Indian listed companies.
             </div>
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>

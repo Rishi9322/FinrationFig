@@ -21,13 +21,13 @@ export default function BlogIndexPage() {
           FinRatio Blog
         </h1>
         <p className="text-sm text-muted-foreground mb-8">
-          Financial insights for Indian MSMEs — credit, cash flow, and ratios that matter, curated from across the web with full credit to the original authors.
+          Financial insights for Indian MSMEs - credit, cash flow, and ratios that matter, curated from across the web with full credit to the original authors.
         </p>
 
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : posts.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No posts yet — check back soon.</p>
+          <p className="text-sm text-muted-foreground">No posts yet - check back soon.</p>
         ) : (
           <div className="space-y-4">
             {posts.map((p) => (

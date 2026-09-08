@@ -98,7 +98,7 @@ export const CALCULATORS: CalculatorConfig[] = [
     id: "cashflow-quality",
     name: "Quality of Cashflow Ratios",
     description:
-      "NCG, OCG, CLCC, OCS, QPT and QOFFUR — assess how effectively a business manages its sources and uses of cash.",
+      "NCG, OCG, CLCC, OCS, QPT and QOFFUR - assess how effectively a business manages its sources and uses of cash.",
     shortDescription: "Assess the quality behind reported cashflows",
     path: "/calculators/cashflow-quality",
     icon: "Waves",
@@ -107,7 +107,7 @@ export const CALCULATORS: CalculatorConfig[] = [
     id: "macro-ratios",
     name: "Macro-Context Ratios",
     description:
-      "LYCA, IAICOC and ROA2Bond — read debt structure, inventory cost, and returns against the macroeconomic environment.",
+      "LYCA, IAICOC and ROA2Bond - read debt structure, inventory cost, and returns against the macroeconomic environment.",
     shortDescription: "Benchmark ratios against macro conditions",
     path: "/calculators/macro-ratios",
     icon: "Globe",

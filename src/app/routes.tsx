@@ -79,7 +79,7 @@ export const router = createBrowserRouter([
     element: <SigninPage />,
   },
   {
-    // Firebase verifies email via a link, not a code — this page is obsolete.
+    // Firebase verifies email via a link, not a code - this page is obsolete.
     path: "/auth/verify-otp",
     element: <Navigate to="/auth/signin" replace />,
   },

@@ -422,7 +422,7 @@ export type FinancialPrognosis = {
 /**
  * A qualitative, LLM-generated read on where the business's ratios are headed next
  * period, given current ratios and (if available) sector-median benchmarks. This is
- * an AI estimate, not a statistical forecast — no trained predictive model or
+ * an AI estimate, not a statistical forecast - no trained predictive model or
  * industry-wide dataset backs it, so it must always be surfaced as an estimate.
  */
 export async function generateFinancialPrognosis(

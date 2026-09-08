@@ -1,4 +1,4 @@
-// WebMCP — exposes the calculators as tools to browser AI agents.
+// WebMCP - exposes the calculators as tools to browser AI agents.
 // Spec: https://github.com/webmachinelearning/webmcp
 // No-ops in browsers that don't implement document.modelContext.
 import {
@@ -103,7 +103,7 @@ function toolDescriptor(tool: Tool) {
           content: [
             {
               type: "text",
-              text: `${r.formatted} — ${r.interpretation} (risk: ${r.risk})${r.details ? `\n${r.details}` : ""}`,
+              text: `${r.formatted} - ${r.interpretation} (risk: ${r.risk})${r.details ? `\n${r.details}` : ""}`,
             },
           ],
         }

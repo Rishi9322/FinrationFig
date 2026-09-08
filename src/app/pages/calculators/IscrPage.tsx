@@ -32,7 +32,7 @@ export default function IscrPage() {
     <CalculatorShell
       title="Interest Service Coverage Ratio"
       description="Assesses the ability to meet interest payments from operating earnings."
-      explainerText="The Interest Service Coverage Ratio (ISCR) measures how many times a business can cover its interest payments from its operating earnings (EBIT). Unlike DSCR, it focuses only on interest — not principal repayment — making it a useful early-warning indicator. A ratio above 1.5 is generally considered acceptable, while anything below 1.0 signals that the business cannot even meet its interest obligations, pointing to potential default risk."
+      explainerText="The Interest Service Coverage Ratio (ISCR) measures how many times a business can cover its interest payments from its operating earnings (EBIT). Unlike DSCR, it focuses only on interest - not principal repayment - making it a useful early-warning indicator. A ratio above 1.5 is generally considered acceptable, while anything below 1.0 signals that the business cannot even meet its interest obligations, pointing to potential default risk."
       result={
         result ? (
           <ResultCard

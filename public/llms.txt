@@ -4,5 +4,5 @@
 
 - [Home](https://finratio.site/): product overview and calculator suite
 - [Calculators](https://finratio.site/calculators): the full list of financial ratio calculators
-- [Blog](https://finratio.site/blog): financial insights for Indian MSMEs — credit, cash flow, and ratio literacy
+- [Blog](https://finratio.site/blog): financial insights for Indian MSMEs - credit, cash flow, and ratio literacy
 - [Sign Up](https://finratio.site/auth/signup): create a free account

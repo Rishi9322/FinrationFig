@@ -17,7 +17,7 @@ type Props = {
 }
 
 // Calculators this pipeline knows how to auto-map from a parsed balance sheet.
-// (Ageing/PID return a different result shape than the rest — handled separately below.)
+// (Ageing/PID return a different result shape than the rest - handled separately below.)
 const SUPPORTED: CalculatorType[] = [
   "debt-equity",
   "quasi-debt-equity",
@@ -79,7 +79,7 @@ export default function BalanceSheetUpload({ userId }: Props) {
     setMapped(mapToCalculator(selectedCalculator, parsed, getCurrentUser()?.businessConstitution))
   }, [parsed, selectedCalculator])
 
-  // Calculators throw on invalid inputs (e.g. zero equity) — a bad guess from the
+  // Calculators throw on invalid inputs (e.g. zero equity) - a bad guess from the
   // auto-mapper must not crash the page, just show a message so the user can fix the input.
   let result: any = null
   let calcError: string | null = null
@@ -210,12 +210,12 @@ export default function BalanceSheetUpload({ userId }: Props) {
         </div>
       </div>
 
-      {/* Mapped inputs — editable, with the parser's own confidence read-out */}
+      {/* Mapped inputs - editable, with the parser's own confidence read-out */}
       {mapped && (
         <div className="space-y-3 p-4 rounded-lg bg-foreground/3 border border-foreground/5">
           <div className="flex items-center justify-between">
             <p className="text-xs font-['Geist_Mono'] text-muted-foreground uppercase tracking-wider">
-              Mapped inputs — override anything the parser guessed wrong
+              Mapped inputs - override anything the parser guessed wrong
             </p>
             {confidencePct !== null && (
               <span className="text-xs font-['Geist_Mono']" style={{ color: confidenceColor }}>
@@ -248,7 +248,7 @@ export default function BalanceSheetUpload({ userId }: Props) {
       {calcError && (
         <div className="flex items-center gap-2 text-sm text-destructive p-3 rounded-lg bg-destructive/10 border border-destructive/20">
           <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>Can't calculate yet — {calcError.toLowerCase()}. Adjust the inputs above.</span>
+          <span>Can't calculate yet - {calcError.toLowerCase()}. Adjust the inputs above.</span>
         </div>
       )}
 
@@ -293,11 +293,11 @@ export default function BalanceSheetUpload({ userId }: Props) {
         <p className="text-xs text-muted-foreground">Sign in to save this upload and its results to your account.</p>
       )}
 
-      {/* Debug — raw parser/mapper output, collapsed by default */}
+      {/* Debug - raw parser/mapper output, collapsed by default */}
       {parsed && (
         <details className="text-xs" open={showDebug} onToggle={(e) => setShowDebug((e.target as HTMLDetailsElement).open)}>
           <summary className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
-            Debug — raw parsed &amp; mapped data
+            Debug - raw parsed &amp; mapped data
           </summary>
           <pre className="mt-2 max-h-72 overflow-auto bg-background text-muted-foreground p-3 rounded-lg border border-foreground/8">
             {JSON.stringify({ parsed, mapped }, null, 2)}

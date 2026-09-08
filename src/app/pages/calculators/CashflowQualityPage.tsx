@@ -81,7 +81,7 @@ export default function CashflowQualityPage() {
       if (!isNaN(dsoVal)) next.qpt = calculateQPT(dsoVal)
       if (!isNaN(opCf) && !isNaN(finCf)) next.qoffur = calculateQOFFUR(opCf, finCf)
     } catch {
-      // leave partial results — a bad single field shouldn't blank everything out
+      // leave partial results - a bad single field shouldn't blank everything out
     }
 
     setResults(Object.keys(next).length > 0 ? next : null)
@@ -100,7 +100,7 @@ export default function CashflowQualityPage() {
     <CalculatorShell
       title="Quality of Cashflow Ratios"
       description="A set of cashflow-quality ratios that assess how effectively a business manages its sources and uses of cash across operating, investing, and financing activities."
-      explainerText="Beyond margin and leverage ratios, these six ratios (NCG, OCG, CLCC, OCS, QPT, QOFFUR) read the statement of cashflows to judge whether reported profit is backed by real cash — how much of the cash balance came from operations, how well operating cashflow covers current liabilities, and whether the business is funding itself sustainably or burning cash while cutting financing."
+      explainerText="Beyond margin and leverage ratios, these six ratios (NCG, OCG, CLCC, OCS, QPT, QOFFUR) read the statement of cashflows to judge whether reported profit is backed by real cash - how much of the cash balance came from operations, how well operating cashflow covers current liabilities, and whether the business is funding itself sustainably or burning cash while cutting financing."
       result={
         results ? (
           <div className="space-y-4">

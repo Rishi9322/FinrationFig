@@ -72,7 +72,7 @@ export default function AgeingPage() {
     <CalculatorShell
       title="Receivables Ageing Analysis"
       description="Analyses the age profile of outstanding receivables to identify collection risk."
-      explainerText="Receivables Ageing Analysis categorises outstanding invoices into time buckets — current, 30–60 days, 60–90 days, and over 90 days — to identify concentration risk in older, harder-to-collect balances. Banks review ageing statements monthly as part of working capital monitoring. A high proportion of receivables beyond 90 days is a serious red flag, as it can indicate customer defaults, inflated book debts, or diversion of funds — all of which affect Drawing Power calculations and credit limit renewals."
+      explainerText="Receivables Ageing Analysis categorises outstanding invoices into time buckets - current, 30–60 days, 60–90 days, and over 90 days - to identify concentration risk in older, harder-to-collect balances. Banks review ageing statements monthly as part of working capital monitoring. A high proportion of receivables beyond 90 days is a serious red flag, as it can indicate customer defaults, inflated book debts, or diversion of funds - all of which affect Drawing Power calculations and credit limit renewals."
       result={
         result ? (
           <div className="bg-card rounded-xl border border-foreground/8 p-6 space-y-5" style={{ fontFamily: "'DM Sans', sans-serif" }}>

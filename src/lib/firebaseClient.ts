@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app"
 import { getAuth, GoogleAuthProvider } from "firebase/auth"
 
-// Firebase web config is public by design — it ships in the client bundle and is
+// Firebase web config is public by design - it ships in the client bundle and is
 // safe to commit. Access is controlled by Firebase Auth rules + Supabase RLS,
 // not by hiding these values.
 const firebaseConfig = {

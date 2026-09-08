@@ -18,7 +18,7 @@ export default function ResetPasswordPage() {
         </div>
         <div className="bg-card border border-foreground/8 rounded-2xl p-8 text-center space-y-4">
           <p className="text-sm text-foreground">
-            Use the reset link we email you — it opens a secure page to set a new
+            Use the reset link we email you - it opens a secure page to set a new
             password. Didn't get it?
           </p>
           <Link

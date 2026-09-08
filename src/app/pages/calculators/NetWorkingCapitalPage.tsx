@@ -32,7 +32,7 @@ export default function NetWorkingCapitalPage() {
     <CalculatorShell
       title="Net Working Capital"
       description="Measures the surplus of current assets over current liabilities as a liquidity buffer."
-      explainerText="Net Working Capital (NWC) is the rupee surplus remaining after all short-term obligations are met with current assets. A positive NWC indicates the business has a cushion to fund its operational cycle — buying raw materials, converting to goods, and collecting receivables — without needing emergency credit. Banks assess NWC trends over multiple years to judge whether a borrower's liquidity position is improving or deteriorating before sanctioning working capital limits."
+      explainerText="Net Working Capital (NWC) is the rupee surplus remaining after all short-term obligations are met with current assets. A positive NWC indicates the business has a cushion to fund its operational cycle - buying raw materials, converting to goods, and collecting receivables - without needing emergency credit. Banks assess NWC trends over multiple years to judge whether a borrower's liquidity position is improving or deteriorating before sanctioning working capital limits."
       result={
         result ? (
           <ResultCard

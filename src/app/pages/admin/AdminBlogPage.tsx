@@ -123,7 +123,7 @@ export default function AdminBlogPage() {
               <input
                 value={form.sourceName}
                 onChange={(e) => setForm({ ...form, sourceName: e.target.value })}
-                placeholder="Source name (credit, e.g. Livemint) — leave blank if original"
+                placeholder="Source name (credit, e.g. Livemint) - leave blank if original"
                 className="w-full bg-background border border-foreground/10 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
               />
               <input

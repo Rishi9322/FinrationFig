@@ -32,7 +32,7 @@ export default function DebtEquityPage() {
     <CalculatorShell
       title="Debt-to-Equity Ratio"
       description="Measures financial leverage by comparing total debt to shareholders' equity."
-      explainerText="The Debt-to-Equity (D/E) Ratio reveals how much of your business is funded by borrowed money versus owner capital. A higher ratio signals greater financial risk — lenders and credit analysts use it as a primary indicator of a company's leverage and repayment capacity. For Indian SMEs seeking bank credit, a D/E below 2:1 is generally considered healthy, while ratios above 3:1 may attract higher scrutiny from credit committees."
+      explainerText="The Debt-to-Equity (D/E) Ratio reveals how much of your business is funded by borrowed money versus owner capital. A higher ratio signals greater financial risk - lenders and credit analysts use it as a primary indicator of a company's leverage and repayment capacity. For Indian SMEs seeking bank credit, a D/E below 2:1 is generally considered healthy, while ratios above 3:1 may attract higher scrutiny from credit committees."
       result={
         result ? (
           <ResultCard

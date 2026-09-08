@@ -64,7 +64,7 @@ export function ErrorState({
 }
 
 /**
- * Skeleton rows rather than a spinner — a spinner communicates "wait",
+ * Skeleton rows rather than a spinner - a spinner communicates "wait",
  * a skeleton communicates "here is the shape of what is arriving", which
  * reads as faster even at identical latency.
  */

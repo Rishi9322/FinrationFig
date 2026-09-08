@@ -43,7 +43,7 @@ export default function FeedbackPage() {
           Feedback
         </h1>
         <p className="text-sm text-muted-foreground mb-6">
-          Leave a review or request a feature — an admin reads every submission.
+          Leave a review or request a feature - an admin reads every submission.
         </p>
 
         <div className="bg-card border border-foreground/8 rounded-xl p-8">
@@ -128,7 +128,7 @@ export default function FeedbackPage() {
             </button>
 
             {submitted && (
-              <p className="text-xs text-accent text-center">Submitted — thank you.</p>
+              <p className="text-xs text-accent text-center">Submitted - thank you.</p>
             )}
           </form>
         </div>

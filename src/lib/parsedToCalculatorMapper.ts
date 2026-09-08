@@ -148,7 +148,7 @@ export function mapToCalculator(
 
     case "ebitda": {
       // Derive EBITDA using available fields in order of reliability:
-      // 0) Constitution-appropriate profit figure — Net Profit for Proprietorship/
+      // 0) Constitution-appropriate profit figure - Net Profit for Proprietorship/
       //    Partnership, Profit Before Tax for everyone else (Pvt Ltd, Ltd, OPC, LLP...)
       // 1) If operating profit before interest available, add back depreciation/amortisation to get EBITDA
       // 2) Else if balanceSheet/equity contains gross profit, use that (some CMA reports report EBITDA as gross profit)

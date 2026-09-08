@@ -15,7 +15,7 @@ import {
  * Gate for destructive/high-impact admin actions. Replaces native `confirm()`:
  * styled, keyboard-accessible, and not suppressible by the browser.
  *
- * The description must name the concrete consequence — "this affects 40 users",
+ * The description must name the concrete consequence - "this affects 40 users",
  * not "are you sure".
  */
 export function ConfirmDialog({

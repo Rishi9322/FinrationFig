@@ -15,7 +15,7 @@ export async function submitFeedback(params: { type: FeedbackType; message: stri
   return apiCall("/feedback", { method: "POST", body: JSON.stringify(params) })
 }
 
-// SUPER_ADMIN only — the edge function enforces this server-side.
+// SUPER_ADMIN only - the edge function enforces this server-side.
 export async function getAdminFeedback(): Promise<FeedbackEntry[]> {
   const data = await apiCall("/admin/feedback")
   return data.feedback || []

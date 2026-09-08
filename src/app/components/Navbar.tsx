@@ -88,7 +88,7 @@ export function Navbar() {
               </Link>
             ))}
 
-            {/* Calculators dropdown — Radix handles focus, Escape, and menu ARIA. */}
+            {/* Calculators dropdown - Radix handles focus, Escape, and menu ARIA. */}
             <DropdownMenu open={calcOpen} onOpenChange={setCalcOpen}>
               <DropdownMenuTrigger asChild>
                 <button
@@ -107,7 +107,7 @@ export function Navbar() {
               >
                 {visibleCalculators.length === 0 && (
                   <p className="px-4 py-3 text-xs text-muted-foreground">
-                    No calculators yet — request access from the Calculators page.
+                    No calculators yet - request access from the Calculators page.
                   </p>
                 )}
                 {visibleCalculators.map((calc) => {
@@ -231,7 +231,7 @@ export function Navbar() {
                 <p className="text-xs font-['Geist_Mono'] text-muted-foreground uppercase tracking-widest px-3 mb-2">Calculators</p>
                 {visibleCalculators.length === 0 && (
                   <p className="px-3 py-2 text-xs text-muted-foreground">
-                    No calculators yet — request access from the Calculators page.
+                    No calculators yet - request access from the Calculators page.
                   </p>
                 )}
                 {visibleCalculators.map((calc) => {

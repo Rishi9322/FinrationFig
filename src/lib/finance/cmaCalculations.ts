@@ -146,7 +146,7 @@ export function computeCmaData(parsed: CmaParsedData): CmaComputedData {
   // The RBI CMA format has no statement of cashflows, so operating cashflow is
   // derived via the indirect method (net profit + depreciation, adjusted for the
   // year-on-year change in net working capital) rather than taken directly from a
-  // reported figure — an approximation, not the audited number. QOFFUR needs
+  // reported figure - an approximation, not the audited number. QOFFUR needs
   // financing cashflow, which isn't derivable from CMA data at all, so it's omitted
   // here (still available as a manual calculator when the real figure is known).
   type CashflowQualityYear = {

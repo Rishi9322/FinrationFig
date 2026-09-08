@@ -40,7 +40,7 @@ function NumberField({
 
 // Macroeconomic-context ratios that read debt structure, inventory, and returns
 // against prevailing rate conditions. All macro inputs (yield spread, inflation,
-// bond rate) must be supplied — there's no live economic data feed wired up.
+// bond rate) must be supplied - there's no live economic data feed wired up.
 // Formulas: https://www.cfodigital.ai/faqs
 export default function MacroRatiosPage() {
   const [yieldCurveSpread, setYieldCurveSpread] = useState("")
@@ -104,7 +104,7 @@ export default function MacroRatiosPage() {
     <CalculatorShell
       title="Macro-Context Ratios"
       description="Ratios that read a business's debt structure, inventory carrying cost, and return on assets against the prevailing macroeconomic environment."
-      explainerText="Financial ratios are dynamic and should be read against economic conditions, not fixed benchmarks. LYCA checks whether the debt maturity mix is aligned with the current yield curve, IAICOC quantifies the inflation-adjusted cost of carrying inventory, and ROA2Bond compares return on assets to the prevailing cost of borrowing. All three require you to supply the macro inputs (yield spread, inflation, bond rate) — there's no live rate feed."
+      explainerText="Financial ratios are dynamic and should be read against economic conditions, not fixed benchmarks. LYCA checks whether the debt maturity mix is aligned with the current yield curve, IAICOC quantifies the inflation-adjusted cost of carrying inventory, and ROA2Bond compares return on assets to the prevailing cost of borrowing. All three require you to supply the macro inputs (yield spread, inflation, bond rate) - there's no live rate feed."
       result={
         <div className="space-y-4">
           {lyca && (

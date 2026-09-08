@@ -2,7 +2,7 @@ import benchmarks from "../../data/sectorBenchmarks.json";
 
 // Sector-median KPIs derived from ~4,400 NSE/BSE-listed Indian companies
 // (Kaggle: sameerprogrammer/detailed-financial-data-of-4456-nse-and-bse-company,
-// CC BY-NC-ND 4.0 — non-commercial use). Rebuild via scripts/build-sector-benchmarks.mjs.
+// CC BY-NC-ND 4.0 - non-commercial use). Rebuild via scripts/build-sector-benchmarks.mjs.
 export type SectorBenchmark = {
   sampleSize: number;
   "Debtor Days"?: number;
