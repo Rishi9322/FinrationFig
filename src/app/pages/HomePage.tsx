@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react"
 import { Link } from "react-router"
 import { ArrowRight, Play, Zap, Lock, FolderOpen, FileText, RefreshCw, Globe, ChevronRight } from "lucide-react"
+import { ThemeToggle } from "../components/ThemeToggle"
 
 function useCountUp(target: number, duration = 1800, started = false) {
   const [value, setValue] = useState(0)
@@ -45,11 +46,11 @@ function AnimatedStat({ label, prefix = "", suffix = "", value, decimals = 0, st
     ? (current / 100000).toFixed(1) + "L"
     : current.toFixed(decimals)
   return (
-    <div className="bg-[#0D1726] border border-white/8 rounded-xl p-5 flex flex-col gap-1">
-      <span className="font-['Geist_Mono'] text-[#10B981] text-2xl font-medium tracking-tight">
+    <div className="bg-card border border-foreground/8 rounded-xl p-5 flex flex-col gap-1">
+      <span className="font-['Geist_Mono'] text-accent text-2xl font-medium tracking-tight">
         {prefix}{display}{suffix}
       </span>
-      <span className="text-[#94A3B8] text-sm font-['DM_Sans']">{label}</span>
+      <span className="text-muted-foreground text-sm font-['DM_Sans']">{label}</span>
     </div>
   )
 }
@@ -103,32 +104,33 @@ export default function HomePage() {
 
   return (
     <main
-      className="min-h-screen bg-[#050A14] text-[#F1F5F9] overflow-x-hidden"
+      className="min-h-screen bg-background text-foreground overflow-x-hidden"
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
       {/* Sticky Navbar */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 h-16 flex items-center transition-all duration-300 ${
-          scrolled ? "bg-[#050A14]/90 backdrop-blur-md border-b border-white/8 shadow-lg" : ""
+          scrolled ? "bg-background/90 backdrop-blur-md border-b border-foreground/8 shadow-lg" : ""
         }`}
       >
         <div className="max-w-7xl mx-auto px-6 lg:px-8 w-full flex items-center justify-between">
           <div className="flex items-center gap-2">
             <img src="/logoo.png" alt="FinRatio" className="h-20 w-auto sm:h-20" />
-            <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">
+            <span className="text-[10px] font-['Geist_Mono'] bg-primary/20 text-link border border-primary/30 rounded px-1.5 py-0.5 leading-none">
               β
             </span>
           </div>
           <nav className="flex items-center gap-3">
+            <ThemeToggle />
             <Link
               to="/auth/signin"
-              className="text-sm text-[#94A3B8] hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-white/5"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2 rounded-lg hover:bg-foreground/5"
             >
               Sign In
             </Link>
             <Link
               to="/auth/signup"
-              className="text-sm bg-[#2563EB] hover:bg-[#1d4ed8] text-white px-5 py-2 rounded-lg font-medium transition-colors"
+              className="text-sm bg-primary hover:bg-primary-hover text-white px-5 py-2 rounded-lg font-medium transition-colors"
             >
               Get Started
             </Link>
@@ -149,23 +151,23 @@ export default function HomePage() {
         <div
           className="absolute inset-0 pointer-events-none opacity-[0.03]"
           style={{
-            backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
+            backgroundImage: "linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)",
             backgroundSize: "60px 60px",
           }}
         />
 
         <div className="relative z-10 text-center max-w-4xl mx-auto">
           {/* Eyebrow */}
-          <div className="inline-flex items-center gap-2 bg-[#2563EB]/10 border border-[#2563EB]/25 rounded-full px-4 py-1.5 mb-8">
-            <Zap className="w-3.5 h-3.5 text-[#60A5FA]" />
-            <span className="text-xs font-['Geist_Mono'] text-[#60A5FA] tracking-wide">
+          <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/25 rounded-full px-4 py-1.5 mb-8">
+            <Zap className="w-3.5 h-3.5 text-link" />
+            <span className="text-xs font-['Geist_Mono'] text-link tracking-wide">
               For loan consultants, CAs & credit teams
             </span>
           </div>
 
           {/* Headline */}
           <h1
-            className="text-5xl sm:text-6xl lg:text-7xl font-normal leading-[1.08] tracking-tight mb-6 text-white"
+            className="text-5xl sm:text-6xl lg:text-7xl font-normal leading-[1.08] tracking-tight mb-6 text-foreground"
             style={{ fontFamily: "'Instrument Serif', serif" }}
           >
             Lender-Ready
@@ -179,7 +181,7 @@ export default function HomePage() {
             in Minutes
           </h1>
 
-          <p className="text-lg text-[#94A3B8] max-w-xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto mb-10 leading-relaxed">
             Upload financial statements and get an RBI CMA-format analysis with risk flags,
             covenants, and a banker-ready credit memo — not just a spreadsheet of ratios.
           </p>
@@ -188,14 +190,14 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
             <Link
               to="/auth/signup"
-              className="inline-flex items-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white px-8 py-3.5 rounded-xl font-medium text-base transition-all hover:-translate-y-0.5 shadow-lg shadow-[#2563EB]/25"
+              className="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-8 py-3.5 rounded-xl font-medium text-base transition-all hover:-translate-y-0.5 shadow-lg shadow-primary/25"
             >
               Get Started Free
               <ArrowRight className="w-4 h-4" />
             </Link>
             <a
               href="#how-it-works"
-              className="inline-flex items-center gap-2 text-[#94A3B8] hover:text-white px-6 py-3.5 rounded-xl border border-white/10 hover:border-white/20 transition-all text-base"
+              className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground px-6 py-3.5 rounded-xl border border-foreground/10 hover:border-foreground/20 transition-all text-base"
             >
               <Play className="w-4 h-4" />
               See how it works
@@ -203,8 +205,8 @@ export default function HomePage() {
           </div>
 
           {/* Honest positioning line — no fabricated user counts or star ratings */}
-          <div className="flex items-center justify-center gap-2 text-sm text-[#94A3B8]">
-            <Zap className="w-3.5 h-3.5 text-[#10B981]" />
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Zap className="w-3.5 h-3.5 text-accent" />
             <span>Built on the exact RBI CMA ratio set — DSCR, MPBF, TOL/TNW — not generic scoring</span>
           </div>
         </div>
@@ -212,21 +214,21 @@ export default function HomePage() {
         {/* Floating mockup card */}
         <div className="relative z-10 mt-20 w-full max-w-3xl mx-auto">
           <div
-            className="rounded-2xl border border-white/8 overflow-hidden shadow-2xl"
+            className="rounded-2xl border border-foreground/8 overflow-hidden shadow-2xl"
             style={{ background: "#0D1726" }}
           >
             {/* Window chrome */}
-            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/8">
-              <div className="w-3 h-3 rounded-full bg-[#ef4444]/60" />
-              <div className="w-3 h-3 rounded-full bg-[#f59e0b]/60" />
-              <div className="w-3 h-3 rounded-full bg-[#10B981]/60" />
-              <span className="ml-3 text-xs font-['Geist_Mono'] text-[#94A3B8]">finratio.app / cma-generator</span>
+            <div className="flex items-center gap-2 px-5 py-3.5 border-b border-foreground/8">
+              <div className="w-3 h-3 rounded-full bg-destructive/60" />
+              <div className="w-3 h-3 rounded-full bg-warning/60" />
+              <div className="w-3 h-3 rounded-full bg-accent/60" />
+              <span className="ml-3 text-xs font-['Geist_Mono'] text-muted-foreground">finratio.app / cma-generator</span>
             </div>
             <div className="p-6">
-              <p className="text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-widest mb-4">Risk Picture</p>
+              <p className="text-xs font-['Geist_Mono'] text-muted-foreground uppercase tracking-widest mb-4">Risk Picture</p>
               <div className="flex items-center gap-2 mb-5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" />
-                <span className="text-base font-medium text-white">Needs Review</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-warning" />
+                <span className="text-base font-medium text-foreground">Needs Review</span>
               </div>
               <div className="grid grid-cols-3 gap-4 mb-5">
                 {[
@@ -235,13 +237,13 @@ export default function HomePage() {
                   ["Avg DSCR", "1.41", "#F59E0B"],
                 ].map(([label, val, color]) => (
                   <div key={label as string}>
-                    <p className="text-xs text-[#94A3B8] mb-1">{label}</p>
+                    <p className="text-xs text-muted-foreground mb-1">{label}</p>
                     <p className="font-['Geist_Mono'] font-semibold text-sm" style={{ color: color as string }}>{val}</p>
                   </div>
                 ))}
               </div>
-              <p className="text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-widest mb-2">Top Concerns</p>
-              <ul className="text-sm text-[#F1F5F9] space-y-1.5 list-disc list-inside">
+              <p className="text-xs font-['Geist_Mono'] text-muted-foreground uppercase tracking-widest mb-2">Top Concerns</p>
+              <ul className="text-sm text-foreground space-y-1.5 list-disc list-inside">
                 <li>Current ratio below the RBI norm of 1.33</li>
                 <li>Average DSCR below the 1.5 comfort threshold</li>
                 <li>Trade receivables up sharply year-on-year</li>
@@ -255,20 +257,20 @@ export default function HomePage() {
       <section id="how-it-works" className="py-28 px-6" ref={howRef}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-3">How It Works</p>
+            <p className="text-xs font-['Geist_Mono'] text-link uppercase tracking-widest mb-3">How It Works</p>
             <h2
-              className="text-4xl lg:text-5xl font-normal text-white"
+              className="text-4xl lg:text-5xl font-normal text-foreground"
               style={{ fontFamily: "'Instrument Serif', serif" }}
             >
               From inputs to insight
               <br />
-              <em className="not-italic text-[#94A3B8]">in four steps</em>
+              <em className="not-italic text-muted-foreground">in four steps</em>
             </h2>
           </div>
 
           <div className="relative grid grid-cols-1 md:grid-cols-4 gap-0">
             {/* Connecting line on desktop */}
-            <div className="hidden md:block absolute top-10 left-[12.5%] right-[12.5%] border-t-2 border-dashed border-white/10 z-0" />
+            <div className="hidden md:block absolute top-10 left-[12.5%] right-[12.5%] border-t-2 border-dashed border-foreground/10 z-0" />
 
             {STEPS.map((step, i) => {
               const Icon = step.icon
@@ -282,12 +284,12 @@ export default function HomePage() {
                     transitionDelay: `${i * 100}ms`,
                   }}
                 >
-                  <div className="w-20 h-20 rounded-2xl bg-[#0D1726] border border-white/8 flex items-center justify-center mb-5 shadow-lg">
-                    <Icon className="w-7 h-7 text-[#60A5FA]" />
+                  <div className="w-20 h-20 rounded-2xl bg-card border border-foreground/8 flex items-center justify-center mb-5 shadow-lg">
+                    <Icon className="w-7 h-7 text-link" />
                   </div>
-                  <span className="font-['Geist_Mono'] text-xs text-[#60A5FA] mb-2 tracking-widest">{step.n}</span>
-                  <h3 className="font-medium text-white mb-2 text-base">{step.title}</h3>
-                  <p className="text-sm text-[#94A3B8] leading-relaxed">{step.desc}</p>
+                  <span className="font-['Geist_Mono'] text-xs text-link mb-2 tracking-widest">{step.n}</span>
+                  <h3 className="font-medium text-foreground mb-2 text-base">{step.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{step.desc}</p>
                 </div>
               )
             })}
@@ -296,29 +298,29 @@ export default function HomePage() {
       </section>
 
       {/* Live Stats Demo */}
-      <section className="py-24 px-6 border-y border-white/8" ref={statsRef}
-        style={{ background: "linear-gradient(180deg, #050A14 0%, #080f1f 100%)" }}
+      <section className="py-24 px-6 border-y border-foreground/8" ref={statsRef}
+        style={{ background: "linear-gradient(180deg, var(--background) 0%, var(--secondary) 100%)" }}
       >
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
-              <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-3">Live Preview</p>
+              <p className="text-xs font-['Geist_Mono'] text-link uppercase tracking-widest mb-3">Live Preview</p>
               <h2
-                className="text-4xl lg:text-5xl font-normal text-white mb-5 leading-tight"
+                className="text-4xl lg:text-5xl font-normal text-foreground mb-5 leading-tight"
                 style={{ fontFamily: "'Instrument Serif', serif" }}
               >
                 See your numbers
                 <br />
-                <em className="not-italic text-[#94A3B8]">come alive</em>
+                <em className="not-italic text-muted-foreground">come alive</em>
               </h2>
-              <p className="text-[#94A3B8] leading-relaxed mb-8">
+              <p className="text-muted-foreground leading-relaxed mb-8">
                 Every input field recalculates the full ratio suite in real time.
                 Risk badges update automatically — Low, Moderate, or High — with
                 plain-language interpretation for each result.
               </p>
               <Link
                 to="/auth/signup"
-                className="inline-flex items-center gap-2 text-[#60A5FA] hover:text-white border border-[#2563EB]/40 hover:border-[#2563EB] hover:bg-[#2563EB] px-6 py-3 rounded-xl text-sm font-medium transition-all"
+                className="inline-flex items-center gap-2 text-link hover:text-white border border-primary/40 hover:border-primary hover:bg-primary px-6 py-3 rounded-xl text-sm font-medium transition-all"
               >
                 Try With Your Numbers
                 <ChevronRight className="w-4 h-4" />
@@ -340,16 +342,16 @@ export default function HomePage() {
       <section className="py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-3">The Suite</p>
+            <p className="text-xs font-['Geist_Mono'] text-link uppercase tracking-widest mb-3">The Suite</p>
             <h2
-              className="text-4xl lg:text-5xl font-normal text-white"
+              className="text-4xl lg:text-5xl font-normal text-foreground"
               style={{ fontFamily: "'Instrument Serif', serif" }}
             >
               The ratio engine
               <br />
-              <em className="not-italic text-[#94A3B8]">behind every memo</em>
+              <em className="not-italic text-muted-foreground">behind every memo</em>
             </h2>
-            <p className="text-[#94A3B8] max-w-lg mx-auto mt-4">
+            <p className="text-muted-foreground max-w-lg mx-auto mt-4">
               Also available standalone, if you just need one number.
             </p>
           </div>
@@ -357,15 +359,15 @@ export default function HomePage() {
             {CALCULATORS.map((calc, i) => (
               <div
                 key={calc.name}
-                className="group bg-[#0D1726] border border-white/8 rounded-xl p-5 hover:border-[#2563EB]/40 transition-all duration-200 hover:-translate-y-0.5"
+                className="group bg-card border border-foreground/8 rounded-xl p-5 hover:border-primary/40 transition-all duration-200 hover:-translate-y-0.5"
               >
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-medium text-white text-sm">{calc.name}</h3>
-                  <span className="font-['Geist_Mono'] text-[10px] text-[#60A5FA]/60 mt-0.5">
+                  <h3 className="font-medium text-foreground text-sm">{calc.name}</h3>
+                  <span className="font-['Geist_Mono'] text-[10px] text-link/60 mt-0.5">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                 </div>
-                <p className="text-xs text-[#94A3B8] leading-relaxed">{calc.desc}</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">{calc.desc}</p>
               </div>
             ))}
           </div>
@@ -373,19 +375,19 @@ export default function HomePage() {
       </section>
 
       {/* Features */}
-      <section className="py-24 px-6 border-t border-white/8" ref={featRef}
-        style={{ background: "linear-gradient(180deg, #050A14 0%, #07111f 100%)" }}
+      <section className="py-24 px-6 border-t border-foreground/8" ref={featRef}
+        style={{ background: "linear-gradient(180deg, var(--background) 0%, var(--secondary) 100%)" }}
       >
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-3">Features</p>
+            <p className="text-xs font-['Geist_Mono'] text-link uppercase tracking-widest mb-3">Features</p>
             <h2
-              className="text-4xl lg:text-5xl font-normal text-white"
+              className="text-4xl lg:text-5xl font-normal text-foreground"
               style={{ fontFamily: "'Instrument Serif', serif" }}
             >
               Everything a finance
               <br />
-              <em className="not-italic text-[#94A3B8]">team needs</em>
+              <em className="not-italic text-muted-foreground">team needs</em>
             </h2>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -394,18 +396,18 @@ export default function HomePage() {
               return (
                 <div
                   key={feat.title}
-                  className="group bg-[#0D1726] border border-white/8 rounded-xl p-6 hover:border-[#2563EB]/35 hover:-translate-y-1 transition-all duration-200"
+                  className="group bg-card border border-foreground/8 rounded-xl p-6 hover:border-primary/35 hover:-translate-y-1 transition-all duration-200"
                   style={{
                     opacity: featInView ? 1 : 0,
                     transform: featInView ? "translateY(0)" : "translateY(20px)",
                     transition: `opacity 0.5s ease ${i * 80}ms, transform 0.5s ease ${i * 80}ms, border-color 0.2s, box-shadow 0.2s`,
                   }}
                 >
-                  <div className="w-10 h-10 rounded-lg bg-[#2563EB]/10 border border-[#2563EB]/20 flex items-center justify-center mb-4">
-                    <Icon className="w-5 h-5 text-[#60A5FA]" />
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center mb-4">
+                    <Icon className="w-5 h-5 text-link" />
                   </div>
-                  <h3 className="font-medium text-white mb-2">{feat.title}</h3>
-                  <p className="text-sm text-[#94A3B8] leading-relaxed">{feat.desc}</p>
+                  <h3 className="font-medium text-foreground mb-2">{feat.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{feat.desc}</p>
                 </div>
               )
             })}
@@ -414,35 +416,35 @@ export default function HomePage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-24 px-6 border-t border-white/8" ref={testiRef}>
+      <section className="py-24 px-6 border-t border-foreground/8" ref={testiRef}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-3">Why FinRatio</p>
+            <p className="text-xs font-['Geist_Mono'] text-link uppercase tracking-widest mb-3">Why FinRatio</p>
             <h2
-              className="text-4xl lg:text-5xl font-normal text-white"
+              className="text-4xl lg:text-5xl font-normal text-foreground"
               style={{ fontFamily: "'Instrument Serif', serif" }}
             >
               Built to be checked,
               <br />
-              <em className="not-italic text-[#94A3B8]">not just trusted</em>
+              <em className="not-italic text-muted-foreground">not just trusted</em>
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {PRINCIPLES.map((p, i) => (
               <div
                 key={p.title}
-                className="bg-[#0D1726] border border-white/8 rounded-xl p-6 flex flex-col gap-3"
+                className="bg-card border border-foreground/8 rounded-xl p-6 flex flex-col gap-3"
                 style={{
                   opacity: testiInView ? 1 : 0,
                   transform: testiInView ? "translateY(0)" : "translateY(20px)",
                   transition: `opacity 0.5s ease ${i * 100}ms, transform 0.5s ease ${i * 100}ms`,
                 }}
               >
-                <div className="w-9 h-9 rounded-full bg-[#10B981]/15 border border-[#10B981]/25 flex items-center justify-center text-xs font-medium text-[#10B981]">
+                <div className="w-9 h-9 rounded-full bg-accent/15 border border-accent/25 flex items-center justify-center text-xs font-medium text-accent">
                   {String(i + 1).padStart(2, "0")}
                 </div>
-                <h3 className="text-sm font-medium text-white">{p.title}</h3>
-                <p className="text-[#94A3B8] text-sm leading-relaxed">{p.desc}</p>
+                <h3 className="text-sm font-medium text-foreground">{p.title}</h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">{p.desc}</p>
               </div>
             ))}
           </div>
@@ -453,28 +455,28 @@ export default function HomePage() {
       <section className="py-24 px-6 relative overflow-hidden">
         <div
           className="absolute inset-0"
-          style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #050A14 60%)" }}
+          style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--primary) 25%, var(--background)) 0%, var(--background) 60%)" }}
         />
         <div
           className="absolute inset-0 opacity-[0.04]"
           style={{
-            backgroundImage: "linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)",
+            backgroundImage: "linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)",
             backgroundSize: "40px 40px",
           }}
         />
         <div className="relative z-10 max-w-3xl mx-auto text-center">
           <h2
-            className="text-4xl lg:text-6xl font-normal text-white mb-4 leading-tight"
+            className="text-4xl lg:text-6xl font-normal text-foreground mb-4 leading-tight"
             style={{ fontFamily: "'Instrument Serif', serif" }}
           >
             Start your first calculation
             <br />
-            <em className="not-italic text-[#94A3B8]">— free</em>
+            <em className="not-italic text-muted-foreground">— free</em>
           </h2>
-          <p className="text-[#94A3B8] mb-10 text-lg">No credit card. No setup. Just results.</p>
+          <p className="text-muted-foreground mb-10 text-lg">No credit card. No setup. Just results.</p>
           <Link
             to="/auth/signup"
-            className="inline-flex items-center gap-2 bg-white hover:bg-[#F1F5F9] text-[#050A14] px-10 py-4 rounded-xl font-semibold text-base transition-all hover:-translate-y-0.5 shadow-xl"
+            className="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-10 py-4 rounded-xl font-semibold text-base transition-all hover:-translate-y-0.5 shadow-xl"
           >
             Get Started Now
             <ArrowRight className="w-4 h-4" />
@@ -483,27 +485,27 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/8 py-10 px-6">
+      <footer className="border-t border-foreground/8 py-10 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span
-                className="text-lg font-medium text-white"
+                className="text-lg font-medium text-foreground"
                 style={{ fontFamily: "'Instrument Serif', serif" }}
               >
                 FinRatio
               </span>
-              <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/30 rounded px-1.5 py-0.5">β</span>
+              <span className="text-[10px] font-['Geist_Mono'] bg-primary/20 text-link border border-primary/30 rounded px-1.5 py-0.5">β</span>
             </div>
-            <p className="text-xs text-[#94A3B8]">Financial Intelligence for Indian Business</p>
+            <p className="text-xs text-muted-foreground">Financial Intelligence for Indian Business</p>
           </div>
-          <nav className="flex items-center gap-6 text-sm text-[#94A3B8]">
-            <Link to="/" className="hover:text-white transition-colors">Home</Link>
-            <a href="#how-it-works" className="hover:text-white transition-colors">How It Works</a>
-            <Link to="/auth/signin" className="hover:text-white transition-colors">Sign In</Link>
-            <Link to="/auth/signup" className="hover:text-white transition-colors">Sign Up</Link>
+          <nav className="flex items-center gap-6 text-sm text-muted-foreground">
+            <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
+            <a href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</a>
+            <Link to="/auth/signin" className="hover:text-foreground transition-colors">Sign In</Link>
+            <Link to="/auth/signup" className="hover:text-foreground transition-colors">Sign Up</Link>
           </nav>
-          <p className="text-xs text-[#94A3B8]">© 2026 FinRatio. All rights reserved.</p>
+          <p className="text-xs text-muted-foreground">© 2026 FinRatio. All rights reserved.</p>
         </div>
       </footer>
     </main>

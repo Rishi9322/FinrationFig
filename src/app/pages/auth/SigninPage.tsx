@@ -6,6 +6,7 @@ import { signinSchema } from "../../../lib/validations"
 import { signin, sendPhoneOTP, confirmPhoneOTP } from "../../../lib/auth"
 import { OAuthButtons } from "../../components/auth/OAuthButtons"
 import { toast } from "sonner"
+import { ThemeToggle } from "../../components/ThemeToggle"
 
 export default function SigninPage() {
   const navigate = useNavigate()
@@ -87,9 +88,10 @@ export default function SigninPage() {
 
   return (
     <div
-      className="min-h-screen bg-[#050A14] flex items-center justify-center px-4"
+      className="min-h-screen bg-background flex items-center justify-center px-4"
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
+      <ThemeToggle className="fixed top-4 right-4 z-10" />
       {/* Radial glow */}
       <div
         className="fixed inset-0 pointer-events-none"
@@ -101,25 +103,25 @@ export default function SigninPage() {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
             <img src="/logoo.png" alt="FinRatio" className="h-14 w-auto sm:h-16" />
-            <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">β</span>
+            <span className="text-[10px] font-['Geist_Mono'] bg-primary/20 text-link border border-primary/30 rounded px-1.5 py-0.5 leading-none">β</span>
           </Link>
-          <p className="text-sm text-[#94A3B8] mt-3">Sign in to your account</p>
+          <p className="text-sm text-muted-foreground mt-3">Sign in to your account</p>
         </div>
 
         {/* Card */}
-        <div className="bg-[#0D1726] border border-white/8 rounded-2xl p-8">
-          <div className="flex bg-[#050A14] border border-white/10 rounded-lg p-1 mb-5 text-sm">
+        <div className="bg-card border border-foreground/8 rounded-2xl p-8">
+          <div className="flex bg-background border border-foreground/10 rounded-lg p-1 mb-5 text-sm">
             <button
               type="button"
               onClick={() => { setMode("email"); setError("") }}
-              className={`flex-1 py-1.5 rounded-md font-medium transition-colors ${mode === "email" ? "bg-[#2563EB] text-white" : "text-[#94A3B8] hover:text-white"}`}
+              className={`flex-1 py-1.5 rounded-md font-medium transition-colors ${mode === "email" ? "bg-primary text-white" : "text-muted-foreground hover:text-white"}`}
             >
               Email
             </button>
             <button
               type="button"
               onClick={() => { setMode("phone"); setError("") }}
-              className={`flex-1 py-1.5 rounded-md font-medium transition-colors ${mode === "phone" ? "bg-[#2563EB] text-white" : "text-[#94A3B8] hover:text-white"}`}
+              className={`flex-1 py-1.5 rounded-md font-medium transition-colors ${mode === "phone" ? "bg-primary text-white" : "text-muted-foreground hover:text-white"}`}
             >
               Phone OTP
             </button>
@@ -128,43 +130,43 @@ export default function SigninPage() {
           {mode === "email" ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-[#F1F5F9]">Email</label>
+                <label className="block text-sm font-medium text-foreground">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@company.com"
-                  className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+                  className="w-full px-4 py-2.5 bg-background border border-foreground/10 rounded-lg text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
                 />
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-[#F1F5F9]">Password</label>
+                <label className="block text-sm font-medium text-foreground">Password</label>
                 <div className="relative">
                   <input
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
-                    className="w-full px-4 py-2.5 pr-10 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+                    className="w-full px-4 py-2.5 pr-10 bg-background border border-foreground/10 rounded-lg text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-white transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
                 <div className="text-right pt-1">
-                  <Link to="/auth/forgot-password" className="text-xs text-[#60A5FA] hover:text-white transition-colors">
+                  <Link to="/auth/forgot-password" className="text-xs text-link hover:text-foreground transition-colors">
                     Forgot password?
                   </Link>
                 </div>
               </div>
 
               {error && (
-                <div className="bg-[#ef4444]/8 border border-[#ef4444]/25 text-[#ef4444] px-4 py-3 rounded-lg text-sm">
+                <div className="bg-destructive/8 border border-destructive/25 text-destructive px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
@@ -172,7 +174,7 @@ export default function SigninPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] disabled:opacity-60 text-white py-3 rounded-xl text-sm font-medium transition-colors mt-2"
+                className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover disabled:opacity-60 text-white py-3 rounded-xl text-sm font-medium transition-colors mt-2"
               >
                 {isLoading ? (
                   <>
@@ -187,32 +189,32 @@ export default function SigninPage() {
           ) : (
             <form onSubmit={confirmation ? handleVerifyOtp : handleSendOtp} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-[#F1F5F9]">Phone number</label>
+                <label className="block text-sm font-medium text-foreground">Phone number</label>
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+91 98765 43210"
                   disabled={!!confirmation}
-                  className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors disabled:opacity-60"
+                  className="w-full px-4 py-2.5 bg-background border border-foreground/10 rounded-lg text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors disabled:opacity-60"
                 />
               </div>
 
               {confirmation && (
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-[#F1F5F9]">Enter OTP</label>
+                  <label className="block text-sm font-medium text-foreground">Enter OTP</label>
                   <input
                     type="text"
                     inputMode="numeric"
                     value={otp}
                     onChange={(e) => setOtp(e.target.value)}
                     placeholder="6-digit code"
-                    className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+                    className="w-full px-4 py-2.5 bg-background border border-foreground/10 rounded-lg text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
                   />
                   <button
                     type="button"
                     onClick={() => { setConfirmation(null); setOtp("") }}
-                    className="text-xs text-[#60A5FA] hover:text-white transition-colors"
+                    className="text-xs text-link hover:text-foreground transition-colors"
                   >
                     Use a different number
                   </button>
@@ -220,7 +222,7 @@ export default function SigninPage() {
               )}
 
               {error && (
-                <div className="bg-[#ef4444]/8 border border-[#ef4444]/25 text-[#ef4444] px-4 py-3 rounded-lg text-sm">
+                <div className="bg-destructive/8 border border-destructive/25 text-destructive px-4 py-3 rounded-lg text-sm">
                   {error}
                 </div>
               )}
@@ -231,7 +233,7 @@ export default function SigninPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] disabled:opacity-60 text-white py-3 rounded-xl text-sm font-medium transition-colors mt-2"
+                className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover disabled:opacity-60 text-white py-3 rounded-xl text-sm font-medium transition-colors mt-2"
               >
                 {isLoading ? (
                   <>
@@ -248,16 +250,16 @@ export default function SigninPage() {
           )}
 
           <div className="flex items-center gap-3 my-5">
-            <div className="h-px flex-1 bg-white/8" />
-            <span className="text-xs text-[#94A3B8]">or</span>
-            <div className="h-px flex-1 bg-white/8" />
+            <div className="h-px flex-1 bg-foreground/8" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="h-px flex-1 bg-foreground/8" />
           </div>
 
           <OAuthButtons />
 
-          <p className="text-sm text-center text-[#94A3B8] mt-6">
+          <p className="text-sm text-center text-muted-foreground mt-6">
             Don't have an account?{" "}
-            <Link to="/auth/signup" className="text-[#60A5FA] hover:text-white transition-colors font-medium">
+            <Link to="/auth/signup" className="text-link hover:text-foreground transition-colors font-medium">
               Sign up
             </Link>
           </p>

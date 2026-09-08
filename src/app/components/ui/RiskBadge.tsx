@@ -6,10 +6,10 @@ interface RiskBadgeProps {
 
 export function RiskBadge({ risk }: RiskBadgeProps) {
   const styles = {
-    low: "bg-[#10B981]/12 text-[#10B981] border-[#10B981]/25",
-    moderate: "bg-[#f59e0b]/12 text-[#f59e0b] border-[#f59e0b]/25",
-    high: "bg-[#ef4444]/12 text-[#ef4444] border-[#ef4444]/25",
-    "n/a": "bg-white/5 text-[#94A3B8] border-white/10",
+    low: "bg-accent/12 text-accent border-accent/25",
+    moderate: "bg-warning/12 text-warning border-warning/25",
+    high: "bg-destructive/12 text-destructive border-destructive/25",
+    "n/a": "bg-foreground/5 text-muted-foreground border-foreground/10",
   }
 
   const labels = {

@@ -1,27 +1,34 @@
 @custom-variant dark (&:is(.dark *));
 
+/* Light mode (default palette). Off-white surfaces, near-black navy text,
+   same brand blue/green accents as dark mode so the brand stays recognisable
+   across both - see .dark below for the native dark palette. */
 :root {
   --font-size: 16px;
-  --background: #050A14;
-  --foreground: #F1F5F9;
-  --card: #0D1726;
-  --card-foreground: #F1F5F9;
-  --popover: #0D1726;
-  --popover-foreground: #F1F5F9;
+  --background: #F8FAFC;
+  --foreground: #0F172A;
+  --card: #FFFFFF;
+  --card-foreground: #0F172A;
+  --popover: #FFFFFF;
+  --popover-foreground: #0F172A;
   --primary: #2563EB;
+  --primary-hover: #1D4ED8;
   --primary-foreground: #ffffff;
-  --secondary: #0F1E35;
-  --secondary-foreground: #F1F5F9;
-  --muted: #0F1E35;
+  --secondary: #EEF2F7;
+  --secondary-foreground: #0F172A;
+  --muted: #EEF2F7;
   --muted-foreground: #64748B;
   --accent: #10B981;
   --accent-foreground: #ffffff;
+  --warning: #F59E0B;
+  --warning-foreground: #0F172A;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.08);
-  --input: rgba(255, 255, 255, 0.06);
-  --input-background: rgba(255, 255, 255, 0.06);
-  --switch-background: #1e3a5f;
+  --link: #2563EB;
+  --border: rgba(15, 23, 42, 0.1);
+  --input: rgba(15, 23, 42, 0.05);
+  --input-background: rgba(15, 23, 42, 0.03);
+  --switch-background: #CBD5E1;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
   --ring: #2563EB;
@@ -31,51 +38,58 @@
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: #030213;
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F172A;
+  --sidebar-primary: #2563EB;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #EEF2F7;
+  --sidebar-accent-foreground: #0F172A;
+  --sidebar-border: rgba(15, 23, 42, 0.1);
+  --sidebar-ring: #2563EB;
 }
 
+/* Dark mode - FinRatio's native brand look. */
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  --background: #050A14;
+  --foreground: #F1F5F9;
+  --card: #0D1726;
+  --card-foreground: #F1F5F9;
+  --popover: #0D1726;
+  --popover-foreground: #F1F5F9;
+  --primary: #2563EB;
+  --primary-hover: #1D4ED8;
+  --primary-foreground: #ffffff;
+  --secondary: #0F1E35;
+  --secondary-foreground: #F1F5F9;
+  --muted: #0F1E35;
+  --muted-foreground: #94A3B8;
+  --accent: #10B981;
+  --accent-foreground: #ffffff;
+  --warning: #F59E0B;
+  --warning-foreground: #050A14;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --link: #60A5FA;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.06);
+  --input-background: rgba(255, 255, 255, 0.06);
+  --switch-background: #1e3a5f;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
+  --ring: #2563EB;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --sidebar: #0D1726;
+  --sidebar-foreground: #F1F5F9;
+  --sidebar-primary: #2563EB;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #0F1E35;
+  --sidebar-accent-foreground: #F1F5F9;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #2563EB;
 }
 
 @theme inline {
@@ -86,6 +100,7 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -93,8 +108,11 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-link: var(--link);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-input-background: var(--input-background);

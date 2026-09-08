@@ -48,7 +48,7 @@ export default function BusinessValuationPage() {
         />
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-[#F1F5F9]">EBITDA Multiple</label>
+          <label className="block text-sm font-medium text-foreground">EBITDA Multiple</label>
           <input
             type="number"
             value={multiple}
@@ -56,12 +56,12 @@ export default function BusinessValuationPage() {
             placeholder="6"
             min="0"
             step="0.1"
-            className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+            className="w-full px-4 py-2.5 bg-background border border-foreground/10 rounded-lg text-foreground text-sm font-['Geist_Mono'] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
           />
-          <p className="text-xs text-[#94A3B8]">Typical market multiple used for the estimate</p>
+          <p className="text-xs text-muted-foreground">Typical market multiple used for the estimate</p>
         </div>
 
-        {error && <p className="text-xs text-[#ef4444]">{error}</p>}
+        {error && <p className="text-xs text-destructive">{error}</p>}
       </div>
     </CalculatorShell>
   )

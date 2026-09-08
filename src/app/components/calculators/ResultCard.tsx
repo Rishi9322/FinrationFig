@@ -68,19 +68,19 @@ Provide a short, actionable paragraph explaining what this means for the busines
 
   return (
     <div
-      className="bg-[#0D1726] rounded-xl border border-white/8 p-6 space-y-5"
+      className="bg-card rounded-xl border border-foreground/8 p-6 space-y-5"
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between pb-4 border-b border-white/8">
+      <div className="flex items-center justify-between pb-4 border-b border-foreground/8">
         <div className="flex items-center gap-2">
           <div className="w-1.5 h-5 rounded-full" style={{ background: accentColor }} />
-          <h3 className="text-sm font-medium text-white">Result</h3>
+          <h3 className="text-sm font-medium text-foreground">Result</h3>
         </div>
         <button
           onClick={handleAnalyze}
           disabled={isAnalyzing}
-          className="flex items-center gap-1.5 text-xs font-medium text-[#60A5FA] hover:text-white bg-[#2563EB]/10 hover:bg-[#2563EB] px-3 py-1.5 rounded-lg transition-all disabled:opacity-50"
+          className="flex items-center gap-1.5 text-xs font-medium text-link hover:text-white bg-primary/10 hover:bg-primary px-3 py-1.5 rounded-lg transition-all disabled:opacity-50"
         >
           {isAnalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
           Analyze
@@ -99,21 +99,21 @@ Provide a short, actionable paragraph explaining what this means for the busines
       </div>
 
       {/* Interpretation */}
-      <div className="space-y-2 p-4 rounded-lg bg-white/3 border border-white/5">
-        <p className="text-sm text-[#F1F5F9] leading-relaxed">{result.interpretation}</p>
+      <div className="space-y-2 p-4 rounded-lg bg-foreground/3 border border-foreground/5">
+        <p className="text-sm text-foreground leading-relaxed">{result.interpretation}</p>
         {result.details && (
-          <p className="text-xs text-[#94A3B8] leading-relaxed border-t border-white/8 pt-2 mt-2">{result.details}</p>
+          <p className="text-xs text-muted-foreground leading-relaxed border-t border-foreground/8 pt-2 mt-2">{result.details}</p>
         )}
       </div>
 
       {/* AI Analysis */}
       {aiAnalysis && (
-        <div className="space-y-2 p-4 rounded-lg bg-[#2563EB]/10 border border-[#2563EB]/20">
-          <div className="flex items-center gap-1.5 text-[#60A5FA] mb-2">
+        <div className="space-y-2 p-4 rounded-lg bg-primary/10 border border-primary/20">
+          <div className="flex items-center gap-1.5 text-link mb-2">
             <Sparkles className="w-4 h-4" />
             <h4 className="text-xs font-medium uppercase tracking-wider">AI Insights</h4>
           </div>
-          <div className="text-sm text-[#F1F5F9] leading-relaxed whitespace-pre-wrap">
+          <div className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
             {aiAnalysis}
           </div>
         </div>
@@ -125,8 +125,8 @@ Provide a short, actionable paragraph explaining what this means for the busines
         disabled={isSaving || saved}
         className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all ${
           saved
-            ? "bg-[#10B981]/15 border border-[#10B981]/30 text-[#10B981]"
-            : "bg-white/5 hover:bg-white/10 text-white disabled:opacity-60"
+            ? "bg-accent/15 border border-accent/30 text-accent"
+            : "bg-foreground/5 hover:bg-foreground/10 text-foreground disabled:opacity-60"
         }`}
       >
         {isSaving ? (

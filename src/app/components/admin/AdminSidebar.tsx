@@ -63,7 +63,7 @@ export function AdminSidebar() {
     /* Column layout with an mt-auto footer: the logout block sits at the bottom
        without `absolute`, which previously had no positioned ancestor and so
        stretched across the whole page instead of the sidebar. */
-    <aside className="w-64 shrink-0 bg-slate-900 text-white h-screen flex flex-col">
+    <aside className="w-64 shrink-0 bg-slate-900 text-foreground h-screen flex flex-col">
       <div className="p-6 shrink-0">
         <h1 className="text-2xl font-bold">Admin Panel</h1>
         <p className="text-sm text-slate-400 mt-1">FinRatio Management</p>

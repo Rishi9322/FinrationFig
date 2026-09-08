@@ -79,23 +79,23 @@ export default function AdminBlogPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#050A14] py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <main className="min-h-screen bg-background py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-          <h1 className="text-3xl font-normal text-white" style={{ fontFamily: "'Instrument Serif', serif" }}>Blog Posts</h1>
+          <h1 className="text-3xl font-normal text-foreground" style={{ fontFamily: "'Instrument Serif', serif" }}>Blog Posts</h1>
           <button
             onClick={openNew}
-            className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-[#2563EB] text-white hover:bg-[#2563EB]/90"
+            className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg bg-primary text-white hover:bg-primary/90"
           >
             <Plus className="h-4 w-4" /> New Post
           </button>
         </div>
 
         {showForm && (
-          <div className="bg-[#0D1726] border border-white/10 rounded-xl p-5 mb-6 space-y-3">
+          <div className="bg-card border border-foreground/10 rounded-xl p-5 mb-6 space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-medium text-white">{editing ? "Edit Post" : "New Post"}</h2>
-              <button onClick={() => setShowForm(false)} aria-label="Close" className="text-[#94A3B8] hover:text-white">
+              <h2 className="text-sm font-medium text-foreground">{editing ? "Edit Post" : "New Post"}</h2>
+              <button onClick={() => setShowForm(false)} aria-label="Close" className="text-muted-foreground hover:text-foreground">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -103,44 +103,44 @@ export default function AdminBlogPage() {
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               placeholder="Title"
-              className="w-full bg-[#050A14] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
+              className="w-full bg-background border border-foreground/10 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
             />
             <textarea
               value={form.excerpt}
               onChange={(e) => setForm({ ...form, excerpt: e.target.value })}
               placeholder="Short excerpt (shown on the blog index)"
               rows={2}
-              className="w-full bg-[#050A14] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
+              className="w-full bg-background border border-foreground/10 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
             />
             <textarea
               value={form.content}
               onChange={(e) => setForm({ ...form, content: e.target.value })}
               placeholder="Content (Markdown supported)"
               rows={10}
-              className="w-full bg-[#050A14] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-[#64748B] font-mono"
+              className="w-full bg-background border border-foreground/10 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground font-mono"
             />
             <div className="grid sm:grid-cols-2 gap-3">
               <input
                 value={form.sourceName}
                 onChange={(e) => setForm({ ...form, sourceName: e.target.value })}
                 placeholder="Source name (credit, e.g. Livemint) — leave blank if original"
-                className="w-full bg-[#050A14] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
+                className="w-full bg-background border border-foreground/10 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
               />
               <input
                 value={form.sourceUrl}
                 onChange={(e) => setForm({ ...form, sourceUrl: e.target.value })}
                 placeholder="Source URL"
-                className="w-full bg-[#050A14] border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder:text-[#64748B]"
+                className="w-full bg-background border border-foreground/10 rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
               />
             </div>
-            <label className="flex items-center gap-2 text-sm text-[#94A3B8]">
+            <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <input type="checkbox" checked={!!form.published} onChange={(e) => setForm({ ...form, published: e.target.checked })} />
               Published (visible on /blog)
             </label>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="text-sm px-4 py-2 rounded-lg bg-[#2563EB] text-white hover:bg-[#2563EB]/90 disabled:opacity-50"
+              className="text-sm px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save"}
             </button>
@@ -148,30 +148,30 @@ export default function AdminBlogPage() {
         )}
 
         {isLoading ? (
-          <p className="text-sm text-[#94A3B8]">Loading…</p>
+          <p className="text-sm text-muted-foreground">Loading…</p>
         ) : posts.length === 0 ? (
-          <p className="text-sm text-[#94A3B8]">No posts yet.</p>
+          <p className="text-sm text-muted-foreground">No posts yet.</p>
         ) : (
           <div className="space-y-3">
             {posts.map((p) => (
-              <div key={p.id} className="bg-[#0D1726] border border-white/8 rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap">
+              <div key={p.id} className="bg-card border border-foreground/8 rounded-xl p-4 flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-white">{p.title}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded ${p.published ? "bg-emerald-500/15 text-emerald-400" : "bg-white/5 text-[#94A3B8]"}`}>
+                    <span className="text-sm text-foreground">{p.title}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded ${p.published ? "bg-emerald-500/15 text-emerald-400" : "bg-foreground/5 text-muted-foreground"}`}>
                       {p.published ? "Published" : "Draft"}
                     </span>
                   </div>
-                  <p className="text-xs text-[#64748B] mt-1">{p.authorName} · {new Date(p.createdAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{p.authorName} · {new Date(p.createdAt).toLocaleDateString()}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => togglePublish(p)} className="text-xs px-2.5 py-1.5 rounded-lg border border-white/10 text-[#94A3B8] hover:text-white">
+                  <button onClick={() => togglePublish(p)} className="text-xs px-2.5 py-1.5 rounded-lg border border-foreground/10 text-muted-foreground hover:text-foreground">
                     {p.published ? "Unpublish" : "Publish"}
                   </button>
-                  <button onClick={() => openEdit(p)} aria-label={`Edit ${p.title}`} className="p-1.5 text-[#94A3B8] hover:text-white">
+                  <button onClick={() => openEdit(p)} aria-label={`Edit ${p.title}`} className="p-1.5 text-muted-foreground hover:text-foreground">
                     <Pencil className="h-4 w-4" />
                   </button>
-                  <button onClick={() => handleDelete(p)} aria-label={`Delete ${p.title}`} className="p-1.5 text-[#94A3B8] hover:text-red-400">
+                  <button onClick={() => handleDelete(p)} aria-label={`Delete ${p.title}`} className="p-1.5 text-muted-foreground hover:text-red-400">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>

@@ -32,7 +32,7 @@ export function OAuthButtons() {
           type="button"
           onClick={() => handle(provider)}
           disabled={pending !== null}
-          className="w-full flex items-center justify-center gap-2 bg-[#050A14] border border-white/10 hover:border-[#2563EB]/60 disabled:opacity-60 text-[#F1F5F9] py-2.5 rounded-lg text-sm font-medium transition-colors"
+          className="w-full flex items-center justify-center gap-2 bg-background border border-foreground/10 hover:border-primary/60 disabled:opacity-60 text-foreground py-2.5 rounded-lg text-sm font-medium transition-colors"
         >
           {pending === provider ? "Redirecting..." : `Continue with ${label}`}
         </button>

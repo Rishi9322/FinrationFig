@@ -5,6 +5,7 @@ import { signupSchema } from "../../../lib/validations"
 import { signup } from "../../../lib/auth"
 import { OAuthButtons } from "../../components/auth/OAuthButtons"
 import { toast } from "sonner"
+import { ThemeToggle } from "../../components/ThemeToggle"
 
 export default function SignupPage() {
   const navigate = useNavigate()
@@ -69,9 +70,10 @@ export default function SignupPage() {
 
   return (
     <div
-      className="min-h-screen bg-[#050A14] flex items-center justify-center px-4 py-12"
+      className="min-h-screen bg-background flex items-center justify-center px-4 py-12"
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
+      <ThemeToggle className="fixed top-4 right-4 z-10" />
       <div
         className="fixed inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.09) 0%, transparent 65%)" }}
@@ -82,82 +84,82 @@ export default function SignupPage() {
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
             <img src="/logoo.png" alt="FinRatio" className="h-14 w-auto sm:h-16" />
-            <span className="text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">β</span>
+            <span className="text-[10px] font-['Geist_Mono'] bg-primary/20 text-link border border-primary/30 rounded px-1.5 py-0.5 leading-none">β</span>
           </Link>
-          <p className="text-sm text-[#94A3B8] mt-3">Create your account</p>
+          <p className="text-sm text-muted-foreground mt-3">Create your account</p>
         </div>
 
         {/* Card */}
-        <div className="bg-[#0D1726] border border-white/8 rounded-2xl p-8">
+        <div className="bg-card border border-foreground/8 rounded-2xl p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-[#F1F5F9]">Full Name</label>
+              <label className="block text-sm font-medium text-foreground">Full Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Rohan Mehta"
-                className={`w-full px-4 py-2.5 bg-[#050A14] border rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#94A3B8]/50 focus:outline-none transition-colors ${
+                className={`w-full px-4 py-2.5 bg-background border rounded-lg text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none transition-colors ${
                   errors.name
-                    ? "border-[#ef4444]/50 focus:border-[#ef4444]"
-                    : "border-white/10 focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20"
+                    ? "border-destructive/50 focus:border-destructive"
+                    : "border-foreground/10 focus:border-primary/60 focus:ring-1 focus:ring-primary/20"
                 }`}
               />
-              {errors.name && <p className="text-xs text-[#ef4444]">{errors.name}</p>}
+              {errors.name && <p className="text-xs text-destructive">{errors.name}</p>}
             </div>
 
             {/* Email */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-[#F1F5F9]">Email</label>
+              <label className="block text-sm font-medium text-foreground">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className={`w-full px-4 py-2.5 bg-[#050A14] border rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#94A3B8]/50 focus:outline-none transition-colors ${
+                className={`w-full px-4 py-2.5 bg-background border rounded-lg text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none transition-colors ${
                   errors.email
-                    ? "border-[#ef4444]/50 focus:border-[#ef4444]"
-                    : "border-white/10 focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20"
+                    ? "border-destructive/50 focus:border-destructive"
+                    : "border-foreground/10 focus:border-primary/60 focus:ring-1 focus:ring-primary/20"
                 }`}
               />
-              {errors.email && <p className="text-xs text-[#ef4444]">{errors.email}</p>}
+              {errors.email && <p className="text-xs text-destructive">{errors.email}</p>}
             </div>
 
             {/* Password */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-[#F1F5F9]">Password</label>
+              <label className="block text-sm font-medium text-foreground">Password</label>
               <div className="relative">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className={`w-full px-4 py-2.5 pr-10 bg-[#050A14] border rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#94A3B8]/50 focus:outline-none transition-colors ${
+                  className={`w-full px-4 py-2.5 pr-10 bg-background border rounded-lg text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none transition-colors ${
                     errors.password
-                      ? "border-[#ef4444]/50 focus:border-[#ef4444]"
-                      : "border-white/10 focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20"
+                      ? "border-destructive/50 focus:border-destructive"
+                      : "border-foreground/10 focus:border-primary/60 focus:ring-1 focus:ring-primary/20"
                   }`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.password && <p className="text-xs text-[#ef4444]">{errors.password}</p>}
+              {errors.password && <p className="text-xs text-destructive">{errors.password}</p>}
 
               {password && (
                 <div className="mt-2 space-y-1">
-                  <div className="h-1 bg-white/8 rounded-full overflow-hidden">
+                  <div className="h-1 bg-foreground/8 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-300"
                       style={{ width: strengthWidth, background: strengthColor }}
                     />
                   </div>
-                  <p className="text-xs text-[#94A3B8]">
+                  <p className="text-xs text-muted-foreground">
                     Strength:{" "}
                     <span style={{ color: strengthColor }}>
                       {strength.charAt(0).toUpperCase() + strength.slice(1)}
@@ -169,34 +171,34 @@ export default function SignupPage() {
 
             {/* Confirm Password */}
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-[#F1F5F9]">Confirm Password</label>
+              <label className="block text-sm font-medium text-foreground">Confirm Password</label>
               <div className="relative">
                 <input
                   type={showConfirmPassword ? "text" : "password"}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
-                  className={`w-full px-4 py-2.5 pr-10 bg-[#050A14] border rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#94A3B8]/50 focus:outline-none transition-colors ${
+                  className={`w-full px-4 py-2.5 pr-10 bg-background border rounded-lg text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none transition-colors ${
                     errors.confirmPassword
-                      ? "border-[#ef4444]/50 focus:border-[#ef4444]"
-                      : "border-white/10 focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20"
+                      ? "border-destructive/50 focus:border-destructive"
+                      : "border-foreground/10 focus:border-primary/60 focus:ring-1 focus:ring-primary/20"
                   }`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] hover:text-white transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              {errors.confirmPassword && <p className="text-xs text-[#ef4444]">{errors.confirmPassword}</p>}
+              {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] disabled:opacity-60 text-white py-3 rounded-xl text-sm font-medium transition-colors mt-2"
+              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover disabled:opacity-60 text-white py-3 rounded-xl text-sm font-medium transition-colors mt-2"
             >
               {isLoading ? (
                 <>
@@ -210,16 +212,16 @@ export default function SignupPage() {
           </form>
 
           <div className="flex items-center gap-3 my-5">
-            <div className="h-px flex-1 bg-white/8" />
-            <span className="text-xs text-[#94A3B8]">or</span>
-            <div className="h-px flex-1 bg-white/8" />
+            <div className="h-px flex-1 bg-foreground/8" />
+            <span className="text-xs text-muted-foreground">or</span>
+            <div className="h-px flex-1 bg-foreground/8" />
           </div>
 
           <OAuthButtons />
 
-          <p className="text-sm text-center text-[#94A3B8] mt-6">
+          <p className="text-sm text-center text-muted-foreground mt-6">
             Already have an account?{" "}
-            <Link to="/auth/signin" className="text-[#60A5FA] hover:text-white transition-colors font-medium">
+            <Link to="/auth/signin" className="text-link hover:text-foreground transition-colors font-medium">
               Sign in
             </Link>
           </p>

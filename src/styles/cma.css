@@ -1,30 +1,8 @@
 /* cma.css - CMA Terminal Design System
-   Dark is the default; add data-theme="light" on .cma-container for light mode
-   (toggle button lives in CmaGeneratorPage.tsx, preference remembered in localStorage). */
+   Follows the site-wide theme toggle (the "dark" class on <html> from
+   src/lib/theme.tsx) instead of its own switch, so there's one light/dark
+   control for the whole app, not a separate one just for this page. */
 .cma-container {
-  --cma-bg: #080B10;
-  --cma-panel-bg: #0E1218;
-  --cma-panel-bg-alt: #111720;
-  --cma-border: #1A2030;
-  --cma-border-strong: #334155;
-  --cma-text: #E2E8F0;
-  --cma-text-strong: #F8FAFC;
-  --cma-text-muted: #94A3B8;
-  --cma-text-faint: #64748B;
-  --cma-hover-bg: #1A2030;
-  --cma-code-bg: #131A24;
-  --cma-scrollbar-thumb: #2A3345;
-  --cma-scrollbar-thumb-hover: #3B4658;
-  --cma-shadow: rgba(0, 0, 0, 0.5);
-
-  background-color: var(--cma-bg);
-  color: var(--cma-text);
-  font-family: 'IBM Plex Sans', sans-serif;
-  min-height: 100vh;
-  width: 100%;
-}
-
-.cma-container[data-theme="light"] {
   --cma-bg: #F8FAFC;
   --cma-panel-bg: #FFFFFF;
   --cma-panel-bg-alt: #F1F5F9;
@@ -39,6 +17,29 @@
   --cma-scrollbar-thumb: #CBD5E1;
   --cma-scrollbar-thumb-hover: #94A3B8;
   --cma-shadow: rgba(15, 23, 42, 0.08);
+
+  background-color: var(--cma-bg);
+  color: var(--cma-text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.dark .cma-container {
+  --cma-bg: #080B10;
+  --cma-panel-bg: #0E1218;
+  --cma-panel-bg-alt: #111720;
+  --cma-border: #1A2030;
+  --cma-border-strong: #334155;
+  --cma-text: #E2E8F0;
+  --cma-text-strong: #F8FAFC;
+  --cma-text-muted: #94A3B8;
+  --cma-text-faint: #64748B;
+  --cma-hover-bg: #1A2030;
+  --cma-code-bg: #131A24;
+  --cma-scrollbar-thumb: #2A3345;
+  --cma-scrollbar-thumb-hover: #3B4658;
+  --cma-shadow: rgba(0, 0, 0, 0.5);
 }
 
 /* Themed scrollbars for the terminal's own scroll areas (tabs strip, wide
@@ -79,25 +80,6 @@
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--cma-text-strong);
-}
-
-.cma-theme-toggle {
-  background: transparent;
-  border: 1px solid var(--cma-border-strong);
-  color: var(--cma-text-muted);
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.cma-theme-toggle:hover {
-  color: var(--cma-text-strong);
-  background-color: var(--cma-hover-bg);
 }
 
 .cma-tabs {

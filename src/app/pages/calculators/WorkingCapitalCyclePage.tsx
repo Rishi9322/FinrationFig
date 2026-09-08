@@ -99,7 +99,7 @@ export default function WorkingCapitalCyclePage() {
           helperText="Annual or period purchases used for the cycle analysis"
         />
 
-        {error && <p className="text-xs text-[#ef4444]">{error}</p>}
+        {error && <p className="text-xs text-destructive">{error}</p>}
       </div>
     </CalculatorShell>
   )

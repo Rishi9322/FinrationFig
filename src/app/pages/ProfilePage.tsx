@@ -52,26 +52,26 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050A14] py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="min-h-screen bg-background py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-normal text-white mb-6" style={{ fontFamily: "'Instrument Serif', serif" }}>
+        <h1 className="text-3xl font-normal text-foreground mb-6" style={{ fontFamily: "'Instrument Serif', serif" }}>
           Your Profile
         </h1>
 
-        <div className="bg-[#0D1726] border border-white/8 rounded-xl p-8">
-          <div className="flex items-center gap-4 mb-6 pb-6 border-b border-white/8">
-            <div className="w-14 h-14 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-2xl flex items-center justify-center">
-              <UserCircle className="w-7 h-7 text-[#60A5FA]" />
+        <div className="bg-card border border-foreground/8 rounded-xl p-8">
+          <div className="flex items-center gap-4 mb-6 pb-6 border-b border-foreground/8">
+            <div className="w-14 h-14 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center">
+              <UserCircle className="w-7 h-7 text-link" />
             </div>
             <div>
-              <div className="text-white font-medium">{user.name || user.email}</div>
-              <div className="text-xs text-[#94A3B8]">{user.email}</div>
+              <div className="text-foreground font-medium">{user.name || user.email}</div>
+              <div className="text-xs text-muted-foreground">{user.email}</div>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
-              <label htmlFor="name" className="block text-sm font-medium text-[#F1F5F9]">
+              <label htmlFor="name" className="block text-sm font-medium text-foreground">
                 Full Name
               </label>
               <input
@@ -79,19 +79,19 @@ export default function ProfilePage() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+                className="w-full px-4 py-2.5 bg-background border border-foreground/10 rounded-lg text-foreground text-sm focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-[#F1F5F9]">Business Constitution</label>
+              <label className="block text-sm font-medium text-foreground">Business Constitution</label>
               <Select value={constitution} onValueChange={setConstitution}>
-                <SelectTrigger className="w-full px-4 py-3 h-auto bg-[#050A14] border-white/10 rounded-lg text-[#F1F5F9] text-sm data-[placeholder]:text-[#94A3B8]">
+                <SelectTrigger className="w-full px-4 py-3 h-auto bg-background border-foreground/10 rounded-lg text-foreground text-sm data-[placeholder]:text-muted-foreground">
                   <SelectValue placeholder="Select your business type" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#0D1726] border-white/10 text-[#F1F5F9]">
+                <SelectContent className="bg-card border-foreground/10 text-foreground">
                   {CONSTITUTIONS.map((c) => (
-                    <SelectItem key={c} value={c} className="text-sm focus:bg-white/5">
+                    <SelectItem key={c} value={c} className="text-sm focus:bg-foreground/5">
                       {c}
                     </SelectItem>
                   ))}
@@ -100,8 +100,8 @@ export default function ProfilePage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-[#F1F5F9]">Role</label>
-              <div className="px-4 py-2.5 bg-white/3 border border-white/5 rounded-lg text-sm text-[#94A3B8]">
+              <label className="block text-sm font-medium text-foreground">Role</label>
+              <div className="px-4 py-2.5 bg-foreground/3 border border-foreground/5 rounded-lg text-sm text-muted-foreground">
                 {user.role}
               </div>
             </div>
@@ -109,7 +109,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={isSaving}
-              className="w-full flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] disabled:opacity-60 text-white py-3 rounded-xl text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover disabled:opacity-60 text-white py-3 rounded-xl text-sm font-medium transition-colors"
             >
               {isSaving ? (
                 <>

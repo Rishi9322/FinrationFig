@@ -4,6 +4,7 @@ import { Loader2, Mail } from "lucide-react"
 import { toast } from "sonner"
 import { forgotPassword } from "../../../lib/auth"
 import { forgotPasswordSchema } from "../../../lib/validations"
+import { ThemeToggle } from "../../components/ThemeToggle"
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("")
@@ -32,7 +33,8 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050A14] flex items-center justify-center px-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="min-h-screen bg-background flex items-center justify-center px-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <ThemeToggle className="fixed top-4 right-4 z-10" />
       <div className="fixed inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.09) 0%, transparent 65%)" }} />
 
       <div className="relative w-full max-w-sm">
@@ -40,33 +42,33 @@ export default function ForgotPasswordPage() {
           <Link to="/" className="inline-flex items-center gap-2">
             <img src="/logoo.png" alt="FinRatio" className="h-14 w-auto sm:h-16" />
           </Link>
-          <p className="text-sm text-[#94A3B8] mt-3">Recover your account</p>
+          <p className="text-sm text-muted-foreground mt-3">Recover your account</p>
         </div>
 
-        <div className="bg-[#0D1726] border border-white/8 rounded-2xl p-8">
-          <div className="flex items-center gap-2 mb-4 text-[#93C5FD] text-sm">
+        <div className="bg-card border border-foreground/8 rounded-2xl p-8">
+          <div className="flex items-center gap-2 mb-4 text-link text-sm">
             <Mail className="h-4 w-4" />
             Password reset by email link
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-[#F1F5F9]">Email</label>
+              <label className="block text-sm font-medium text-foreground">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@company.com"
-                className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+                className="w-full px-4 py-2.5 bg-background border border-foreground/10 rounded-lg text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
               />
             </div>
 
-            {error && <p className="text-sm text-[#ef4444]">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] disabled:opacity-60 text-white py-3 rounded-xl text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover disabled:opacity-60 text-white py-3 rounded-xl text-sm font-medium transition-colors"
             >
               {isLoading ? (
                 <>
@@ -79,9 +81,9 @@ export default function ForgotPasswordPage() {
             </button>
           </form>
 
-          <p className="text-sm text-center text-[#94A3B8] mt-6">
+          <p className="text-sm text-center text-muted-foreground mt-6">
             Back to{" "}
-            <Link to="/auth/signin" className="text-[#60A5FA] hover:text-white transition-colors font-medium">
+            <Link to="/auth/signin" className="text-link hover:text-foreground transition-colors font-medium">
               Sign in
             </Link>
           </p>

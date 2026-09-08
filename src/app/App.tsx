@@ -4,6 +4,7 @@ import { router } from "./routes"
 import { Toaster } from "./components/ui/sonner"
 import { Analytics } from "@vercel/analytics/react"
 import { getRouteMeta } from "../lib/routeMeta"
+import { ThemeProvider } from "../lib/theme"
 
 // Per-route <title>/<meta description>/<link canonical>. The app is a client
 // router (createBrowserRouter, not nested layout routes with an Outlet), so
@@ -27,10 +28,10 @@ function useRouteMeta() {
 export default function App() {
   useRouteMeta()
   return (
-    <>
+    <ThemeProvider>
       <RouterProvider router={router} />
       <Toaster />
       <Analytics />
-    </>
+    </ThemeProvider>
   )
 }

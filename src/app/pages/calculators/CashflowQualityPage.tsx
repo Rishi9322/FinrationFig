@@ -27,21 +27,21 @@ function NumberField({
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="block text-sm font-medium text-[#F1F5F9]">{label}</label>
+      <label className="block text-sm font-medium text-foreground">{label}</label>
       <div className="relative">
         <input
           type="number"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full px-4 py-2.5 pr-10 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+          className="w-full px-4 py-2.5 pr-10 bg-background border border-foreground/10 rounded-lg text-foreground text-sm font-['Geist_Mono'] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
         />
         {suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] text-sm font-['Geist_Mono']">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-['Geist_Mono']">
             {suffix}
           </span>
         )}
       </div>
-      {helperText && <p className="text-xs text-[#94A3B8]">{helperText}</p>}
+      {helperText && <p className="text-xs text-muted-foreground">{helperText}</p>}
     </div>
   )
 }

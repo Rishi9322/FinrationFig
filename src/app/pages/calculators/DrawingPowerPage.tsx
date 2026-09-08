@@ -101,7 +101,7 @@ export default function DrawingPowerPage() {
         />
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-[#F1F5F9]">Margin Percentage</label>
+          <label className="block text-sm font-medium text-foreground">Margin Percentage</label>
           <div className="relative">
             <input
               type="number"
@@ -111,12 +111,12 @@ export default function DrawingPowerPage() {
               min="0"
               max="100"
               step="0.1"
-              className="w-full px-4 py-2.5 pr-10 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+              className="w-full px-4 py-2.5 pr-10 bg-background border border-foreground/10 rounded-lg text-foreground text-sm font-['Geist_Mono'] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
             />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94A3B8] text-sm font-['Geist_Mono']">%</span>
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-['Geist_Mono']">%</span>
           </div>
-          <p className="text-xs text-[#94A3B8]">Bank's margin requirement (typically 20–25%)</p>
-          {error && <p className="text-xs text-[#ef4444]">{error}</p>}
+          <p className="text-xs text-muted-foreground">Bank's margin requirement (typically 20–25%)</p>
+          {error && <p className="text-xs text-destructive">{error}</p>}
         </div>
       </div>
     </CalculatorShell>

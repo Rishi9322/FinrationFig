@@ -37,16 +37,16 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050A14] py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="min-h-screen bg-background py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl font-normal text-white mb-2" style={{ fontFamily: "'Instrument Serif', serif" }}>
+        <h1 className="text-3xl font-normal text-foreground mb-2" style={{ fontFamily: "'Instrument Serif', serif" }}>
           Feedback
         </h1>
-        <p className="text-sm text-[#94A3B8] mb-6">
+        <p className="text-sm text-muted-foreground mb-6">
           Leave a review or request a feature — an admin reads every submission.
         </p>
 
-        <div className="bg-[#0D1726] border border-white/8 rounded-xl p-8">
+        <div className="bg-card border border-foreground/8 rounded-xl p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="flex gap-2">
               {TYPES.map((t) => (
@@ -56,8 +56,8 @@ export default function FeedbackPage() {
                   onClick={() => setType(t.value)}
                   className={`flex-1 text-sm px-3 py-2.5 rounded-lg border transition-colors ${
                     type === t.value
-                      ? "bg-[#2563EB]/15 border-[#2563EB]/40 text-white"
-                      : "bg-[#050A14] border-white/10 text-[#94A3B8] hover:text-white"
+                      ? "bg-primary/15 border-primary/40 text-white"
+                      : "bg-background border-foreground/10 text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {t.label}
@@ -67,7 +67,7 @@ export default function FeedbackPage() {
 
             {type === "REVIEW" && (
               <div className="space-y-1.5">
-                <label className="block text-sm font-medium text-[#F1F5F9]">Rating</label>
+                <label className="block text-sm font-medium text-foreground">Rating</label>
                 <div className="flex gap-1">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -79,7 +79,7 @@ export default function FeedbackPage() {
                     >
                       <Star
                         className={`w-6 h-6 transition-colors ${
-                          star <= rating ? "fill-[#f59e0b] text-[#f59e0b]" : "text-[#94A3B8]/40"
+                          star <= rating ? "fill-warning text-warning" : "text-muted-foreground/40"
                         }`}
                       />
                     </button>
@@ -89,7 +89,7 @@ export default function FeedbackPage() {
             )}
 
             <div className="space-y-1.5">
-              <label htmlFor="message" className="block text-sm font-medium text-[#F1F5F9]">
+              <label htmlFor="message" className="block text-sm font-medium text-foreground">
                 {type === "REVIEW" ? "Your review" : type === "FEATURE_REQUEST" ? "What would you like to see?" : "What went wrong?"}
               </label>
               <textarea
@@ -105,14 +105,14 @@ export default function FeedbackPage() {
                       ? "Describe the feature and the problem it solves..."
                       : "Steps to reproduce, what you expected, what happened..."
                 }
-                className="w-full px-4 py-3 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors resize-none"
+                className="w-full px-4 py-3 bg-background border border-foreground/10 rounded-lg text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors resize-none"
               />
             </div>
 
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] disabled:opacity-60 text-white py-3 rounded-xl text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover disabled:opacity-60 text-white py-3 rounded-xl text-sm font-medium transition-colors"
             >
               {isSubmitting ? (
                 <>
@@ -128,7 +128,7 @@ export default function FeedbackPage() {
             </button>
 
             {submitted && (
-              <p className="text-xs text-[#22C55E] text-center">Submitted — thank you.</p>
+              <p className="text-xs text-accent text-center">Submitted — thank you.</p>
             )}
           </form>
         </div>

@@ -75,17 +75,17 @@ export default function AgeingPage() {
       explainerText="Receivables Ageing Analysis categorises outstanding invoices into time buckets — current, 30–60 days, 60–90 days, and over 90 days — to identify concentration risk in older, harder-to-collect balances. Banks review ageing statements monthly as part of working capital monitoring. A high proportion of receivables beyond 90 days is a serious red flag, as it can indicate customer defaults, inflated book debts, or diversion of funds — all of which affect Drawing Power calculations and credit limit renewals."
       result={
         result ? (
-          <div className="bg-[#0D1726] rounded-xl border border-white/8 p-6 space-y-5" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+          <div className="bg-card rounded-xl border border-foreground/8 p-6 space-y-5" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             {/* Header */}
-            <div className="flex items-center gap-2 pb-4 border-b border-white/8">
+            <div className="flex items-center gap-2 pb-4 border-b border-foreground/8">
               <div className="w-1.5 h-5 rounded-full" style={{ background: accentColor }} />
-              <h3 className="text-sm font-medium text-white">Ageing Analysis</h3>
+              <h3 className="text-sm font-medium text-foreground">Ageing Analysis</h3>
             </div>
 
             {/* Total + risk */}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs text-[#94A3B8] mb-1">Total Receivables</p>
+                <p className="text-xs text-muted-foreground mb-1">Total Receivables</p>
                 <p className="text-2xl font-['Geist_Mono'] font-medium" style={{ color: accentColor }}>
                   {formatCurrency(result.total)}
                 </p>
@@ -96,21 +96,21 @@ export default function AgeingPage() {
             {/* Buckets */}
             <div className="space-y-2.5">
               {result.buckets.map((bucket) => (
-                <div key={bucket.label} className="bg-white/3 border border-white/5 rounded-lg p-4">
+                <div key={bucket.label} className="bg-foreground/3 border border-foreground/5 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <p className="text-sm font-medium text-white">{bucket.label}</p>
-                    <p className="text-xs text-[#94A3B8]">{bucket.count} invoice{bucket.count !== 1 ? "s" : ""}</p>
+                    <p className="text-sm font-medium text-foreground">{bucket.label}</p>
+                    <p className="text-xs text-muted-foreground">{bucket.count} invoice{bucket.count !== 1 ? "s" : ""}</p>
                   </div>
                   <div className="flex items-center justify-between">
-                    <div className="h-1.5 flex-1 mr-4 bg-white/8 rounded-full overflow-hidden">
+                    <div className="h-1.5 flex-1 mr-4 bg-foreground/8 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
                         style={{ width: `${bucket.percentage}%`, background: accentColor }}
                       />
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-['Geist_Mono'] text-[#F1F5F9]">{formatCurrency(bucket.amount)}</p>
-                      <p className="text-xs text-[#94A3B8]">{bucket.percentage.toFixed(1)}%</p>
+                      <p className="text-sm font-['Geist_Mono'] text-foreground">{formatCurrency(bucket.amount)}</p>
+                      <p className="text-xs text-muted-foreground">{bucket.percentage.toFixed(1)}%</p>
                     </div>
                   </div>
                 </div>
@@ -118,8 +118,8 @@ export default function AgeingPage() {
             </div>
 
             {/* Interpretation */}
-            <div className="p-4 rounded-lg bg-white/3 border border-white/5">
-              <p className="text-sm text-[#F1F5F9] leading-relaxed">{result.interpretation}</p>
+            <div className="p-4 rounded-lg bg-foreground/3 border border-foreground/5">
+              <p className="text-sm text-foreground leading-relaxed">{result.interpretation}</p>
             </div>
 
             {/* Save */}
@@ -128,8 +128,8 @@ export default function AgeingPage() {
               disabled={isSaving || saved}
               className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all ${
                 saved
-                  ? "bg-[#10B981]/15 border border-[#10B981]/30 text-[#10B981]"
-                  : "bg-[#2563EB] hover:bg-[#1d4ed8] text-white disabled:opacity-60"
+                  ? "bg-accent/15 border border-accent/30 text-accent"
+                  : "bg-primary hover:bg-primary-hover text-white disabled:opacity-60"
               }`}
             >
               {isSaving ? (
@@ -146,22 +146,22 @@ export default function AgeingPage() {
     >
       <div className="space-y-4" style={{ fontFamily: "'DM Sans', sans-serif" }}>
         <div className="flex items-center justify-between">
-          <p className="text-sm text-[#94A3B8]">Enter each outstanding receivable below</p>
+          <p className="text-sm text-muted-foreground">Enter each outstanding receivable below</p>
           <button
             onClick={addReceivable}
-            className="flex items-center gap-1.5 text-xs text-[#60A5FA] hover:text-white border border-[#2563EB]/30 hover:border-[#2563EB] hover:bg-[#2563EB] px-3 py-1.5 rounded-lg transition-all"
+            className="flex items-center gap-1.5 text-xs text-link hover:text-white border border-primary/30 hover:border-primary hover:bg-primary px-3 py-1.5 rounded-lg transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
             Add Row
           </button>
         </div>
 
-        <div className="border border-white/8 rounded-xl overflow-hidden">
+        <div className="border border-foreground/8 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/8">
-                <th className="px-4 py-3 text-left text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-wider">Amount (₹)</th>
-                <th className="px-4 py-3 text-left text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-wider">Days Outstanding</th>
+              <tr className="border-b border-foreground/8">
+                <th className="px-4 py-3 text-left text-xs font-['Geist_Mono'] text-muted-foreground uppercase tracking-wider">Amount (₹)</th>
+                <th className="px-4 py-3 text-left text-xs font-['Geist_Mono'] text-muted-foreground uppercase tracking-wider">Days Outstanding</th>
                 <th className="px-4 py-3 w-10" />
               </tr>
             </thead>
@@ -169,7 +169,7 @@ export default function AgeingPage() {
               {receivables.map((r, i) => (
                 <tr
                   key={r.id}
-                  className={`${i !== receivables.length - 1 ? "border-b border-white/5" : ""}`}
+                  className={`${i !== receivables.length - 1 ? "border-b border-foreground/5" : ""}`}
                 >
                   <td className="px-4 py-2.5">
                     <input
@@ -179,7 +179,7 @@ export default function AgeingPage() {
                       placeholder="0"
                       min="0"
                       step="0.01"
-                      className="w-full bg-[#050A14] border border-white/10 rounded-lg px-3 py-2 text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+                      className="w-full bg-background border border-foreground/10 rounded-lg px-3 py-2 text-foreground text-sm font-['Geist_Mono'] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
                     />
                   </td>
                   <td className="px-4 py-2.5">
@@ -190,14 +190,14 @@ export default function AgeingPage() {
                       placeholder="0"
                       min="0"
                       step="1"
-                      className="w-full bg-[#050A14] border border-white/10 rounded-lg px-3 py-2 text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+                      className="w-full bg-background border border-foreground/10 rounded-lg px-3 py-2 text-foreground text-sm font-['Geist_Mono'] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
                     />
                   </td>
                   <td className="px-4 py-2.5 text-center">
                     {receivables.length > 1 && (
                       <button
                         onClick={() => removeReceivable(r.id)}
-                        className="text-[#94A3B8] hover:text-[#ef4444] transition-colors"
+                        className="text-muted-foreground hover:text-destructive transition-colors"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -209,7 +209,7 @@ export default function AgeingPage() {
           </table>
         </div>
 
-        <p className="text-xs text-[#94A3B8] leading-relaxed">
+        <p className="text-xs text-muted-foreground leading-relaxed">
           Each row is one outstanding invoice. Enter the amount and the number of days since it was due.
         </p>
       </div>

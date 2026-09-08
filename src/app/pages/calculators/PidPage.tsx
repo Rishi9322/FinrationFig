@@ -125,7 +125,7 @@ export default function PidPage() {
         />
 
         <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-[#F1F5F9]">Margin Percentage</label>
+          <label className="block text-sm font-medium text-foreground">Margin Percentage</label>
           <input
             type="number"
             value={marginPercent}
@@ -134,14 +134,14 @@ export default function PidPage() {
             min="0"
             max="100"
             step="0.1"
-            className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+            className="w-full px-4 py-2.5 bg-background border border-foreground/10 rounded-lg text-foreground text-sm font-['Geist_Mono'] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
           />
-          <p className="text-xs text-[#94A3B8]">Profit margin on sales</p>
+          <p className="text-xs text-muted-foreground">Profit margin on sales</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[#F1F5F9]">Sales Credit Days</label>
+            <label className="block text-sm font-medium text-foreground">Sales Credit Days</label>
             <input
               type="number"
               value={salesCreditDays}
@@ -149,12 +149,12 @@ export default function PidPage() {
               placeholder="60"
               min="0"
               step="1"
-              className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+              className="w-full px-4 py-2.5 bg-background border border-foreground/10 rounded-lg text-foreground text-sm font-['Geist_Mono'] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[#F1F5F9]">Purchase Credit Days</label>
+            <label className="block text-sm font-medium text-foreground">Purchase Credit Days</label>
             <input
               type="number"
               value={purchaseCreditDays}
@@ -162,7 +162,7 @@ export default function PidPage() {
               placeholder="30"
               min="0"
               step="1"
-              className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+              className="w-full px-4 py-2.5 bg-background border border-foreground/10 rounded-lg text-foreground text-sm font-['Geist_Mono'] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
             />
           </div>
         </div>
@@ -177,7 +177,7 @@ export default function PidPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[#F1F5F9]">PID Cost Per Month (%)</label>
+            <label className="block text-sm font-medium text-foreground">PID Cost Per Month (%)</label>
             <input
               type="number"
               value={pidCostPerMonthPercent}
@@ -185,12 +185,12 @@ export default function PidPage() {
               placeholder="1.25"
               min="0"
               step="0.01"
-              className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+              className="w-full px-4 py-2.5 bg-background border border-foreground/10 rounded-lg text-foreground text-sm font-['Geist_Mono'] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-[#F1F5F9]">Cash Discount (%)</label>
+            <label className="block text-sm font-medium text-foreground">Cash Discount (%)</label>
             <input
               type="number"
               value={cashDiscountPercent}
@@ -198,12 +198,12 @@ export default function PidPage() {
               placeholder="2"
               min="0"
               step="0.01"
-              className="w-full px-4 py-2.5 bg-[#050A14] border border-white/10 rounded-lg text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#94A3B8]/50 focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+              className="w-full px-4 py-2.5 bg-background border border-foreground/10 rounded-lg text-foreground text-sm font-['Geist_Mono'] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
             />
           </div>
         </div>
 
-        {error && <p className="text-xs text-[#ef4444]">{error}</p>}
+        {error && <p className="text-xs text-destructive">{error}</p>}
       </div>
     </CalculatorShell>
   )

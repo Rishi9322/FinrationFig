@@ -205,46 +205,46 @@ export default function UsersAdminPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#050A14] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#2563EB]/20 border-t-[#2563EB] rounded-full animate-spin" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#050A14] py-8 font-dm-sans">
+    <div className="min-h-screen bg-background py-8 font-dm-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <p className="text-xs font-['Geist_Mono'] text-[#60A5FA] uppercase tracking-widest mb-2">Admin</p>
-          <h1 className="text-3xl font-normal text-white font-instrument-serif">
+          <p className="text-xs font-['Geist_Mono'] text-link uppercase tracking-widest mb-2">Admin</p>
+          <h1 className="text-3xl font-normal text-foreground font-instrument-serif">
             Admin Panel
           </h1>
-          <p className="text-sm text-[#94A3B8] mt-1.5 max-w-lg">
+          <p className="text-sm text-muted-foreground mt-1.5 max-w-lg">
             Manage roles, calculator feature access, and account status.
           </p>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           {stats.map((item) => (
-            <div key={item.label} className="rounded-lg border border-white/8 bg-[#0D1726] px-4 py-3">
-              <p className="text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">{item.label}</p>
-              <p className="text-2xl text-white mt-1">{item.value}</p>
+            <div key={item.label} className="rounded-lg border border-foreground/8 bg-card px-4 py-3">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-['Geist_Mono']">{item.label}</p>
+              <p className="text-2xl text-foreground mt-1">{item.value}</p>
             </div>
           ))}
         </div>
 
-        <div className="mb-6 rounded-xl border border-white/8 bg-[#0D1726] p-5">
+        <div className="mb-6 rounded-xl border border-foreground/8 bg-card p-5">
           <div className="flex items-start justify-between gap-6 flex-wrap">
             <div>
-              <p className="text-xs font-['Geist_Mono'] uppercase tracking-widest text-[#94A3B8]">Create User</p>
-              <h2 className="text-xl text-white mt-1">New admin or limited-access user</h2>
-              <p className="text-sm text-[#94A3B8] mt-1.5 max-w-2xl">
+              <p className="text-xs font-['Geist_Mono'] uppercase tracking-widest text-muted-foreground">Create User</p>
+              <h2 className="text-xl text-foreground mt-1">New admin or limited-access user</h2>
+              <p className="text-sm text-muted-foreground mt-1.5 max-w-2xl">
                 Set the role, choose full or custom access, and generate a 10-character password for first sign-in.
               </p>
             </div>
             <button
               onClick={generatePassword}
-              className="px-4 py-2 rounded-lg border border-white/10 text-[#E2E8F0] hover:border-white/30 transition-colors"
+              className="px-4 py-2 rounded-lg border border-foreground/10 text-foreground hover:border-foreground/30 transition-colors"
             >
               Generate 10-char password
             </button>
@@ -255,19 +255,19 @@ export default function UsersAdminPage() {
               value={createForm.name}
               onChange={(e) => setCreateForm((current) => ({ ...current, name: e.target.value }))}
               placeholder="Full name"
-              className="bg-[#050A14] border border-white/10 text-white rounded-lg px-3 py-2.5"
+              className="bg-background border border-foreground/10 text-foreground rounded-lg px-3 py-2.5"
             />
             <input
               value={createForm.email}
               onChange={(e) => setCreateForm((current) => ({ ...current, email: e.target.value }))}
               placeholder="Email address"
-              className="bg-[#050A14] border border-white/10 text-white rounded-lg px-3 py-2.5"
+              className="bg-background border border-foreground/10 text-foreground rounded-lg px-3 py-2.5"
             />
             <input
               value={createForm.password}
               onChange={(e) => setCreateForm((current) => ({ ...current, password: e.target.value }))}
               placeholder="Temporary password"
-              className="bg-[#050A14] border border-white/10 text-white rounded-lg px-3 py-2.5"
+              className="bg-background border border-foreground/10 text-foreground rounded-lg px-3 py-2.5"
             />
             <select
               value={createForm.role}
@@ -280,7 +280,7 @@ export default function UsersAdminPage() {
               }
               aria-label="User role"
               title="User role"
-              className="bg-[#050A14] border border-white/10 text-white rounded-lg px-3 py-2.5"
+              className="bg-background border border-foreground/10 text-foreground rounded-lg px-3 py-2.5"
             >
               <option value="ADMIN">ADMIN</option>
               <option value="SUPER_ADMIN">SUPER_ADMIN</option>
@@ -292,7 +292,7 @@ export default function UsersAdminPage() {
               disabled={createForm.role !== "USER"}
               aria-label="Access mode"
               title="Access mode"
-              className="bg-[#050A14] border border-white/10 text-white rounded-lg px-3 py-2.5 disabled:opacity-60"
+              className="bg-background border border-foreground/10 text-foreground rounded-lg px-3 py-2.5 disabled:opacity-60"
             >
               <option value="FULL">Full access</option>
               <option value="CUSTOM">Custom access</option>
@@ -301,7 +301,7 @@ export default function UsersAdminPage() {
 
           {createForm.role === "USER" && createForm.accessMode === "CUSTOM" && (
             <div className="mt-4">
-              <p className="text-xs font-['Geist_Mono'] uppercase tracking-widest text-[#94A3B8] mb-2">Custom calculators</p>
+              <p className="text-xs font-['Geist_Mono'] uppercase tracking-widest text-muted-foreground mb-2">Custom calculators</p>
               <div className="flex flex-wrap gap-2">
                 {features.map((feature) => {
                   const active = createForm.calculatorAccess.includes(feature.slug)
@@ -319,8 +319,8 @@ export default function UsersAdminPage() {
                       }
                       className={`px-3 py-1.5 rounded-md text-xs border transition-colors ${
                         active
-                          ? "bg-[#2563EB]/15 border-[#2563EB]/40 text-[#93C5FD]"
-                          : "bg-transparent border-white/15 text-[#94A3B8] hover:border-white/30"
+                          ? "bg-primary/15 border-primary/40 text-link"
+                          : "bg-transparent border-foreground/15 text-muted-foreground hover:border-foreground/30"
                       }`}
                     >
                       {feature.name}
@@ -332,7 +332,7 @@ export default function UsersAdminPage() {
           )}
 
           <div className="mt-4 flex items-center justify-end gap-3">
-            <span className="text-xs text-[#94A3B8]">
+            <span className="text-xs text-muted-foreground">
               {createForm.role === "USER" && createForm.accessMode === "CUSTOM"
                 ? `${createForm.calculatorAccess.length} feature(s) selected`
                 : "Full access enabled"}
@@ -340,24 +340,24 @@ export default function UsersAdminPage() {
             <button
               onClick={handleCreateUser}
               disabled={isSaving === "create-user"}
-              className="px-5 py-2.5 rounded-lg bg-[#2563EB] text-white hover:bg-[#1D4ED8] disabled:opacity-60"
+              className="px-5 py-2.5 rounded-lg bg-primary text-white hover:bg-primary-hover disabled:opacity-60"
             >
               {isSaving === "create-user" ? "Creating..." : "Create user"}
             </button>
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-xl border border-white/8 bg-[#0D1726]">
+        <div className="overflow-x-auto rounded-xl border border-foreground/8 bg-card">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/8">
-                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Name</th>
-                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Email</th>
-                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Role</th>
-                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Access Tier</th>
-                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Enabled Calculators</th>
-                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Status</th>
-                <th className="text-left py-3.5 px-4 text-xs text-[#94A3B8] uppercase tracking-wider font-['Geist_Mono']">Actions</th>
+              <tr className="border-b border-foreground/8">
+                <th className="text-left py-3.5 px-4 text-xs text-muted-foreground uppercase tracking-wider font-['Geist_Mono']">Name</th>
+                <th className="text-left py-3.5 px-4 text-xs text-muted-foreground uppercase tracking-wider font-['Geist_Mono']">Email</th>
+                <th className="text-left py-3.5 px-4 text-xs text-muted-foreground uppercase tracking-wider font-['Geist_Mono']">Role</th>
+                <th className="text-left py-3.5 px-4 text-xs text-muted-foreground uppercase tracking-wider font-['Geist_Mono']">Access Tier</th>
+                <th className="text-left py-3.5 px-4 text-xs text-muted-foreground uppercase tracking-wider font-['Geist_Mono']">Enabled Calculators</th>
+                <th className="text-left py-3.5 px-4 text-xs text-muted-foreground uppercase tracking-wider font-['Geist_Mono']">Status</th>
+                <th className="text-left py-3.5 px-4 text-xs text-muted-foreground uppercase tracking-wider font-['Geist_Mono']">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -366,9 +366,9 @@ export default function UsersAdminPage() {
                 const isEditing = editingAccessFor === user.id
                 return (
                 <Fragment key={user.id}>
-                <tr className="border-b border-white/5 align-middle">
-                  <td className="py-4 px-4 text-[#F1F5F9]">{user.name}</td>
-                  <td className="py-4 px-4 text-[#cbd5e1]">{user.email}</td>
+                <tr className="border-b border-foreground/5 align-middle">
+                  <td className="py-4 px-4 text-foreground">{user.name}</td>
+                  <td className="py-4 px-4 text-muted-foreground">{user.email}</td>
                   <td className="py-4 px-4">
                     <select
                       value={user.role}
@@ -376,7 +376,7 @@ export default function UsersAdminPage() {
                       disabled={isSaving === `role-${user.id}`}
                       aria-label={`Role for ${user.name}`}
                       title={`Role for ${user.name}`}
-                      className="bg-[#050A14] border border-white/10 text-white rounded-lg px-3 py-1.5 text-xs"
+                      className="bg-background border border-foreground/10 text-foreground rounded-lg px-3 py-1.5 text-xs"
                     >
                       <option value="USER">USER</option>
                       <option value="ADMIN">ADMIN</option>
@@ -391,37 +391,37 @@ export default function UsersAdminPage() {
                         disabled={isSaving === `mode-${user.id}`}
                         aria-label={`Access tier for ${user.name}`}
                         title={`Access tier for ${user.name}`}
-                        className="bg-[#050A14] border border-white/10 text-white rounded-lg px-3 py-1.5 text-xs"
+                        className="bg-background border border-foreground/10 text-foreground rounded-lg px-3 py-1.5 text-xs"
                       >
                         <option value="FULL">FULL</option>
                         <option value="CUSTOM">CUSTOM</option>
                       </select>
                     ) : (
-                      <span className="px-2 py-1 rounded-md text-[11px] border bg-[#2563EB]/15 border-[#2563EB]/40 text-[#93C5FD]">
+                      <span className="px-2 py-1 rounded-md text-[11px] border bg-primary/15 border-primary/40 text-link">
                         FULL
                       </span>
                     )}
                   </td>
                   <td className="py-4 px-4 whitespace-nowrap">
                     {locked ? (
-                      <span className="text-[11px] text-[#94A3B8]" title="Full access covers current and future calculators.">
+                      <span className="text-[11px] text-muted-foreground" title="Full access covers current and future calculators.">
                         All calculators
                       </span>
                     ) : (
                       <button
                         onClick={() => (isEditing ? closeAccessEditor() : openAccessEditor(user))}
                         aria-expanded={isEditing}
-                        className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border border-white/15 text-[#e2e8f0] text-xs hover:border-white/30 transition-colors"
+                        className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg border border-foreground/15 text-foreground text-xs hover:border-foreground/30 transition-colors"
                         title={
                           grantedFeatures(user).length
                             ? grantedFeatures(user).map((slug) => featureMap.get(slug) || slug).join(", ")
                             : "No restricted tools enabled"
                         }
                       >
-                        <span className="text-[#93C5FD] font-['Geist_Mono']">
+                        <span className="text-link font-['Geist_Mono']">
                           {grantedFeatures(user).length}/{features.length}
                         </span>
-                        <span className="text-[#94A3B8]">{isEditing ? "Close" : "Edit"}</span>
+                        <span className="text-muted-foreground">{isEditing ? "Close" : "Edit"}</span>
                       </button>
                     )}
                   </td>
@@ -429,8 +429,8 @@ export default function UsersAdminPage() {
                     <span
                       className={`px-2 py-1 rounded-md text-[11px] border ${
                         user.status === "SUSPENDED"
-                          ? "bg-[#ef4444]/15 border-[#ef4444]/40 text-[#fca5a5]"
-                          : "bg-[#10b981]/15 border-[#10b981]/40 text-[#86efac]"
+                          ? "bg-destructive/15 border-destructive/40 text-destructive"
+                          : "bg-accent/15 border-accent/40 text-accent"
                       }`}
                     >
                       {user.status}
@@ -440,7 +440,7 @@ export default function UsersAdminPage() {
                     <button
                       onClick={() => handleSuspendToggle(user)}
                       disabled={isSaving === `suspend-${user.id}`}
-                      className="px-3 py-1.5 text-xs rounded-lg border border-white/15 text-[#e2e8f0] hover:border-white/30 transition-colors"
+                      className="px-3 py-1.5 text-xs rounded-lg border border-foreground/15 text-foreground hover:border-foreground/30 transition-colors"
                     >
                       {user.status === "SUSPENDED" ? "Unsuspend" : "Suspend"}
                     </button>
@@ -448,11 +448,11 @@ export default function UsersAdminPage() {
                 </tr>
 
                 {isEditing ? (
-                  <tr className="border-b border-white/5 bg-[#050A14]/60">
+                  <tr className="border-b border-foreground/5 bg-background/60">
                     <td colSpan={8} className="px-4 py-4">
-                      <p className="text-[11px] text-[#94A3B8] mb-2.5">
+                      <p className="text-[11px] text-muted-foreground mb-2.5">
                         All calculators are open to every user. Select the restricted tools for{" "}
-                        <span className="text-[#e2e8f0]">{user.name}</span>, then save. Nothing changes until you do.
+                        <span className="text-foreground">{user.name}</span>, then save. Nothing changes until you do.
                       </p>
                       <div className="flex flex-wrap gap-1.5 mb-3">
                         {features.map((feature) => {
@@ -464,8 +464,8 @@ export default function UsersAdminPage() {
                               aria-pressed={active}
                               className={`px-2 py-1 rounded-md text-[11px] border transition-colors ${
                                 active
-                                  ? "bg-[#2563EB]/15 border-[#2563EB]/40 text-[#93C5FD]"
-                                  : "bg-transparent border-white/15 text-[#94A3B8] hover:border-white/30"
+                                  ? "bg-primary/15 border-primary/40 text-link"
+                                  : "bg-transparent border-foreground/15 text-muted-foreground hover:border-foreground/30"
                               }`}
                               title={featureMap.get(feature.slug) || feature.slug}
                             >
@@ -478,19 +478,19 @@ export default function UsersAdminPage() {
                         <button
                           onClick={() => handleSaveAccess(user)}
                           disabled={isSaving === `access-${user.id}`}
-                          className="px-3 py-1.5 text-xs rounded-lg bg-[#2563EB] text-white hover:bg-[#1d4ed8] disabled:opacity-50 transition-colors"
+                          className="px-3 py-1.5 text-xs rounded-lg bg-primary text-white hover:bg-primary-hover disabled:opacity-50 transition-colors"
                         >
                           {isSaving === `access-${user.id}` ? "Saving..." : "Save access"}
                         </button>
                         <button
                           onClick={closeAccessEditor}
-                          className="px-3 py-1.5 text-xs rounded-lg border border-white/15 text-[#e2e8f0] hover:border-white/30 transition-colors"
+                          className="px-3 py-1.5 text-xs rounded-lg border border-foreground/15 text-foreground hover:border-foreground/30 transition-colors"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={() => setDraftAccess(draftAccess.length === allFeatureSlugs.length ? [] : allFeatureSlugs)}
-                          className="px-3 py-1.5 text-xs rounded-lg border border-white/15 text-[#94A3B8] hover:border-white/30 transition-colors ml-auto"
+                          className="px-3 py-1.5 text-xs rounded-lg border border-foreground/15 text-muted-foreground hover:border-foreground/30 transition-colors ml-auto"
                         >
                           {draftAccess.length === allFeatureSlugs.length ? "Clear all" : "Select all"}
                         </button>

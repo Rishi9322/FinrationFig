@@ -29,9 +29,9 @@ export function CurrencyInput({
 
   return (
     <div className="space-y-1.5" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <label className="block text-sm font-medium text-[#F1F5F9]">{label}</label>
+      <label className="block text-sm font-medium text-foreground">{label}</label>
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[#94A3B8] text-sm font-['Geist_Mono']">₹</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-['Geist_Mono']">₹</span>
         <input
           id={label}
           type="text"
@@ -43,15 +43,15 @@ export function CurrencyInput({
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
           placeholder={placeholder}
-          className={`w-full pl-8 pr-4 py-2.5 bg-[#050A14] border rounded-lg text-[#F1F5F9] text-sm font-['Geist_Mono'] placeholder:text-[#94A3B8]/50 focus:outline-none transition-colors ${
+          className={`w-full pl-8 pr-4 py-2.5 bg-background border rounded-lg text-foreground text-sm font-['Geist_Mono'] placeholder:text-muted-foreground/50 focus:outline-none transition-colors ${
             error
-              ? "border-[#ef4444]/50 focus:border-[#ef4444]"
-              : "border-white/10 focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20"
+              ? "border-destructive/50 focus:border-destructive"
+              : "border-foreground/10 focus:border-primary/60 focus:ring-1 focus:ring-primary/20"
           }`}
         />
       </div>
-      {helperText && !error && <p className="text-xs text-[#94A3B8]">{helperText}</p>}
-      {error && <p className="text-xs text-[#ef4444]">{error}</p>}
+      {helperText && !error && <p className="text-xs text-muted-foreground">{helperText}</p>}
+      {error && <p className="text-xs text-destructive">{error}</p>}
     </div>
   )
 }

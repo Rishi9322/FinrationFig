@@ -137,11 +137,11 @@ export default function BalanceSheetUpload({ userId }: Props) {
   const confidenceColor = confidencePct === null ? "" : confidencePct >= 70 ? "#10B981" : confidencePct >= 40 ? "#f59e0b" : "#ef4444"
 
   return (
-    <div className="bg-[#0D1726] rounded-xl border border-white/8 p-6 space-y-5" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="bg-card rounded-xl border border-foreground/8 p-6 space-y-5" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       {/* Header */}
-      <div className="flex items-center gap-2 pb-4 border-b border-white/8">
-        <div className="w-1.5 h-5 rounded-full bg-[#2563EB]" />
-        <h3 className="text-sm font-medium text-white">Upload Balance Sheet</h3>
+      <div className="flex items-center gap-2 pb-4 border-b border-foreground/8">
+        <div className="w-1.5 h-5 rounded-full bg-primary" />
+        <h3 className="text-sm font-medium text-foreground">Upload Balance Sheet</h3>
       </div>
 
       {/* Dropzone */}
@@ -149,7 +149,7 @@ export default function BalanceSheetUpload({ userId }: Props) {
         htmlFor="bs-file"
         onDragOver={(e) => e.preventDefault()}
         onDrop={onDrop}
-        className="flex flex-col items-center justify-center gap-2 text-center px-6 py-10 rounded-xl border border-dashed border-white/15 hover:border-[#2563EB]/50 bg-white/3 cursor-pointer transition-colors"
+        className="flex flex-col items-center justify-center gap-2 text-center px-6 py-10 rounded-xl border border-dashed border-foreground/15 hover:border-primary/50 bg-foreground/3 cursor-pointer transition-colors"
       >
         <input
           ref={inputRef}
@@ -161,35 +161,35 @@ export default function BalanceSheetUpload({ userId }: Props) {
         />
         {status === "parsing" ? (
           <>
-            <Loader2 className="w-6 h-6 text-[#60A5FA] animate-spin" />
-            <p className="text-sm text-[#F1F5F9]">Parsing {file?.name}…</p>
+            <Loader2 className="w-6 h-6 text-link animate-spin" />
+            <p className="text-sm text-foreground">Parsing {file?.name}…</p>
           </>
         ) : status === "error" ? (
           <>
-            <AlertCircle className="w-6 h-6 text-[#ef4444]" />
-            <p className="text-sm text-[#ef4444]">{errorMsg}</p>
-            <p className="text-xs text-[#94A3B8]">Click to try another file</p>
+            <AlertCircle className="w-6 h-6 text-destructive" />
+            <p className="text-sm text-destructive">{errorMsg}</p>
+            <p className="text-xs text-muted-foreground">Click to try another file</p>
           </>
         ) : status === "parsed" ? (
           <>
-            <FileCheck2 className="w-6 h-6 text-[#10B981]" />
-            <p className="text-sm text-[#F1F5F9] font-medium">{file?.name}</p>
-            <p className="text-xs text-[#94A3B8] flex items-center gap-1">
+            <FileCheck2 className="w-6 h-6 text-accent" />
+            <p className="text-sm text-foreground font-medium">{file?.name}</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
               <RefreshCw className="w-3 h-3" /> click or drop to replace
             </p>
           </>
         ) : (
           <>
-            <Upload className="w-6 h-6 text-[#60A5FA]" />
-            <p className="text-sm text-[#F1F5F9]">Drop your balance sheet here, or click to browse</p>
-            <p className="text-xs text-[#94A3B8]">CSV, JSON, Excel, PDF, DOCX or an image</p>
+            <Upload className="w-6 h-6 text-link" />
+            <p className="text-sm text-foreground">Drop your balance sheet here, or click to browse</p>
+            <p className="text-xs text-muted-foreground">CSV, JSON, Excel, PDF, DOCX or an image</p>
           </>
         )}
       </label>
 
       {/* Calculator picker */}
       <div className="space-y-1.5">
-        <label htmlFor="calc-select" className="text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-wider">
+        <label htmlFor="calc-select" className="text-xs font-['Geist_Mono'] text-muted-foreground uppercase tracking-wider">
           Calculator
         </label>
         <div className="relative">
@@ -198,7 +198,7 @@ export default function BalanceSheetUpload({ userId }: Props) {
             aria-label="Select calculator"
             value={selectedCalculator}
             onChange={(e) => setSelectedCalculator(e.target.value as CalculatorType)}
-            className="w-full appearance-none bg-[#050A14] border border-white/10 rounded-lg pl-3 pr-9 py-2.5 text-sm text-[#F1F5F9] focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+            className="w-full appearance-none bg-background border border-foreground/10 rounded-lg pl-3 pr-9 py-2.5 text-sm text-foreground focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
           >
             {SUPPORTED.map((c) => (
               <option key={c} value={c}>
@@ -206,15 +206,15 @@ export default function BalanceSheetUpload({ userId }: Props) {
               </option>
             ))}
           </select>
-          <ChevronDown className="w-4 h-4 text-[#94A3B8] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <ChevronDown className="w-4 h-4 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
         </div>
       </div>
 
       {/* Mapped inputs — editable, with the parser's own confidence read-out */}
       {mapped && (
-        <div className="space-y-3 p-4 rounded-lg bg-white/3 border border-white/5">
+        <div className="space-y-3 p-4 rounded-lg bg-foreground/3 border border-foreground/5">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-['Geist_Mono'] text-[#94A3B8] uppercase tracking-wider">
+            <p className="text-xs font-['Geist_Mono'] text-muted-foreground uppercase tracking-wider">
               Mapped inputs — override anything the parser guessed wrong
             </p>
             {confidencePct !== null && (
@@ -227,7 +227,7 @@ export default function BalanceSheetUpload({ userId }: Props) {
             {Object.entries(mapped.inputs || {}).map(([key, value]) =>
               typeof value === "number" ? (
                 <div key={key} className="space-y-1">
-                  <label htmlFor={`mapped-${key}`} className="text-xs text-[#94A3B8]">
+                  <label htmlFor={`mapped-${key}`} className="text-xs text-muted-foreground">
                     {key}
                   </label>
                   <input
@@ -235,18 +235,18 @@ export default function BalanceSheetUpload({ userId }: Props) {
                     type="number"
                     value={value}
                     onChange={(e) => updateMappedInput(key, e.target.value)}
-                    className="w-full bg-[#050A14] border border-white/10 rounded-lg px-3 py-2 text-[#F1F5F9] text-sm font-['Geist_Mono'] focus:outline-none focus:border-[#2563EB]/60 focus:ring-1 focus:ring-[#2563EB]/20 transition-colors"
+                    className="w-full bg-background border border-foreground/10 rounded-lg px-3 py-2 text-foreground text-sm font-['Geist_Mono'] focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
                   />
                 </div>
               ) : null
             )}
           </div>
-          {mapped.notes && <p className="text-xs text-[#94A3B8] leading-relaxed">{mapped.notes}</p>}
+          {mapped.notes && <p className="text-xs text-muted-foreground leading-relaxed">{mapped.notes}</p>}
         </div>
       )}
 
       {calcError && (
-        <div className="flex items-center gap-2 text-sm text-[#ef4444] p-3 rounded-lg bg-[#ef4444]/10 border border-[#ef4444]/20">
+        <div className="flex items-center gap-2 text-sm text-destructive p-3 rounded-lg bg-destructive/10 border border-destructive/20">
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>Can't calculate yet — {calcError.toLowerCase()}. Adjust the inputs above.</span>
         </div>
@@ -257,32 +257,32 @@ export default function BalanceSheetUpload({ userId }: Props) {
         <ResultCard result={result} calculatorType={selectedCalculator} inputs={mapped.inputs} />
       )}
       {result && selectedCalculator === "ageing" && (
-        <div className="bg-white/3 border border-white/5 rounded-lg p-4 space-y-3">
+        <div className="bg-foreground/3 border border-foreground/5 rounded-lg p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-[#F1F5F9] font-medium">{calc.formatCurrency(result.total)}</p>
+            <p className="text-sm text-foreground font-medium">{calc.formatCurrency(result.total)}</p>
             <RiskBadge risk={result.risk} />
           </div>
-          <p className="text-xs text-[#94A3B8] leading-relaxed">{result.interpretation}</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{result.interpretation}</p>
           <button
             onClick={handleSaveIrregular}
             disabled={!userId}
-            className="w-full py-2.5 rounded-lg text-sm font-medium bg-[#2563EB] hover:bg-[#1d4ed8] disabled:opacity-40 text-white transition-colors"
+            className="w-full py-2.5 rounded-lg text-sm font-medium bg-primary hover:bg-primary-hover disabled:opacity-40 text-white transition-colors"
           >
             Save Result
           </button>
         </div>
       )}
       {result && selectedCalculator === "pid" && (
-        <div className="bg-white/3 border border-white/5 rounded-lg p-4 space-y-3">
+        <div className="bg-foreground/3 border border-foreground/5 rounded-lg p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-[#F1F5F9] font-medium">Net PID benefit: {calc.formatCurrency(result.netPidBenefit)}</p>
+            <p className="text-sm text-foreground font-medium">Net PID benefit: {calc.formatCurrency(result.netPidBenefit)}</p>
             <RiskBadge risk={result.risk} />
           </div>
-          <p className="text-xs text-[#94A3B8] leading-relaxed">{result.interpretation}</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">{result.interpretation}</p>
           <button
             onClick={handleSaveIrregular}
             disabled={!userId}
-            className="w-full py-2.5 rounded-lg text-sm font-medium bg-[#2563EB] hover:bg-[#1d4ed8] disabled:opacity-40 text-white transition-colors"
+            className="w-full py-2.5 rounded-lg text-sm font-medium bg-primary hover:bg-primary-hover disabled:opacity-40 text-white transition-colors"
           >
             Save Result
           </button>
@@ -290,16 +290,16 @@ export default function BalanceSheetUpload({ userId }: Props) {
       )}
 
       {!userId && parsed && (
-        <p className="text-xs text-[#94A3B8]">Sign in to save this upload and its results to your account.</p>
+        <p className="text-xs text-muted-foreground">Sign in to save this upload and its results to your account.</p>
       )}
 
       {/* Debug — raw parser/mapper output, collapsed by default */}
       {parsed && (
         <details className="text-xs" open={showDebug} onToggle={(e) => setShowDebug((e.target as HTMLDetailsElement).open)}>
-          <summary className="text-[#94A3B8] cursor-pointer hover:text-[#F1F5F9] transition-colors">
+          <summary className="text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
             Debug — raw parsed &amp; mapped data
           </summary>
-          <pre className="mt-2 max-h-72 overflow-auto bg-[#050A14] text-[#cbd5e1] p-3 rounded-lg border border-white/8">
+          <pre className="mt-2 max-h-72 overflow-auto bg-background text-muted-foreground p-3 rounded-lg border border-foreground/8">
             {JSON.stringify({ parsed, mapped }, null, 2)}
           </pre>
         </details>

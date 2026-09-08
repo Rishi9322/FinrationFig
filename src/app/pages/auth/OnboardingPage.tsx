@@ -3,6 +3,7 @@ import { useNavigate } from "react-router"
 import { Building2, Loader2 } from "lucide-react"
 import { getCurrentUser, submitOnboarding } from "../../../lib/auth"
 import { toast } from "sonner"
+import { ThemeToggle } from "../../components/ThemeToggle"
 import {
   Select,
   SelectContent,
@@ -68,9 +69,10 @@ export default function OnboardingPage() {
 
   return (
     <div
-      className="min-h-screen bg-[#050A14] flex items-center justify-center px-4"
+      className="min-h-screen bg-background flex items-center justify-center px-4"
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
+      <ThemeToggle className="fixed top-4 right-4 z-10" />
       <div
         className="fixed inset-0 pointer-events-none"
         style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.09) 0%, transparent 65%)" }}
@@ -79,35 +81,35 @@ export default function OnboardingPage() {
       <div className="relative w-full max-w-sm">
         <div className="text-center mb-8">
           <img src="/logoo.png" alt="FinRatio" className="h-14 w-auto mx-auto sm:h-16" />
-          <span className="ml-2 text-[10px] font-['Geist_Mono'] bg-[#2563EB]/20 text-[#60A5FA] border border-[#2563EB]/30 rounded px-1.5 py-0.5 leading-none">β</span>
+          <span className="ml-2 text-[10px] font-['Geist_Mono'] bg-primary/20 text-link border border-primary/30 rounded px-1.5 py-0.5 leading-none">β</span>
         </div>
 
-        <div className="bg-[#0D1726] border border-white/8 rounded-2xl p-8">
+        <div className="bg-card border border-foreground/8 rounded-2xl p-8">
           <div className="text-center mb-6">
-            <div className="w-14 h-14 bg-[#2563EB]/10 border border-[#2563EB]/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Building2 className="w-7 h-7 text-[#60A5FA]" />
+            <div className="w-14 h-14 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Building2 className="w-7 h-7 text-link" />
             </div>
-            <h2 className="text-lg font-medium text-white mb-1">Business Details</h2>
-            <p className="text-xs text-[#94A3B8] leading-relaxed">
+            <h2 className="text-lg font-medium text-foreground mb-1">Business Details</h2>
+            <p className="text-xs text-muted-foreground leading-relaxed">
               What is the constitution of your business?
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1.5">
-              <label htmlFor="constitution" className="block text-sm font-medium text-[#F1F5F9]">
+              <label htmlFor="constitution" className="block text-sm font-medium text-foreground">
                 Constitution
               </label>
               <Select value={constitution} onValueChange={setConstitution}>
                 <SelectTrigger
                   id="constitution"
-                  className="w-full px-4 py-3 h-auto bg-[#050A14] border-white/10 rounded-lg text-[#F1F5F9] text-sm data-[placeholder]:text-[#94A3B8]"
+                  className="w-full px-4 py-3 h-auto bg-background border-foreground/10 rounded-lg text-foreground text-sm data-[placeholder]:text-muted-foreground"
                 >
                   <SelectValue placeholder="Select your business type" />
                 </SelectTrigger>
-                <SelectContent className="bg-[#0D1726] border-white/10 text-[#F1F5F9]">
+                <SelectContent className="bg-card border-foreground/10 text-foreground">
                   {CONSTITUTIONS.map((c) => (
-                    <SelectItem key={c} value={c} className="text-sm focus:bg-white/5">
+                    <SelectItem key={c} value={c} className="text-sm focus:bg-foreground/5">
                       {c}
                     </SelectItem>
                   ))}
@@ -116,7 +118,7 @@ export default function OnboardingPage() {
             </div>
 
             {error && (
-              <div className="bg-[#ef4444]/8 border border-[#ef4444]/25 text-[#ef4444] px-4 py-3 rounded-lg text-sm text-center">
+              <div className="bg-destructive/8 border border-destructive/25 text-destructive px-4 py-3 rounded-lg text-sm text-center">
                 {error}
               </div>
             )}
@@ -124,7 +126,7 @@ export default function OnboardingPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full flex items-center justify-center gap-2 bg-[#2563EB] hover:bg-[#1d4ed8] disabled:opacity-60 text-white py-3 rounded-xl text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-primary hover:bg-primary-hover disabled:opacity-60 text-white py-3 rounded-xl text-sm font-medium transition-colors"
             >
               {isLoading ? (
                 <>
