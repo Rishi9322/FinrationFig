@@ -105,7 +105,7 @@ export function AiCreditMemorandum() {
   };
 
   if (!parsedData) {
-    return <div style={{ color: '#94A3B8' }}>Please parse financial data first.</div>;
+    return <div style={{ color: 'var(--cma-text-muted)' }}>Please parse financial data first.</div>;
   }
 
   // Prefer the structured, schema-validated recommendation. Fall back to
@@ -122,7 +122,7 @@ export function AiCreditMemorandum() {
   return (
     <div className="cma-form-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#F8FAFC' }}>
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--cma-text-strong)' }}>
           AI CREDIT MEMORANDUM
         </h2>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
@@ -144,84 +144,84 @@ export function AiCreditMemorandum() {
 
       {recommendation ? (
         <div style={{
-          backgroundColor: '#0E1218', border: `1px solid ${riskColor(riskLevel)}55`,
+          backgroundColor: 'var(--cma-panel-bg)', border: `1px solid ${riskColor(riskLevel)}55`,
           borderRadius: '8px', padding: '1.1rem 1.25rem', marginBottom: '1rem',
         }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
             <div>
-              <div style={{ fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recommendation</div>
-              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#F8FAFC' }}>{recommendation.recommendation}</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--cma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recommendation</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--cma-text-strong)' }}>{recommendation.recommendation}</div>
             </div>
             {recommendation.ccLimit !== null && (
               <div>
-                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>CC Limit</div>
-                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#F8FAFC' }}>₹ {recommendation.ccLimit.toLocaleString('en-IN')} Lakhs</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--cma-text-muted)' }}>CC Limit</div>
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--cma-text-strong)' }}>₹ {recommendation.ccLimit.toLocaleString('en-IN')} Lakhs</div>
               </div>
             )}
             {recommendation.tlLimit !== null && (
               <div>
-                <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Term Loan Eligibility</div>
-                <div style={{ fontSize: '1rem', fontWeight: 600, color: '#F8FAFC' }}>₹ {recommendation.tlLimit.toLocaleString('en-IN')} Lakhs</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--cma-text-muted)' }}>Term Loan Eligibility</div>
+                <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--cma-text-strong)' }}>₹ {recommendation.tlLimit.toLocaleString('en-IN')} Lakhs</div>
               </div>
             )}
           </div>
           {recommendation.rationale && (
-            <p style={{ color: '#E2E8F0', fontSize: '0.85rem', marginBottom: '0.75rem' }}>{recommendation.rationale}</p>
+            <p style={{ color: 'var(--cma-text)', fontSize: '0.85rem', marginBottom: '0.75rem' }}>{recommendation.rationale}</p>
           )}
           {recommendation.conditionsPrecedent.length > 0 && (
             <div style={{ marginBottom: '0.5rem' }}>
-              <div style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>Conditions Precedent</div>
-              <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#E2E8F0', fontSize: '0.85rem' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--cma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>Conditions Precedent</div>
+              <ul style={{ margin: 0, paddingLeft: '1.1rem', color: 'var(--cma-text)', fontSize: '0.85rem' }}>
                 {recommendation.conditionsPrecedent.map((c, i) => <li key={i}>{c}</li>)}
               </ul>
             </div>
           )}
           {recommendation.monitoringPoints.length > 0 && (
             <div>
-              <div style={{ fontSize: '0.7rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>Post-Disbursement Monitoring</div>
-              <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#E2E8F0', fontSize: '0.85rem' }}>
+              <div style={{ fontSize: '0.7rem', color: 'var(--cma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.2rem' }}>Post-Disbursement Monitoring</div>
+              <ul style={{ margin: 0, paddingLeft: '1.1rem', color: 'var(--cma-text)', fontSize: '0.85rem' }}>
                 {recommendation.monitoringPoints.map((m, i) => <li key={i}>{m}</li>)}
               </ul>
             </div>
           )}
         </div>
       ) : isGeneratingRecommendation ? (
-        <div style={{ color: '#94A3B8', fontSize: '0.85rem', marginBottom: '1rem' }}>Generating structured recommendation…</div>
+        <div style={{ color: 'var(--cma-text-muted)', fontSize: '0.85rem', marginBottom: '1rem' }}>Generating structured recommendation…</div>
       ) : fallbackSummary && (fallbackSummary.recommendation || fallbackSummary.ccLimit || fallbackSummary.tlLimit) ? (
         <div
           style={{
             display: 'flex', flexWrap: 'wrap', gap: '1.5rem', alignItems: 'center',
-            backgroundColor: '#0E1218', border: `1px solid ${riskColor(fallbackSummary.riskLevel)}55`,
+            backgroundColor: 'var(--cma-panel-bg)', border: `1px solid ${riskColor(fallbackSummary.riskLevel)}55`,
             borderRadius: '8px', padding: '1.1rem 1.25rem', marginBottom: '1rem',
           }}
         >
           <div>
-            <div style={{ fontSize: '0.75rem', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recommendation</div>
-            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#F8FAFC' }}>{fallbackSummary.recommendation ?? 'Pending'}</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--cma-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Recommendation</div>
+            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--cma-text-strong)' }}>{fallbackSummary.recommendation ?? 'Pending'}</div>
           </div>
           {fallbackSummary.ccLimit && (
             <div>
-              <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>CC Limit</div>
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: '#F8FAFC' }}>₹ {fallbackSummary.ccLimit} Lakhs</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--cma-text-muted)' }}>CC Limit</div>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--cma-text-strong)' }}>₹ {fallbackSummary.ccLimit} Lakhs</div>
             </div>
           )}
           {fallbackSummary.tlLimit && (
             <div>
-              <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>Term Loan Eligibility</div>
-              <div style={{ fontSize: '1rem', fontWeight: 600, color: '#F8FAFC' }}>₹ {fallbackSummary.tlLimit} Lakhs</div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--cma-text-muted)' }}>Term Loan Eligibility</div>
+              <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--cma-text-strong)' }}>₹ {fallbackSummary.tlLimit} Lakhs</div>
             </div>
           )}
         </div>
       ) : null}
 
       <div style={{
-        backgroundColor: '#0E1218', border: '1px solid #1A2030',
+        backgroundColor: 'var(--cma-panel-bg)', border: '1px solid var(--cma-border)',
         borderRadius: '8px', padding: '1.1rem 1.25rem', marginBottom: '1rem',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#F8FAFC' }}>Financial Prognosis</div>
-            <div style={{ fontSize: '0.75rem', color: '#94A3B8' }}>
+            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--cma-text-strong)' }}>Financial Prognosis</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--cma-text-muted)' }}>
               AI-estimated outlook, not a statistical forecast — optionally benchmarked against sector medians from ~4,400 Indian listed companies.
             </div>
           </div>
@@ -230,7 +230,7 @@ export function AiCreditMemorandum() {
               value={sector}
               onChange={(e) => setSector(e.target.value)}
               className="cma-btn"
-              style={{ backgroundColor: '#0E1218', color: '#E2E8F0', border: '1px solid #1A2030' }}
+              style={{ backgroundColor: 'var(--cma-panel-bg)', color: 'var(--cma-text)', border: '1px solid var(--cma-border)' }}
             >
               <option value="">No sector benchmark</option>
               {listBenchmarkSectors().map((s) => (
@@ -256,9 +256,9 @@ export function AiCreditMemorandum() {
             >
               {prognosis.outlook}
             </span>
-            <p style={{ color: '#E2E8F0', fontSize: '0.85rem', margin: '0.6rem 0' }}>{prognosis.narrative}</p>
+            <p style={{ color: 'var(--cma-text)', fontSize: '0.85rem', margin: '0.6rem 0' }}>{prognosis.narrative}</p>
             {prognosis.watchPoints.length > 0 && (
-              <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#94A3B8', fontSize: '0.8rem' }}>
+              <ul style={{ margin: 0, paddingLeft: '1.1rem', color: 'var(--cma-text-muted)', fontSize: '0.8rem' }}>
                 {prognosis.watchPoints.map((w, i) => <li key={i}>{w}</li>)}
               </ul>
             )}
@@ -267,16 +267,16 @@ export function AiCreditMemorandum() {
       </div>
 
       <details className="cma-memo-details" open={isStreaming || !recommendation}>
-        <summary style={{ cursor: 'pointer', color: '#94A3B8', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
+        <summary style={{ cursor: 'pointer', color: 'var(--cma-text-muted)', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
           {creditOpinion ? 'Full memorandum' : 'Memo output'}
         </summary>
         <div
           ref={scrollRef}
           className="cma-memo"
           style={{
-            backgroundColor: '#0E1218', border: '1px solid #1A2030', borderRadius: '8px',
+            backgroundColor: 'var(--cma-panel-bg)', border: '1px solid var(--cma-border)', borderRadius: '8px',
             padding: '2rem', minHeight: '400px', maxHeight: '600px', overflowY: 'auto',
-            lineHeight: '1.6', color: '#E2E8F0', fontSize: '0.95rem',
+            lineHeight: '1.6', color: 'var(--cma-text)', fontSize: '0.95rem',
           }}
         >
           {creditOpinion ? (
@@ -284,7 +284,7 @@ export function AiCreditMemorandum() {
             // default, which matters because this is untrusted model output.
             <Markdown remarkPlugins={[remarkGfm]}>{creditOpinion}</Markdown>
           ) : (
-            <div style={{ color: '#64748B', fontStyle: 'italic', display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ color: 'var(--cma-text-faint)', fontStyle: 'italic', display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
               Click "Generate Opinion" to stream a credit memorandum from the cloud AI.
             </div>
           )}

@@ -6,7 +6,7 @@ export function Form6FinancialPosition() {
   const { parsedData, computedData } = useCma();
 
   if (!parsedData || !computedData) {
-    return <div style={{ color: '#94A3B8' }}>Please load or parse data first.</div>;
+    return <div style={{ color: 'var(--cma-text-muted)' }}>Please load or parse data first.</div>;
   }
 
   const { years, yearTypes } = parsedData;
@@ -25,7 +25,7 @@ export function Form6FinancialPosition() {
 
   return (
     <div className="cma-form-container">
-      <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem', color: '#F8FAFC' }}>
+      <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--cma-text-strong)' }}>
         FORM VI - FINANCIAL POSITION & DSCR
       </h2>
       
@@ -61,7 +61,7 @@ export function Form6FinancialPosition() {
         </table>
       </div>
 
-      <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem', color: '#F8FAFC' }}>
+      <h3 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--cma-text-strong)' }}>
         DSCR CALCULATION
       </h3>
       <div className="cma-table-container">

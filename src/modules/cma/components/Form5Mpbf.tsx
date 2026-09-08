@@ -6,7 +6,7 @@ export function Form5Mpbf() {
   const { parsedData, computedData } = useCma();
 
   if (!parsedData || !computedData) {
-    return <div style={{ color: '#94A3B8' }}>Please load or parse data first.</div>;
+    return <div style={{ color: 'var(--cma-text-muted)' }}>Please load or parse data first.</div>;
   }
 
   const { years, yearTypes } = parsedData;
@@ -25,7 +25,7 @@ export function Form5Mpbf() {
 
   return (
     <div className="cma-form-container">
-      <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem', color: '#F8FAFC' }}>
+      <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--cma-text-strong)' }}>
         FORM V - COMPUTATION OF MPBF
       </h2>
       

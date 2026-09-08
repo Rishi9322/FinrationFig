@@ -52,7 +52,7 @@ export function DocumentCompleteness() {
 
   if (items.length === 0) {
     return (
-      <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid #1A2030', backgroundColor: '#111720', color: '#64748B', fontSize: '0.85rem' }}>
+      <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid var(--cma-border)', backgroundColor: 'var(--cma-panel-bg-alt)', color: 'var(--cma-text-faint)', fontSize: '0.85rem' }}>
         Document coverage looks complete - full year range and no zero-filled core sections.
       </div>
     );
@@ -63,7 +63,7 @@ export function DocumentCompleteness() {
       <div style={{ color: '#60A5FA', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>DOCUMENT COMPLETENESS</div>
       <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.85rem' }}>
         {items.map((item, i) => (
-          <li key={i} style={{ color: item.severity === 'warn' ? '#F59E0B' : '#E2E8F0', marginBottom: '0.2rem' }}>
+          <li key={i} style={{ color: item.severity === 'warn' ? '#F59E0B' : 'var(--cma-text)', marginBottom: '0.2rem' }}>
             {item.message}
           </li>
         ))}

@@ -205,8 +205,8 @@ export function DataInputEngine() {
   return (
     <div className="cma-input-engine">
       {user && savedDocuments.length > 0 && (
-        <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: '#111720', borderRadius: '6px', border: '1px solid #1A2030' }}>
-          <h3 style={{ marginBottom: '1rem', color: '#F8FAFC' }}>Your Cases</h3>
+        <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: 'var(--cma-panel-bg-alt)', borderRadius: '6px', border: '1px solid var(--cma-border)' }}>
+          <h3 style={{ marginBottom: '1rem', color: 'var(--cma-text-strong)' }}>Your Cases</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {savedDocuments.map((doc) => {
               // Status is read off what's already stored - no separate
@@ -215,12 +215,12 @@ export function DataInputEngine() {
               const memoReady = Boolean(doc.creditOpinion);
               const meta = doc.caseMeta;
               return (
-                <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1A2030', paddingBottom: '0.5rem' }}>
+                <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--cma-border)', paddingBottom: '0.5rem' }}>
                   <div>
-                    <div style={{ color: '#E2E8F0', fontWeight: 500 }}>
+                    <div style={{ color: 'var(--cma-text)', fontWeight: 500 }}>
                       {meta?.borrowerName || doc.sourceName || doc.parsedData?.company || 'Untitled case'}
                     </div>
-                    <div style={{ color: '#64748B', fontSize: '0.75rem', marginTop: '0.15rem' }}>
+                    <div style={{ color: 'var(--cma-text-faint)', fontSize: '0.75rem', marginTop: '0.15rem' }}>
                       {[meta?.sector, meta?.facilityType, doc.classification?.docType].filter(Boolean).join(' · ') || 'Financial document'}
                       {' · '}{new Date(doc.createdAt).toLocaleString()}
                       {meta?.relationshipManager ? ` · RM: ${meta.relationshipManager}` : ''}
@@ -280,19 +280,19 @@ export function DataInputEngine() {
       </div>
 
       <div style={{ marginBottom: '1rem' }}>
-        <p style={{ color: '#94A3B8', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
+        <p style={{ color: 'var(--cma-text-muted)', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
           Paste raw balance sheet and P&L data below, or upload a PDF/DOCX/XLS/CSV file. The AI will auto-detect the document type and parse it into the RBI CMA format.
         </p>
         {uploadStatus && (
-          <p style={{ color: '#94A3B8', marginBottom: '0.5rem', fontSize: '0.8rem' }}>{uploadStatus}</p>
+          <p style={{ color: 'var(--cma-text-muted)', marginBottom: '0.5rem', fontSize: '0.8rem' }}>{uploadStatus}</p>
         )}
         <textarea 
           style={{
             width: '100%',
             height: '250px',
-            backgroundColor: '#111720',
-            border: '1px solid #1A2030',
-            color: '#E2E8F0',
+            backgroundColor: 'var(--cma-panel-bg-alt)',
+            border: '1px solid var(--cma-border)',
+            color: 'var(--cma-text)',
             padding: '1rem',
             borderRadius: '6px',
             fontFamily: 'monospace',
@@ -316,20 +316,20 @@ export function DataInputEngine() {
       </div>
 
       {isClassifying && (
-        <p style={{ color: '#94A3B8', fontSize: '0.85rem', marginTop: '0.75rem' }}>Checking document type…</p>
+        <p style={{ color: 'var(--cma-text-muted)', fontSize: '0.85rem', marginTop: '0.75rem' }}>Checking document type…</p>
       )}
       {classification && (
         <div style={{
           marginTop: '0.75rem',
           padding: '0.75rem 1rem',
           borderRadius: '6px',
-          border: `1px solid ${classification.isFinancialDocument ? '#1A2030' : '#EF4444'}`,
-          backgroundColor: '#111720',
+          border: `1px solid ${classification.isFinancialDocument ? 'var(--cma-border)' : '#EF4444'}`,
+          backgroundColor: 'var(--cma-panel-bg-alt)',
         }}>
           <span className={classification.isFinancialDocument ? 'cma-badge badge-green' : 'cma-badge badge-red'}>
             {classification.isFinancialDocument ? classification.docType : 'Not a financial document'}
           </span>
-          <span style={{ color: '#94A3B8', fontSize: '0.8rem', marginLeft: '0.75rem' }}>
+          <span style={{ color: 'var(--cma-text-muted)', fontSize: '0.8rem', marginLeft: '0.75rem' }}>
             Confidence: {Math.round(classification.confidence * 100)}% — {classification.reason}
           </span>
           {!classification.isFinancialDocument && (
@@ -341,17 +341,17 @@ export function DataInputEngine() {
       )}
 
       {parsedData && (
-        <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#111720', borderRadius: '6px', border: '1px solid #1A2030' }}>
-          <h3 style={{ marginBottom: '0.25rem', color: '#F8FAFC' }}>
+        <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: 'var(--cma-panel-bg-alt)', borderRadius: '6px', border: '1px solid var(--cma-border)' }}>
+          <h3 style={{ marginBottom: '0.25rem', color: 'var(--cma-text-strong)' }}>
             Data Parsed Successfully for {parsedData.company || '(company not identified)'} ({parsedData.unit})
           </h3>
           {typeof (parsedData as any)._parseDurationMs === 'number' && (
-            <p style={{ marginBottom: '0.75rem', color: '#94A3B8', fontSize: '0.8rem' }}>
+            <p style={{ marginBottom: '0.75rem', color: 'var(--cma-text-muted)', fontSize: '0.8rem' }}>
               AI parse time: {(parsedData as any)._parseDurationMs}ms
             </p>
           )}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#94A3B8' }}>Balance Check:</span>
+            <span style={{ color: 'var(--cma-text-muted)' }}>Balance Check:</span>
             {balanceCheck.isBalanced ? (
               <span className="cma-badge badge-green">✓ Balanced</span>
             ) : (
@@ -384,7 +384,7 @@ export function DataInputEngine() {
             return (
               <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid #F59E0B55', backgroundColor: '#F59E0B11' }}>
                 <div style={{ color: '#F59E0B', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>NEEDS REVIEW</div>
-                <ul style={{ margin: 0, paddingLeft: '1.1rem', color: '#E2E8F0', fontSize: '0.85rem' }}>
+                <ul style={{ margin: 0, paddingLeft: '1.1rem', color: 'var(--cma-text)', fontSize: '0.85rem' }}>
                   {reviewItems.map((item, i) => <li key={i}>{item}</li>)}
                 </ul>
               </div>
@@ -394,8 +394,8 @@ export function DataInputEngine() {
           <ManualReview />
 
           {user && (
-            <div style={{ marginTop: '1.25rem', padding: '1rem', backgroundColor: '#0E1218', borderRadius: '6px', border: '1px solid #1A2030' }}>
-              <div style={{ color: '#94A3B8', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div style={{ marginTop: '1.25rem', padding: '1rem', backgroundColor: 'var(--cma-panel-bg)', borderRadius: '6px', border: '1px solid var(--cma-border)' }}>
+              <div style={{ color: 'var(--cma-text-muted)', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 Case Details
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
@@ -407,33 +407,33 @@ export function DataInputEngine() {
                   ['relationshipManager', 'Relationship Manager'],
                   ['assignedAnalyst', 'Assigned Analyst'],
                 ] as const).map(([key, label]) => (
-                  <label key={key} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: '#94A3B8' }}>
+                  <label key={key} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--cma-text-muted)' }}>
                     {label}
                     <input
                       value={caseMeta[key]}
                       onChange={(e) => setCaseMeta((prev) => ({ ...prev, [key]: e.target.value }))}
-                      style={{ backgroundColor: '#111720', border: '1px solid #1A2030', color: '#F8FAFC', padding: '0.45rem', borderRadius: '4px' }}
+                      style={{ backgroundColor: 'var(--cma-panel-bg-alt)', border: '1px solid var(--cma-border)', color: 'var(--cma-text-strong)', padding: '0.45rem', borderRadius: '4px' }}
                     />
                   </label>
                 ))}
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: '#94A3B8' }}>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--cma-text-muted)' }}>
                   Status
                   <select
                     value={caseMeta.status}
                     onChange={(e) => setCaseMeta((prev) => ({ ...prev, status: e.target.value as CaseStatus }))}
-                    style={{ backgroundColor: '#111720', border: '1px solid #1A2030', color: '#F8FAFC', padding: '0.45rem', borderRadius: '4px' }}
+                    style={{ backgroundColor: 'var(--cma-panel-bg-alt)', border: '1px solid var(--cma-border)', color: 'var(--cma-text-strong)', padding: '0.45rem', borderRadius: '4px' }}
                   >
                     {CASE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </label>
               </div>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: '#94A3B8', marginTop: '0.75rem' }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--cma-text-muted)', marginTop: '0.75rem' }}>
                 Internal Notes
                 <textarea
                   value={caseMeta.notes}
                   onChange={(e) => setCaseMeta((prev) => ({ ...prev, notes: e.target.value }))}
                   rows={2}
-                  style={{ backgroundColor: '#111720', border: '1px solid #1A2030', color: '#F8FAFC', padding: '0.45rem', borderRadius: '4px', resize: 'vertical' }}
+                  style={{ backgroundColor: 'var(--cma-panel-bg-alt)', border: '1px solid var(--cma-border)', color: 'var(--cma-text-strong)', padding: '0.45rem', borderRadius: '4px', resize: 'vertical' }}
                 />
               </label>
             </div>
@@ -497,7 +497,7 @@ export function DataInputEngine() {
               {isSaving ? 'Saving…' : 'Save to My Documents'}
             </button>
           </div>
-          {saveStatus && <p style={{ color: '#94A3B8', fontSize: '0.8rem', marginTop: '0.5rem' }}>{saveStatus}</p>}
+          {saveStatus && <p style={{ color: 'var(--cma-text-muted)', fontSize: '0.8rem', marginTop: '0.5rem' }}>{saveStatus}</p>}
         </div>
       )}
 

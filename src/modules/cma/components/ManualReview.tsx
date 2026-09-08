@@ -11,17 +11,17 @@ export function ManualReview() {
   if (!parsedData || !computedData) return null;
 
   return (
-    <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: '#0E1218', borderRadius: '6px', border: '1px solid #1A2030' }}>
-      <div style={{ color: '#94A3B8', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+    <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'var(--cma-panel-bg)', borderRadius: '6px', border: '1px solid var(--cma-border)' }}>
+      <div style={{ color: 'var(--cma-text-muted)', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         Review &amp; Correct
       </div>
 
-      <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: '#94A3B8', maxWidth: '320px', marginBottom: '1rem' }}>
+      <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--cma-text-muted)', maxWidth: '320px', marginBottom: '1rem' }}>
         Company Name
         <input
           value={parsedData.company}
           onChange={(e) => updateCompanyName(e.target.value)}
-          style={{ backgroundColor: '#111720', border: '1px solid #1A2030', color: '#F8FAFC', padding: '0.45rem', borderRadius: '4px' }}
+          style={{ backgroundColor: 'var(--cma-panel-bg-alt)', border: '1px solid var(--cma-border)', color: 'var(--cma-text-strong)', padding: '0.45rem', borderRadius: '4px' }}
         />
       </label>
 
@@ -29,9 +29,9 @@ export function ManualReview() {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
           <thead>
             <tr>
-              <th style={{ textAlign: 'left', padding: '0.4rem', color: '#94A3B8' }}>Field</th>
+              <th style={{ textAlign: 'left', padding: '0.4rem', color: 'var(--cma-text-muted)' }}>Field</th>
               {parsedData.years.map((y) => (
-                <th key={y} style={{ textAlign: 'right', padding: '0.4rem', color: '#94A3B8', minWidth: '90px' }}>{y}</th>
+                <th key={y} style={{ textAlign: 'right', padding: '0.4rem', color: 'var(--cma-text-muted)', minWidth: '90px' }}>{y}</th>
               ))}
             </tr>
           </thead>
@@ -40,7 +40,7 @@ export function ManualReview() {
               const values = (parsedData[section] as unknown as Record<string, number[]>)[field] || [];
               return (
                 <tr key={field}>
-                  <td style={{ padding: '0.4rem', color: '#E2E8F0' }}>{label}</td>
+                  <td style={{ padding: '0.4rem', color: 'var(--cma-text)' }}>{label}</td>
                   {parsedData.years.map((_, i) => (
                     <td key={i} style={{ padding: '0.25rem' }}>
                       <input
@@ -48,8 +48,8 @@ export function ManualReview() {
                         value={values[i] ?? 0}
                         onChange={(e) => updateKeyFieldValue(section, field, i, Number(e.target.value))}
                         style={{
-                          width: '100%', textAlign: 'right', backgroundColor: '#111720', border: '1px solid #1A2030',
-                          color: '#F8FAFC', padding: '0.3rem', borderRadius: '4px', fontFamily: 'monospace',
+                          width: '100%', textAlign: 'right', backgroundColor: 'var(--cma-panel-bg-alt)', border: '1px solid var(--cma-border)',
+                          color: 'var(--cma-text-strong)', padding: '0.3rem', borderRadius: '4px', fontFamily: 'monospace',
                         }}
                       />
                     </td>

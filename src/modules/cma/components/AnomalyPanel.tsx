@@ -13,10 +13,10 @@ export function AnomalyPanel() {
       <div style={{ color: '#EF4444', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>
         ANOMALIES ({anomalies.length})
       </div>
-      <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.85rem', color: '#E2E8F0' }}>
+      <ul style={{ margin: 0, paddingLeft: '1.1rem', fontSize: '0.85rem', color: 'var(--cma-text)' }}>
         {anomalies.map((a, i) => (
           <li key={i} style={{ marginBottom: '0.2rem' }}>
-            <span style={{ color: '#94A3B8' }}>[{a.year}]</span> {a.message}
+            <span style={{ color: 'var(--cma-text-muted)' }}>[{a.year}]</span> {a.message}
           </li>
         ))}
       </ul>

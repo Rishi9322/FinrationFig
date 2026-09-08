@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Sun, Moon } from 'lucide-react';
 import { CmaProvider, useCma } from '../context/CmaContext';
 import { DataInputEngine } from '../components/DataInputEngine';
 import { Form2OperatingStatement } from '../components/Form2OperatingStatement';
@@ -15,8 +16,19 @@ import { AnomalyPanel } from '../components/AnomalyPanel';
 import { ExportPack } from '../components/ExportPack';
 import '../../../styles/cma.css';
 
+type CmaTheme = 'dark' | 'light';
+const THEME_KEY = 'cma-theme';
+
 function CmaContent() {
   const { activeTab, setActiveTab, parsedData, creditOpinion } = useCma();
+  // Dark is the CMA engine's native "terminal" look; light is opt-in for
+  // audiences who find that hard to read. Remembered per-browser.
+  const [theme, setTheme] = useState<CmaTheme>(
+    () => (localStorage.getItem(THEME_KEY) as CmaTheme) || 'dark'
+  );
+  useEffect(() => {
+    localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
 
   const handlePrint = () => {
     window.print();
@@ -41,10 +53,18 @@ function CmaContent() {
   const isTabDone = (i: number) => (i === 0 ? Boolean(parsedData) : i === 8 ? Boolean(creditOpinion) : Boolean(parsedData));
 
   return (
-    <div className="cma-container">
+    <div className="cma-container" data-theme={theme}>
       <div className="cma-header">
         <div className="cma-title">Finratio CMA Engine</div>
-        <div style={{ display: 'flex', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <button
+            className="cma-theme-toggle no-print"
+            onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          </button>
           <button className="cma-btn cma-btn-outline no-print" onClick={handlePrint}>
             Export / Print
           </button>

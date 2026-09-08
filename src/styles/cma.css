@@ -1,17 +1,51 @@
-/* cma.css - CMA Terminal Design System */
+/* cma.css - CMA Terminal Design System
+   Dark is the default; add data-theme="light" on .cma-container for light mode
+   (toggle button lives in CmaGeneratorPage.tsx, preference remembered in localStorage). */
 .cma-container {
-  background-color: #080B10;
-  color: #E2E8F0;
+  --cma-bg: #080B10;
+  --cma-panel-bg: #0E1218;
+  --cma-panel-bg-alt: #111720;
+  --cma-border: #1A2030;
+  --cma-border-strong: #334155;
+  --cma-text: #E2E8F0;
+  --cma-text-strong: #F8FAFC;
+  --cma-text-muted: #94A3B8;
+  --cma-text-faint: #64748B;
+  --cma-hover-bg: #1A2030;
+  --cma-code-bg: #131A24;
+  --cma-scrollbar-thumb: #2A3345;
+  --cma-scrollbar-thumb-hover: #3B4658;
+  --cma-shadow: rgba(0, 0, 0, 0.5);
+
+  background-color: var(--cma-bg);
+  color: var(--cma-text);
   font-family: 'IBM Plex Sans', sans-serif;
   min-height: 100vh;
   width: 100%;
 }
 
+.cma-container[data-theme="light"] {
+  --cma-bg: #F8FAFC;
+  --cma-panel-bg: #FFFFFF;
+  --cma-panel-bg-alt: #F1F5F9;
+  --cma-border: #E2E8F0;
+  --cma-border-strong: #CBD5E1;
+  --cma-text: #1E293B;
+  --cma-text-strong: #0F172A;
+  --cma-text-muted: #64748B;
+  --cma-text-faint: #94A3B8;
+  --cma-hover-bg: #E2E8F0;
+  --cma-code-bg: #F1F5F9;
+  --cma-scrollbar-thumb: #CBD5E1;
+  --cma-scrollbar-thumb-hover: #94A3B8;
+  --cma-shadow: rgba(15, 23, 42, 0.08);
+}
+
 /* Themed scrollbars for the terminal's own scroll areas (tabs strip, wide
-   tables) — otherwise the OS default light scrollbar clashes with the dark UI. */
+   tables) — otherwise the OS default light scrollbar clashes with the theme. */
 .cma-container * {
   scrollbar-width: thin;
-  scrollbar-color: #2A3345 #0E1218;
+  scrollbar-color: var(--cma-scrollbar-thumb) var(--cma-panel-bg);
 }
 
 .cma-container *::-webkit-scrollbar {
@@ -20,22 +54,22 @@
 }
 
 .cma-container *::-webkit-scrollbar-track {
-  background: #0E1218;
+  background: var(--cma-panel-bg);
 }
 
 .cma-container *::-webkit-scrollbar-thumb {
-  background-color: #2A3345;
+  background-color: var(--cma-scrollbar-thumb);
   border-radius: 4px;
 }
 
 .cma-container *::-webkit-scrollbar-thumb:hover {
-  background-color: #3B4658;
+  background-color: var(--cma-scrollbar-thumb-hover);
 }
 
 .cma-header {
-  border-bottom: 1px solid #1A2030;
+  border-bottom: 1px solid var(--cma-border);
   padding: 1.5rem 2rem;
-  background-color: #0E1218;
+  background-color: var(--cma-panel-bg);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -44,22 +78,41 @@
 .cma-title {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #F8FAFC;
+  color: var(--cma-text-strong);
+}
+
+.cma-theme-toggle {
+  background: transparent;
+  border: 1px solid var(--cma-border-strong);
+  color: var(--cma-text-muted);
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.cma-theme-toggle:hover {
+  color: var(--cma-text-strong);
+  background-color: var(--cma-hover-bg);
 }
 
 .cma-tabs {
   display: flex;
   gap: 0.5rem;
   padding: 1rem 2rem;
-  background-color: #0E1218;
-  border-bottom: 1px solid #1A2030;
+  background-color: var(--cma-panel-bg);
+  border-bottom: 1px solid var(--cma-border);
   overflow-x: auto;
 }
 
 .cma-tab {
   background: transparent;
   border: none;
-  color: #94A3B8;
+  color: var(--cma-text-muted);
   padding: 0.5rem 1rem;
   cursor: pointer;
   font-size: 0.875rem;
@@ -70,8 +123,8 @@
 }
 
 .cma-tab:hover {
-  color: #E2E8F0;
-  background-color: #1A2030;
+  color: var(--cma-text);
+  background-color: var(--cma-hover-bg);
 }
 
 .cma-tab.active {
@@ -88,12 +141,12 @@
 
 /* Financial Tables */
 .cma-table-container {
-  background-color: #0E1218;
-  border: 1px solid #1A2030;
+  background-color: var(--cma-panel-bg);
+  border: 1px solid var(--cma-border);
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 2rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 6px -1px var(--cma-shadow);
 }
 
 .cma-table {
@@ -105,12 +158,12 @@
 }
 
 .cma-table th {
-  background-color: #111720;
-  color: #94A3B8;
+  background-color: var(--cma-panel-bg-alt);
+  color: var(--cma-text-muted);
   font-family: 'IBM Plex Sans', sans-serif;
   font-weight: 600;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #1A2030;
+  border-bottom: 1px solid var(--cma-border);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -124,7 +177,7 @@
   left: 0;
   background-color: inherit;
   z-index: 5;
-  border-right: 1px solid #1A2030;
+  border-right: 1px solid var(--cma-border);
 }
 
 .cma-table th:first-child {
@@ -132,33 +185,33 @@
 }
 
 .cma-table tr {
-  background-color: #0E1218;
-  border-bottom: 1px solid #1A2030;
+  background-color: var(--cma-panel-bg);
+  border-bottom: 1px solid var(--cma-border);
 }
 
 .cma-table tr:nth-child(even) {
-  background-color: #111720;
+  background-color: var(--cma-panel-bg-alt);
 }
 
 .cma-table tr:hover {
-  background-color: #1A2030;
+  background-color: var(--cma-hover-bg);
 }
 
 .cma-table td {
   padding: 0.75rem 1rem;
-  color: #E2E8F0;
+  color: var(--cma-text);
 }
 
 .cma-table tr.header-row {
-  background-color: #1A2030;
+  background-color: var(--cma-hover-bg);
   font-weight: 600;
 }
 
 .cma-table tr.total-row {
-  background-color: #111720;
+  background-color: var(--cma-panel-bg-alt);
   font-weight: 600;
-  border-top: 2px solid #334155;
-  border-bottom: 2px solid #334155;
+  border-top: 2px solid var(--cma-border-strong);
+  border-bottom: 2px solid var(--cma-border-strong);
 }
 
 /* Value colors */
@@ -175,7 +228,7 @@
 }
 
 .val-zero {
-  color: #64748B;
+  color: var(--cma-text-faint);
 }
 
 /* Badges */
@@ -228,12 +281,12 @@
 
 .cma-btn-outline {
   background-color: transparent;
-  border: 1px solid #334155;
-  color: #E2E8F0;
+  border: 1px solid var(--cma-border-strong);
+  color: var(--cma-text);
 }
 
 .cma-btn-outline:hover {
-  background-color: #1A2030;
+  background-color: var(--cma-hover-bg);
 }
 
 /* Print Mode */
@@ -242,7 +295,7 @@
     background-color: white !important;
     color: black !important;
   }
-  
+
   .cma-tabs, .cma-header button, .no-print {
     display: none !important;
   }
@@ -275,10 +328,10 @@
 }
 
 /* Rendered Markdown of the AI credit memorandum. The model replies in Markdown,
-   so these give its headings, tables and lists the surrounding dark styling. */
+   so these give its headings, tables and lists the surrounding theme's styling. */
 .cma-memo > :first-child { margin-top: 0; }
 .cma-memo h1, .cma-memo h2, .cma-memo h3, .cma-memo h4 {
-  color: #F8FAFC;
+  color: var(--cma-text-strong);
   font-weight: 600;
   line-height: 1.3;
   margin: 1.5rem 0 0.75rem;
@@ -286,14 +339,14 @@
 .cma-memo h1 { font-size: 1.25rem; }
 .cma-memo h2 { font-size: 1.1rem; }
 .cma-memo h3 { font-size: 1rem; }
-.cma-memo h4 { font-size: 0.95rem; color: #CBD5E1; }
+.cma-memo h4 { font-size: 0.95rem; color: var(--cma-text-muted); }
 .cma-memo p { margin: 0 0 0.85rem; }
-.cma-memo strong { color: #F8FAFC; font-weight: 600; }
+.cma-memo strong { color: var(--cma-text-strong); font-weight: 600; }
 .cma-memo ul, .cma-memo ol { margin: 0 0 0.85rem; padding-left: 1.35rem; }
 .cma-memo li { margin-bottom: 0.35rem; }
-.cma-memo hr { border: 0; border-top: 1px solid #1A2030; margin: 1.5rem 0; }
+.cma-memo hr { border: 0; border-top: 1px solid var(--cma-border); margin: 1.5rem 0; }
 .cma-memo code {
-  background: #131A24;
+  background: var(--cma-code-bg);
   border-radius: 4px;
   padding: 0.1rem 0.35rem;
   font-size: 0.875em;
@@ -305,10 +358,10 @@
   font-size: 0.875rem;
 }
 .cma-memo th, .cma-memo td {
-  border: 1px solid #1A2030;
+  border: 1px solid var(--cma-border);
   padding: 0.45rem 0.65rem;
   text-align: left;
 }
-.cma-memo th { background: #131A24; color: #F8FAFC; font-weight: 600; }
+.cma-memo th { background: var(--cma-code-bg); color: var(--cma-text-strong); font-weight: 600; }
 /* Figures read better right-aligned, and every numeric column in a CMA is money. */
 .cma-memo td + td, .cma-memo th + th { text-align: right; }
