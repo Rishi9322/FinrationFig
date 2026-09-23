@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Upload, FileCheck2, AlertCircle, Loader2 } from 'lucide-react';
 import { useCma } from '../context/CmaContext';
 import { buildCmaExportPayload, classifyFinancialDocument, parseCmaFinancialData, recordCmaLearningExample } from '../../../lib/ai/openrouter';
-import { uploadBalanceSheetFile } from '../../../lib/uploadStorage';
+import { uploadBalanceSheetFile, MAX_UPLOAD_BYTES } from '../../../lib/uploadStorage';
 import { saveCmaDocument, getSavedCmaDocuments, updateCmaCaseMeta, EMPTY_CASE_META, type SavedCmaDocument, type CaseMeta, type CaseStatus } from '../../../lib/cmaDocumentStorage';
 import { useAuth } from '../../../app/hooks/useAuth';
 import { ManualReview } from './ManualReview';
@@ -152,6 +152,11 @@ export function DataInputEngine() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_UPLOAD_BYTES) {
+      setError(`File exceeds the ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB limit`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
 
     setIsLoading(true);
     setError("");

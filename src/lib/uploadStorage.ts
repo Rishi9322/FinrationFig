@@ -13,7 +13,7 @@ function fileToBase64(file: File): Promise<string> {
   })
 }
 
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 const ALLOWED_EXTENSIONS = [".pdf", ".docx", ".csv", ".xlsx", ".xls", ".txt"]
 
 // Uploads go through the edge function (Firebase-token verified, service role).

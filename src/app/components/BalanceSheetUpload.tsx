@@ -8,7 +8,7 @@ import { CalculatorType } from "../../lib/financialCalculations"
 import * as calc from "../../lib/financialCalculations"
 import { CALCULATORS } from "../../lib/calculatorConfig"
 import { saveCalculation } from "../../lib/calculationStorage"
-import { uploadBalanceSheetFile } from "../../lib/uploadStorage"
+import { uploadBalanceSheetFile, MAX_UPLOAD_BYTES } from "../../lib/uploadStorage"
 import { ResultCard } from "./calculators/ResultCard"
 import { BalanceSheetReport } from "./calculators/BalanceSheetReport"
 import { RiskBadge } from "./ui/RiskBadge"
@@ -95,6 +95,11 @@ export default function BalanceSheetUpload({ userId }: Props) {
 
   async function handleFile(f: File | null) {
     if (!f) return
+    if (f.size > MAX_UPLOAD_BYTES) {
+      setStatus("error")
+      setErrorMsg(`File exceeds the ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB limit`)
+      return
+    }
     setFile(f)
     setStatus("parsing")
     setErrorMsg(null)
