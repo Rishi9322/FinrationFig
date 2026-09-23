@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Upload, FileCheck2, AlertCircle, Loader2 } from 'lucide-react';
 import { useCma } from '../context/CmaContext';
 import { buildCmaExportPayload, classifyFinancialDocument, parseCmaFinancialData, recordCmaLearningExample } from '../../../lib/ai/openrouter';
 import { uploadBalanceSheetFile } from '../../../lib/uploadStorage';
@@ -9,13 +10,12 @@ import { ManualReview } from './ManualReview';
 const CASE_STATUSES: CaseStatus[] = ["New", "Under Review", "Awaiting Docs", "Memo Ready", "Approved", "Declined"];
 
 export function DataInputEngine() {
-  const { setParsedData, setIsLoading, isLoading, parsedData, computedData, balanceCheck, creditOpinion, classification, setClassification, sourceMeta, setSourceMeta, loadSavedDocument, recommendation } = useCma();
+  const { setParsedData, setIsLoading, isLoading, parsedData, computedData, balanceCheck, creditOpinion, classification, setClassification, setSourceMeta, loadSavedDocument, recommendation, setActiveTab } = useCma();
   const { user } = useAuth();
-  const [rawText, setRawText] = useState("");
   const [error, setError] = useState("");
   const [sourceName, setSourceName] = useState<string | null>(null);
   const [sourceFormat, setSourceFormat] = useState<string>("txt");
-  const [uploadStatus, setUploadStatus] = useState<string | null>(null);
+  const [rawText, setRawText] = useState("");
   const [isClassifying, setIsClassifying] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
@@ -146,55 +146,42 @@ export function DataInputEngine() {
     URL.revokeObjectURL(url);
   };
 
-  const handleParse = async () => {
-    if (!rawText.trim()) return;
-    setIsLoading(true);
-    setError("");
-    setIsClassifying(true);
-    try {
-      const [classificationResult, parsed] = await Promise.all([
-        classifyFinancialDocument(rawText, sourceName || undefined).catch(() => null),
-        parseCmaFinancialData(rawText, {
-          sourceFormat,
-          sourceName: sourceName || undefined,
-        }),
-      ]);
-
-      setClassification(classificationResult);
-      setParsedData(parsed);
-      setSourceMeta({ sourceName, sourceFormat });
-    } catch (err: any) {
-      setError(err.message || "Failed to parse data");
-    } finally {
-      setIsClassifying(false);
-      setIsLoading(false);
-    }
-  };
-
+  // One step: pick a file, extract its text, classify + parse it, then jump
+  // straight to the Operating Statement tab. No separate "paste text" step or
+  // parse button - the file IS the input.
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsLoading(true);
     setError("");
-    setUploadStatus(null);
     setClassification(null);
 
     try {
-      try {
-        await uploadBalanceSheetFile(file);
-        setUploadStatus(`Stored ${file.name} in the file uploads table.`);
-      } catch (uploadErr: any) {
-        setUploadStatus(uploadErr?.message ? `File parsed locally, but upload storage was skipped: ${uploadErr.message}` : 'File parsed locally, but upload storage was skipped.');
-      }
+      uploadBalanceSheetFile(file).catch(() => {
+        // Best-effort - parsing below doesn't depend on this succeeding.
+      });
 
       const extractedText = await extractFileText(file);
       setRawText(extractedText);
       setSourceName(file.name);
-      setSourceFormat(inferSourceFormat(file.name));
+      const format = inferSourceFormat(file.name);
+      setSourceFormat(format);
+
+      setIsClassifying(true);
+      const [classificationResult, parsed] = await Promise.all([
+        classifyFinancialDocument(extractedText, file.name).catch(() => null),
+        parseCmaFinancialData(extractedText, { sourceFormat: format, sourceName: file.name }),
+      ]);
+
+      setClassification(classificationResult);
+      setParsedData(parsed);
+      setSourceMeta({ sourceName: file.name, sourceFormat: format });
+      setActiveTab(1);
     } catch (err: any) {
-      setError(err.message || "Failed to extract text from file");
+      setError(err.message || "Failed to parse the file");
     } finally {
+      setIsClassifying(false);
       setIsLoading(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
@@ -203,11 +190,11 @@ export function DataInputEngine() {
   };
 
   return (
-    <div className="cma-input-engine">
+    <div className="space-y-6">
       {user && savedDocuments.length > 0 && (
-        <div style={{ marginBottom: '2rem', padding: '1rem', backgroundColor: 'var(--cma-panel-bg-alt)', borderRadius: '6px', border: '1px solid var(--cma-border)' }}>
-          <h3 style={{ marginBottom: '1rem', color: 'var(--cma-text-strong)' }}>Your Cases</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        <div className="bg-card border border-foreground/8 rounded-xl p-5 space-y-3">
+          <h3 className="text-sm font-medium text-foreground">Your Cases</h3>
+          <div className="space-y-2">
             {savedDocuments.map((doc) => {
               // Status is read off what's already stored - no separate
               // workflow-state field to keep in sync.
@@ -215,25 +202,22 @@ export function DataInputEngine() {
               const memoReady = Boolean(doc.creditOpinion);
               const meta = doc.caseMeta;
               return (
-                <div key={doc.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--cma-border)', paddingBottom: '0.5rem' }}>
+                <div key={doc.id} className="flex items-center justify-between gap-4 border-b border-foreground/8 pb-3 last:border-b-0 last:pb-0">
                   <div>
-                    <div style={{ color: 'var(--cma-text)', fontWeight: 500 }}>
+                    <div className="text-foreground font-medium text-sm">
                       {meta?.borrowerName || doc.sourceName || doc.parsedData?.company || 'Untitled case'}
                     </div>
-                    <div style={{ color: 'var(--cma-text-faint)', fontSize: '0.75rem', marginTop: '0.15rem' }}>
+                    <div className="text-muted-foreground text-xs mt-0.5">
                       {[meta?.sector, meta?.facilityType, doc.classification?.docType].filter(Boolean).join(' · ') || 'Financial document'}
                       {' · '}{new Date(doc.createdAt).toLocaleString()}
                       {meta?.relationshipManager ? ` · RM: ${meta.relationshipManager}` : ''}
                     </div>
-                    <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.4rem', flexWrap: 'wrap' }}>
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                       <select
                         value={meta?.status || 'New'}
                         disabled={statusUpdatingId === doc.id}
                         onChange={(e) => handleStatusChange(doc, e.target.value as CaseStatus)}
-                        style={{
-                          backgroundColor: '#2563EB22', color: '#60A5FA', border: '1px solid #2563EB55',
-                          borderRadius: '999px', fontSize: '0.75rem', padding: '0.15rem 0.5rem', cursor: 'pointer',
-                        }}
+                        className="bg-primary/10 text-link border border-primary/20 rounded-full text-xs px-2 py-0.5 cursor-pointer"
                       >
                         {CASE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                       </select>
@@ -246,7 +230,7 @@ export function DataInputEngine() {
                       </span>
                     </div>
                   </div>
-                  <button className="cma-btn cma-btn-outline" onClick={() => loadSavedDocument(doc)}>
+                  <button className="cma-btn cma-btn-outline shrink-0" onClick={() => loadSavedDocument(doc)}>
                     Open
                   </button>
                 </div>
@@ -256,81 +240,61 @@ export function DataInputEngine() {
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>New Case: Upload Financials</h2>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <input
-            type="file"
-            accept=".pdf,.docx,.csv,.xlsx,.xls,.txt"
-            style={{ display: 'none' }}
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-          />
-          <button 
-            className="cma-btn cma-btn-outline" 
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isLoading}
-          >
-            Upload File
-          </button>
-        </div>
-      </div>
-
-      <div style={{ marginBottom: '1rem' }}>
-        <p style={{ color: 'var(--cma-text-muted)', marginBottom: '0.5rem', fontSize: '0.875rem' }}>
-          Paste raw balance sheet and P&L data below, or upload a PDF/DOCX/XLS/CSV file. The AI will auto-detect the document type and parse it into the RBI CMA format.
+      <div>
+        <h2 className="text-lg font-medium text-foreground mb-1">New Case: Upload Financials</h2>
+        <p className="text-sm text-muted-foreground">
+          Upload a balance sheet and P&amp;L statement. The AI auto-detects the document type and parses it into the RBI CMA format.
         </p>
-        {uploadStatus && (
-          <p style={{ color: 'var(--cma-text-muted)', marginBottom: '0.5rem', fontSize: '0.8rem' }}>{uploadStatus}</p>
+      </div>
+
+      <input
+        type="file"
+        accept=".pdf,.docx,.csv,.xlsx,.xls,.txt"
+        className="sr-only"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+      />
+      <label
+        onClick={() => !isLoading && fileInputRef.current?.click()}
+        className="flex flex-col items-center justify-center gap-2 text-center px-6 py-14 rounded-xl border border-dashed border-foreground/15 hover:border-primary/50 bg-foreground/3 cursor-pointer transition-colors"
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="w-6 h-6 text-link animate-spin" />
+            <p className="text-sm text-foreground">{isClassifying ? "Reading and parsing financials…" : `Extracting text from ${sourceName}…`}</p>
+          </>
+        ) : sourceName ? (
+          <>
+            <FileCheck2 className="w-6 h-6 text-accent" />
+            <p className="text-sm text-foreground font-medium">{sourceName}</p>
+            <p className="text-xs text-muted-foreground">click to upload a different file</p>
+          </>
+        ) : (
+          <>
+            <Upload className="w-6 h-6 text-link" />
+            <p className="text-sm text-foreground">Drop your balance sheet here, or click to browse</p>
+            <p className="text-xs text-muted-foreground">PDF, DOCX, XLS/XLSX, CSV or TXT</p>
+          </>
         )}
-        <textarea 
-          style={{
-            width: '100%',
-            height: '250px',
-            backgroundColor: 'var(--cma-panel-bg-alt)',
-            border: '1px solid var(--cma-border)',
-            color: 'var(--cma-text)',
-            padding: '1rem',
-            borderRadius: '6px',
-            fontFamily: 'monospace',
-            resize: 'vertical'
-          }}
-          placeholder="Paste raw financial text here..."
-          value={rawText}
-          onChange={(e) => setRawText(e.target.value)}
-        />
-      </div>
+      </label>
 
-      <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-        <button 
-          className="cma-btn" 
-          onClick={handleParse} 
-          disabled={isLoading || !rawText.trim()}
-        >
-          {isLoading ? "Processing..." : "Parse & Structure Data"}
-        </button>
-        {error && <span style={{ color: '#EF4444', fontSize: '0.875rem' }}>{error}</span>}
-      </div>
-
-      {isClassifying && (
-        <p style={{ color: 'var(--cma-text-muted)', fontSize: '0.85rem', marginTop: '0.75rem' }}>Checking document type…</p>
+      {error && (
+        <div className="flex items-center gap-2 text-sm text-destructive p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
+        </div>
       )}
+
       {classification && (
-        <div style={{
-          marginTop: '0.75rem',
-          padding: '0.75rem 1rem',
-          borderRadius: '6px',
-          border: `1px solid ${classification.isFinancialDocument ? 'var(--cma-border)' : '#EF4444'}`,
-          backgroundColor: 'var(--cma-panel-bg-alt)',
-        }}>
+        <div className={`p-3 rounded-lg bg-foreground/3 border ${classification.isFinancialDocument ? 'border-foreground/8' : 'border-destructive/40'}`}>
           <span className={classification.isFinancialDocument ? 'cma-badge badge-green' : 'cma-badge badge-red'}>
             {classification.isFinancialDocument ? classification.docType : 'Not a financial document'}
           </span>
-          <span style={{ color: 'var(--cma-text-muted)', fontSize: '0.8rem', marginLeft: '0.75rem' }}>
+          <span className="text-muted-foreground text-xs ml-3">
             Confidence: {Math.round(classification.confidence * 100)}% - {classification.reason}
           </span>
           {!classification.isFinancialDocument && (
-            <p style={{ color: '#EF4444', fontSize: '0.8rem', marginTop: '0.5rem' }}>
+            <p className="text-destructive text-xs mt-2">
               This doesn't look like a balance sheet or financial statement. You can still proceed, but the extracted CMA data may be inaccurate.
             </p>
           )}
@@ -338,17 +302,20 @@ export function DataInputEngine() {
       )}
 
       {parsedData && (
-        <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: 'var(--cma-panel-bg-alt)', borderRadius: '6px', border: '1px solid var(--cma-border)' }}>
-          <h3 style={{ marginBottom: '0.25rem', color: 'var(--cma-text-strong)' }}>
-            Data Parsed Successfully for {parsedData.company || '(company not identified)'} ({parsedData.unit})
-          </h3>
-          {typeof (parsedData as any)._parseDurationMs === 'number' && (
-            <p style={{ marginBottom: '0.75rem', color: 'var(--cma-text-muted)', fontSize: '0.8rem' }}>
-              AI parse time: {(parsedData as any)._parseDurationMs}ms
-            </p>
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: 'var(--cma-text-muted)' }}>Balance Check:</span>
+        <div className="bg-card border border-foreground/8 rounded-xl p-5 space-y-4">
+          <div>
+            <h3 className="text-foreground font-medium text-sm mb-1">
+              Data Parsed Successfully for {parsedData.company || '(company not identified)'} ({parsedData.unit})
+            </h3>
+            {typeof (parsedData as any)._parseDurationMs === 'number' && (
+              <p className="text-muted-foreground text-xs">
+                AI parse time: {(parsedData as any)._parseDurationMs}ms
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-sm">Balance Check:</span>
             {balanceCheck.isBalanced ? (
               <span className="cma-badge badge-green">✓ Balanced</span>
             ) : (
@@ -356,7 +323,7 @@ export function DataInputEngine() {
             )}
           </div>
           {!balanceCheck.isBalanced && (
-            <p style={{ color: '#EF4444', fontSize: '0.875rem', marginTop: '0.5rem' }}>
+            <p className="text-destructive text-sm">
               Warning: Total Assets and Total Liabilities do not match in some years.
             </p>
           )}
@@ -379,9 +346,9 @@ export function DataInputEngine() {
             }
             if (reviewItems.length === 0) return null;
             return (
-              <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', borderRadius: '6px', border: '1px solid #F59E0B55', backgroundColor: '#F59E0B11' }}>
-                <div style={{ color: '#F59E0B', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.35rem' }}>NEEDS REVIEW</div>
-                <ul style={{ margin: 0, paddingLeft: '1.1rem', color: 'var(--cma-text)', fontSize: '0.85rem' }}>
+              <div className="p-3 rounded-lg border border-warning/30 bg-warning/10">
+                <div className="text-warning text-xs font-semibold mb-1">NEEDS REVIEW</div>
+                <ul className="list-disc pl-5 text-foreground text-sm space-y-0.5">
                   {reviewItems.map((item, i) => <li key={i}>{item}</li>)}
                 </ul>
               </div>
@@ -391,11 +358,11 @@ export function DataInputEngine() {
           <ManualReview />
 
           {user && (
-            <div style={{ marginTop: '1.25rem', padding: '1rem', backgroundColor: 'var(--cma-panel-bg)', borderRadius: '6px', border: '1px solid var(--cma-border)' }}>
-              <div style={{ color: 'var(--cma-text-muted)', fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <div className="bg-foreground/3 border border-foreground/5 rounded-lg p-4 space-y-3">
+              <div className="text-muted-foreground text-xs font-semibold uppercase tracking-wider">
                 Case Details
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {([
                   ['borrowerName', 'Borrower Name'],
                   ['sector', 'Sector'],
@@ -404,39 +371,39 @@ export function DataInputEngine() {
                   ['relationshipManager', 'Relationship Manager'],
                   ['assignedAnalyst', 'Assigned Analyst'],
                 ] as const).map(([key, label]) => (
-                  <label key={key} style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--cma-text-muted)' }}>
+                  <label key={key} className="flex flex-col gap-1 text-xs text-muted-foreground">
                     {label}
                     <input
                       value={caseMeta[key]}
                       onChange={(e) => setCaseMeta((prev) => ({ ...prev, [key]: e.target.value }))}
-                      style={{ backgroundColor: 'var(--cma-panel-bg-alt)', border: '1px solid var(--cma-border)', color: 'var(--cma-text-strong)', padding: '0.45rem', borderRadius: '4px' }}
+                      className="bg-background border border-foreground/10 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
                     />
                   </label>
                 ))}
-                <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--cma-text-muted)' }}>
+                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
                   Status
                   <select
                     value={caseMeta.status}
                     onChange={(e) => setCaseMeta((prev) => ({ ...prev, status: e.target.value as CaseStatus }))}
-                    style={{ backgroundColor: 'var(--cma-panel-bg-alt)', border: '1px solid var(--cma-border)', color: 'var(--cma-text-strong)', padding: '0.45rem', borderRadius: '4px' }}
+                    className="bg-background border border-foreground/10 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
                   >
                     {CASE_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                   </select>
                 </label>
               </div>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--cma-text-muted)', marginTop: '0.75rem' }}>
+              <label className="flex flex-col gap-1 text-xs text-muted-foreground">
                 Internal Notes
                 <textarea
                   value={caseMeta.notes}
                   onChange={(e) => setCaseMeta((prev) => ({ ...prev, notes: e.target.value }))}
                   rows={2}
-                  style={{ backgroundColor: 'var(--cma-panel-bg-alt)', border: '1px solid var(--cma-border)', color: 'var(--cma-text-strong)', padding: '0.45rem', borderRadius: '4px', resize: 'vertical' }}
+                  className="bg-background border border-foreground/10 rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors resize-vertical"
                 />
               </label>
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+          <div className="flex gap-2 flex-wrap">
             <button
               className="cma-btn cma-btn-outline"
               onClick={() => downloadJson(`${sourceName || parsedData.company || 'cma'}-export.json`, buildCmaExportPayload(parsedData as Record<string, unknown>, {
@@ -494,10 +461,9 @@ export function DataInputEngine() {
               {isSaving ? 'Saving…' : 'Save to My Documents'}
             </button>
           </div>
-          {saveStatus && <p style={{ color: 'var(--cma-text-muted)', fontSize: '0.8rem', marginTop: '0.5rem' }}>{saveStatus}</p>}
+          {saveStatus && <p className="text-muted-foreground text-xs">{saveStatus}</p>}
         </div>
       )}
-
     </div>
   );
 }
