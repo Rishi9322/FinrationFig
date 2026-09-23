@@ -19,6 +19,7 @@ teest/
 .agents/
 .claude/skills/
 skills-lock.json
+.kilo/
 
 # Environment variables
 .env
