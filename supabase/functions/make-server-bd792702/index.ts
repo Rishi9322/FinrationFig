@@ -262,6 +262,19 @@ async function requireAuth(c: any): Promise<{ profile: Profile; uid: string; tok
       c.res = c.json({ error: "FinRatio is invite-only right now. Ask an admin for an invite code." });
       return null;
     }
+    // A fresh Firebase account is free to mint, so uid isn't a useful rate-limit
+    // key here - throttle by the guessed code itself (stops hammering one code)
+    // and by caller IP (stops cycling through many disposable accounts/codes).
+    const ip = requestIp(c);
+    const [codeOk, ipOk] = await Promise.all([
+      validateRateLimit(`invite-redeem:code:${inviteCode.toUpperCase()}`, 5, 10 * 60 * 1000),
+      validateRateLimit(`invite-redeem:ip:${ip}`, 10, 10 * 60 * 1000),
+    ]);
+    if (!codeOk || !ipOk) {
+      c.status(429);
+      c.res = c.json({ error: "Too many invite attempts. Try again later." });
+      return null;
+    }
     const inviteId = await redeemInviteForSignup(inviteCode, email.toLowerCase());
     if (!inviteId) {
       c.status(403);
@@ -330,10 +343,14 @@ function publicUserView(p: Profile) {
   };
 }
 
-async function auditLog(c: any, event: string, detail: { actorId?: string; targetId?: string; outcome: "success" | "failure"; note?: string }) {
+function requestIp(c: any): string {
   const forwardedFor = c.req.header("x-forwarded-for");
-  const parts = (forwardedFor || "").split(",").map((s) => s.trim()).filter(Boolean);
-  const ip = parts[parts.length - 1] || "unknown";
+  const parts = (forwardedFor || "").split(",").map((s: string) => s.trim()).filter(Boolean);
+  return parts[parts.length - 1] || "unknown";
+}
+
+async function auditLog(c: any, event: string, detail: { actorId?: string; targetId?: string; outcome: "success" | "failure"; note?: string }) {
+  const ip = requestIp(c);
   try {
     const admin = getSupabaseAdminClient();
     await admin.from("audit_events").insert({
@@ -531,6 +548,11 @@ app.get(`${API_PREFIX}/admin/invites/:id/redemptions`, async (c) => {
 app.post(`${API_PREFIX}/admin/invites/:id/email`, async (c) => {
   const auth = await requireSuperAdmin(c);
   if (!auth) return c.res;
+  // A compromised/hijacked admin session could otherwise use this as a
+  // rate-unlimited mail relay (arbitrary recipient, no cap) against the
+  // app's own Resend budget and sending reputation.
+  const allowed = await validateRateLimit(`invite-email:${auth.uid}`, 20, 60 * 60 * 1000);
+  if (!allowed) return c.json({ error: "Too many invite emails sent. Try again later." }, 429);
   const parsed = await parseBody(c, Schemas.emailInvite);
   if (!parsed.ok) return parsed.response;
   const admin = getSupabaseAdminClient();
@@ -650,6 +672,10 @@ app.get(`${API_PREFIX}/admin/users`, async (c) => {
 app.post(`${API_PREFIX}/admin/users`, async (c) => {
   const auth = await requireSuperAdmin(c);
   if (!auth) return c.res;
+  // Bounds how many Firebase accounts a compromised/hijacked admin session
+  // could mass-create via the Identity Toolkit signUp call below.
+  const allowed = await validateRateLimit(`admin-create-user:${auth.uid}`, 20, 60 * 60 * 1000);
+  if (!allowed) return c.json({ error: "Too many accounts created. Try again later." }, 429);
   const parsed = await parseBody(c, Schemas.adminCreateUser);
   if (!parsed.ok) return parsed.response;
   const body = parsed.data;
