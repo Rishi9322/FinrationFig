@@ -11,6 +11,7 @@ vi.mock("../../../app/hooks/useAuth", () => ({
 
 vi.mock("../../../lib/uploadStorage", () => ({
   uploadBalanceSheetFile: vi.fn().mockResolvedValue({ id: "upload-1" }),
+  MAX_UPLOAD_BYTES: 10 * 1024 * 1024,
 }))
 
 vi.mock("../../../lib/cmaDocumentStorage", () => ({
@@ -51,27 +52,31 @@ beforeEach(() => {
   }));
 });
 
+function uploadFile(input: HTMLInputElement, file: File) {
+  Object.defineProperty(input, "files", { value: [file], configurable: true })
+  fireEvent.change(input)
+}
+
 describe("DataInputEngine classification + save flow", () => {
-  it("classifies pasted text as a financial document and shows the badge", async () => {
+  it("classifies an uploaded file as a financial document and shows the badge", async () => {
     render(
       <CmaProvider>
         <DataInputEngine />
       </CmaProvider>
     );
 
-    const textarea = screen.getByPlaceholderText(/paste raw financial text/i);
     // The company name must appear in the source: a parsed name that is absent
     // from the document is treated as leaked from a training example and blanked.
-    fireEvent.change(textarea, {
-      target: { value: "Balance Sheet of Test Co\nTotal Assets 500\nTotal Liabilities 500" },
-    });
-
-    fireEvent.click(screen.getByText("Parse & Structure Data"));
+    const file = new File(
+      ["Balance Sheet of Test Co\nTotal Assets 500\nTotal Liabilities 500"],
+      "balance-sheet.txt",
+      { type: "text/plain" },
+    )
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    uploadFile(input, file)
 
     await waitFor(() => expect(screen.getByText("Balance Sheet")).toBeInTheDocument());
     expect(screen.getByText(/Confidence: 92%/)).toBeInTheDocument();
-    // Match the success banner specifically - the name also appears in the
-    // textarea now that the source document names the company.
     expect(screen.getByText(/Data Parsed Successfully for/)).toHaveTextContent("Test Co");
   });
 
@@ -84,5 +89,19 @@ describe("DataInputEngine classification + save flow", () => {
     const input = document.querySelector('input[type="file"]') as HTMLInputElement;
     expect(input.accept).toContain(".docx");
     expect(input.accept).toContain(".pdf");
+  });
+
+  it("rejects a file over the upload size limit before parsing", async () => {
+    render(
+      <CmaProvider>
+        <DataInputEngine />
+      </CmaProvider>
+    );
+    const oversized = new File(["x"], "huge.txt", { type: "text/plain" })
+    Object.defineProperty(oversized, "size", { value: 11 * 1024 * 1024 })
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    uploadFile(input, oversized)
+
+    await waitFor(() => expect(screen.getByText(/exceeds the 10 MB limit/i)).toBeInTheDocument());
   });
 });
