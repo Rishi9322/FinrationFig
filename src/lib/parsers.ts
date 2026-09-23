@@ -174,6 +174,7 @@ export async function parseFile(file: File): Promise<ParsedBalanceSheet> {
           extracted = String(res.value || "")
         } else if (lower.endsWith(".pdf")) {
           // use pdfjs to extract text from PDF pages
+          await import("./pdfWorker")
           const pdfjs = await import("pdfjs-dist/legacy/build/pdf")
           const buffer = await file.arrayBuffer()
           const uint8 = new Uint8Array(buffer)

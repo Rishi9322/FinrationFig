@@ -9,9 +9,9 @@ export default function TestPdfPage() {
 
     try {
       setResult("Loading pdfjs...");
+      await import("../../lib/pdfWorker");
       const pdfjs = await import("pdfjs-dist/legacy/build/pdf");
       const pdfjsLib = pdfjs.default || pdfjs;
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
       setResult("Reading buffer...");
       const buffer = await file.arrayBuffer();

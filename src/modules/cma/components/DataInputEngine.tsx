@@ -62,8 +62,8 @@ export function DataInputEngine() {
     const lowerName = file.name.toLowerCase();
 
     if (lowerName.endsWith('.pdf')) {
+      await import('../../../lib/pdfWorker');
       const pdfjs = await import('pdfjs-dist/legacy/build/pdf');
-      pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
       const buffer = await file.arrayBuffer();
       const uint8 = new Uint8Array(buffer);
