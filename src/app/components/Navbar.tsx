@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { Link, useLocation, useNavigate } from "react-router"
 import { CALCULATORS } from "../../lib/calculatorConfig"
-import { getCurrentUser, signout, canAccessAdmin, hasAllCalculatorAccess } from "../../lib/auth"
+import { getCurrentUser, signout, canAccessAdmin, hasAllCalculatorAccess, CURRENT_USER_KEY } from "../../lib/auth"
 import { Menu, X, ChevronDown, LogOut, UserCircle, MessageSquarePlus } from "lucide-react"
 import * as Icons from "lucide-react"
 import { toast } from "sonner"
@@ -24,7 +24,7 @@ const PRIMARY_LINKS = [
 export function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
-  const user = getCurrentUser()
+  const [user, setUser] = useState(getCurrentUser())
   const [mobileOpen, setMobileOpen] = useState(false)
   const [calcOpen, setCalcOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
@@ -34,6 +34,26 @@ export function Navbar() {
     window.addEventListener("scroll", fn, { passive: true })
     return () => window.removeEventListener("scroll", fn)
   }, [])
+
+  // The `storage` event only fires in OTHER tabs, which is exactly the gap
+  // here: on a shared device, signing out and a different user signing in on
+  // another tab left this tab showing the previous identity (name, admin nav)
+  // until it happened to navigate. Same-tab changes already re-render via the
+  // location-driven route changes elsewhere in the app.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === CURRENT_USER_KEY || e.key === null) setUser(getCurrentUser())
+    }
+    window.addEventListener("storage", onStorage)
+    return () => window.removeEventListener("storage", onStorage)
+  }, [])
+
+  // Same-tab sign-in/out changes localStorage directly (no storage event
+  // fires locally) - re-read on navigation, matching how this component
+  // behaved before it cached user in state.
+  useEffect(() => {
+    setUser(getCurrentUser())
+  }, [location.pathname])
 
   async function handleSignOut() {
     try {

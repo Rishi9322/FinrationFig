@@ -38,7 +38,7 @@ export interface CalculatorFeature {
   description?: string
 }
 
-const CURRENT_USER_KEY = "finratio_current_user"
+export const CURRENT_USER_KEY = "finratio_current_user"
 
 // Firebase resolves the initial auth state asynchronously. Cache the first
 // resolution so route guards don't race the SDK on a hard refresh.
