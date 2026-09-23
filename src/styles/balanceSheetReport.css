@@ -1,0 +1,22 @@
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .bs-report,
+  .bs-report * {
+    visibility: visible;
+  }
+  .bs-report {
+    position: absolute;
+    inset: 0;
+    border: none !important;
+    background: white !important;
+    color: black !important;
+  }
+  .bs-report .no-print {
+    display: none !important;
+  }
+  .bs-report-section {
+    page-break-inside: avoid;
+  }
+}

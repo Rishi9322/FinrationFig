@@ -1,6 +1,7 @@
 export type CalculatorType =
   | "debt-equity"
   | "quasi-debt-equity"
+  | "profit-percent"
   | "current-ratio"
   | "dscr"
   | "ebitda"
@@ -74,6 +75,31 @@ export function calculateDebtEquity(totalDebt: number, totalEquity: number): Cal
   return {
     value: ratio,
     formatted: ratio.toFixed(2),
+    interpretation,
+    risk,
+  }
+}
+
+export function calculateProfitPercent(profitBeforeTax: number, sales: number): CalculationResult {
+  if (sales === 0) throw new Error("Sales cannot be zero")
+  const percent = (profitBeforeTax * 100) / sales
+  let risk: RiskLevel
+  let interpretation: string
+
+  if (percent < 0) {
+    risk = "high"
+    interpretation = "Negative profit margin - the business is operating at a loss"
+  } else if (percent <= 10) {
+    risk = "moderate"
+    interpretation = "Thin profit margin - limited profitability buffer"
+  } else {
+    risk = "low"
+    interpretation = "Healthy profit margin - strong profitability"
+  }
+
+  return {
+    value: percent,
+    formatted: `${percent.toFixed(2)}%`,
     interpretation,
     risk,
   }

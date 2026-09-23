@@ -10,7 +10,9 @@ import { CALCULATORS } from "../../lib/calculatorConfig"
 import { saveCalculation } from "../../lib/calculationStorage"
 import { uploadBalanceSheetFile } from "../../lib/uploadStorage"
 import { ResultCard } from "./calculators/ResultCard"
+import { BalanceSheetReport } from "./calculators/BalanceSheetReport"
 import { RiskBadge } from "./ui/RiskBadge"
+import "../../styles/balanceSheetReport.css"
 
 type Props = {
   userId?: string
@@ -187,10 +189,14 @@ export default function BalanceSheetUpload({ userId }: Props) {
         )}
       </label>
 
-      {/* Calculator picker */}
+      {parsed && (
+        <BalanceSheetReport parsed={parsed} businessConstitution={getCurrentUser()?.businessConstitution} userId={userId} />
+      )}
+
+      {/* Calculator picker - fine-tune one ratio at a time below the report */}
       <div className="space-y-1.5">
         <label htmlFor="calc-select" className="text-xs font-['Geist_Mono'] text-muted-foreground uppercase tracking-wider">
-          Calculator
+          Fine-tune a single calculator
         </label>
         <div className="relative">
           <select

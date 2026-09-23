@@ -54,7 +54,7 @@ export default function SignupPage() {
     try {
       await signup({ name, email, password, confirmPassword, inviteCode: inviteCode.trim() })
       toast.success("Account created. We've emailed a verification link.")
-      navigate("/dashboard")
+      navigate("/dashboard?welcome=1")
     } catch (error: any) {
       const message = error.message || "An error occurred. Please try again."
       if (message.includes("already registered")) {

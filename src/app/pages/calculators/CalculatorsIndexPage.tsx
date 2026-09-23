@@ -1,11 +1,19 @@
 import { Link } from "react-router"
 import { CALCULATORS } from "../../../lib/calculatorConfig"
+import { getCurrentUser } from "../../../lib/auth"
+import { isProfitPercentEligible } from "../../../lib/constitutionFormulas"
 import * as Icons from "lucide-react"
 import { ArrowRight } from "lucide-react"
 
 // Every calculator is available to any signed-in user; only the CMA engine and
-// document parser are granted per user, and neither is listed here.
+// document parser are granted per user, and neither is listed here. Profit %
+// is further filtered by constitution - it's only confirmed for LLP/Pvt Ltd/
+// Ltd/OPC so far, so it's hidden rather than shown with a formula we haven't verified.
 export default function CalculatorsIndexPage() {
+  const constitution = getCurrentUser()?.businessConstitution
+  const visibleCalculators = CALCULATORS.filter(
+    (c) => c.id !== "profit-percent" || isProfitPercentEligible(constitution)
+  )
   return (
     <div className="min-h-screen bg-background py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -23,7 +31,7 @@ export default function CalculatorsIndexPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {CALCULATORS.map((calculator, i) => {
+          {visibleCalculators.map((calculator, i) => {
             const Icon = Icons[calculator.icon as keyof typeof Icons] as React.ComponentType<{ className?: string }>
             return (
               <Link key={calculator.id} to={calculator.path} className="group">

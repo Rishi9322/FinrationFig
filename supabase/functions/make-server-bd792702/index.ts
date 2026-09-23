@@ -1,7 +1,7 @@
 import { Hono } from "npm:hono";
 import { createClient } from "npm:@supabase/supabase-js";
 import { z } from "npm:zod";
-import { jwtVerify, createRemoteJWKSet } from "npm:jose";
+import { jwtVerify, createRemoteJWKSet, SignJWT } from "npm:jose";
 
 // Auth is Firebase. This function only does what needs the service role: the AI
 // proxy (keeps the OpenRouter key server-side), admin user management, and
@@ -27,6 +27,14 @@ const FIREBASE_JWKS = createRemoteJWKSet(
 );
 const FIREBASE_ISSUER = `https://securetoken.google.com/${FIREBASE_PROJECT_ID}`;
 
+// WhatsApp OTP sign-in bypasses Firebase entirely (no SMS/phone provider), so
+// we mint our own session token instead of a Firebase custom token (no service
+// account on hand). Reuses JWT_SECRET, a secret already deployed from the
+// pre-Firebase custom-auth era. requireAuth() accepts either token kind.
+const PHONE_JWT_SECRET = Deno.env.get("JWT_SECRET") ?? "";
+const PHONE_JWT_ISSUER = "finratio-phone-auth";
+const phoneJwtKey = PHONE_JWT_SECRET ? new TextEncoder().encode(PHONE_JWT_SECRET) : null;
+
 const ALLOWED_ORIGINS = [
   "https://finratio.site",
   "https://www.finratio.site",
@@ -39,7 +47,7 @@ const ALLOWED_ORIGINS = [
 const allowDevOrigins = Deno.env.get("ALLOW_DEV_ORIGINS") === "true";
 
 const CALCULATOR_SLUGS = [
-  "debt-equity", "quasi-debt-equity", "current-ratio", "dscr", "ebitda", "iscr",
+  "debt-equity", "quasi-debt-equity", "profit-percent", "current-ratio", "dscr", "ebitda", "iscr",
   "net-working-capital", "drawing-power", "ageing", "pid", "valuation", "working-capital-cycle",
   "cashflow-quality", "macro-ratios",
 ];
@@ -63,6 +71,23 @@ function getSupabaseAdminClient() {
 }
 
 function nowIso() { return new Date().toISOString(); }
+
+async function sha256Hex(input: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Defaults to +91 (India) when the user omits a country code, matching the
+// placeholder shown on the sign-in form.
+function normalizePhone(raw: string): string | null {
+  const digits = raw.replace(/[^\d+]/g, "");
+  const e164 = digits.startsWith("+") ? digits : `+91${digits}`;
+  return /^\+\d{10,15}$/.test(e164) ? e164 : null;
+}
+
+async function phoneUid(phone: string): Promise<string> {
+  return `phone_${(await sha256Hex(`uid:${phone}`)).slice(0, 28)}`;
+}
 
 app.use("*", async (c, next) => {
   await next();
@@ -119,6 +144,13 @@ const Schemas = {
   }),
   emailInvite: z.object({
     to: z.string().trim().toLowerCase().min(3).max(254),
+  }),
+  phoneSend: z.object({
+    phone: z.string().trim().min(6).max(20),
+  }),
+  phoneVerify: z.object({
+    phone: z.string().trim().min(6).max(20),
+    code: z.string().trim().min(4).max(8),
   }),
   blogPost: z.object({
     title: z.string().trim().min(1).max(200),
@@ -204,8 +236,21 @@ async function requireAuth(c: any): Promise<{ profile: Profile; uid: string; tok
     email = String((payload as any).email ?? "");
     name = String((payload as any).name ?? "");
     if (!uid) throw new Error("no sub");
-  } catch (_e) {
-    c.status(401); c.res = c.json({ error: "Invalid session" }); return null;
+  } catch (_firebaseErr) {
+    // Not a Firebase ID token - try our own WhatsApp-OTP session token.
+    if (!phoneJwtKey) { c.status(401); c.res = c.json({ error: "Invalid session" }); return null; }
+    try {
+      const { payload } = await jwtVerify(token, phoneJwtKey, {
+        issuer: PHONE_JWT_ISSUER,
+        audience: FIREBASE_PROJECT_ID,
+      });
+      uid = String(payload.sub);
+      email = String((payload as any).email ?? "");
+      name = String((payload as any).name ?? "");
+      if (!uid) throw new Error("no sub");
+    } catch (_phoneErr) {
+      c.status(401); c.res = c.json({ error: "Invalid session" }); return null;
+    }
   }
 
   const admin = getSupabaseAdminClient();
@@ -518,6 +563,79 @@ app.post(`${API_PREFIX}/admin/invites/:id/email`, async (c) => {
   }
   await auditLog(c, "admin.invite-email", { actorId: auth.profile.id, outcome: "success", note: `${invite.code} -> ${parsed.data.to}` });
   return c.json({ message: "Invite email sent" });
+});
+
+// ---- WhatsApp OTP sign-in (public, unauthenticated) ----
+app.post(`${API_PREFIX}/auth/phone/send-otp`, async (c) => {
+  const parsed = await parseBody(c, Schemas.phoneSend);
+  if (!parsed.ok) return parsed.response;
+  const phone = normalizePhone(parsed.data.phone);
+  if (!phone) return c.json({ error: "Enter a valid phone number" }, 400);
+
+  const allowed = await validateRateLimit(`phone-otp:${phone}`, 3, 10 * 60 * 1000);
+  if (!allowed) return c.json({ error: "Too many requests. Try again later." }, 429);
+
+  const whatsappUrl = Deno.env.get("WHATSAPP_API_URL");
+  const whatsappKey = Deno.env.get("WHATSAPP_API_KEY");
+  if (!whatsappUrl || !whatsappKey || !phoneJwtKey) {
+    return c.json({ error: "WhatsApp verification is not configured" }, 503);
+  }
+
+  const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
+  const admin = getSupabaseAdminClient();
+  const { error } = await admin.from("phone_otps").upsert({
+    phone, code_hash: await sha256Hex(`${phone}:${code}`),
+    expires_at: new Date(Date.now() + 5 * 60 * 1000).toISOString(), attempts: 0,
+  }, { onConflict: "phone" });
+  if (error) return c.json({ error: "Could not start verification" }, 500);
+
+  const send = await fetch(whatsappUrl, {
+    method: "POST",
+    headers: { "X-API-KEY": whatsappKey, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      messaging_product: "whatsapp",
+      to: phone.replace("+", ""),
+      type: "text",
+      text: { body: `Your FinRatio verification code is ${code}. It expires in 5 minutes.` },
+    }),
+  });
+  if (!send.ok) {
+    console.error("[phone-otp] WhatsApp send failed", send.status, await send.text().catch(() => ""));
+    return c.json({ error: "Could not send the WhatsApp message" }, 502);
+  }
+  return c.json({ message: "OTP sent" });
+});
+
+app.post(`${API_PREFIX}/auth/phone/verify-otp`, async (c) => {
+  const parsed = await parseBody(c, Schemas.phoneVerify);
+  if (!parsed.ok) return parsed.response;
+  const phone = normalizePhone(parsed.data.phone);
+  if (!phone || !phoneJwtKey) return c.json({ error: "Enter a valid phone number" }, 400);
+
+  const allowed = await validateRateLimit(`phone-verify:${phone}`, 8, 10 * 60 * 1000);
+  if (!allowed) return c.json({ error: "Too many attempts. Try again later." }, 429);
+
+  const admin = getSupabaseAdminClient();
+  const { data: row } = await admin.from("phone_otps").select("*").eq("phone", phone).maybeSingle();
+  if (!row || new Date(row.expires_at) < new Date() || row.attempts >= 5) {
+    return c.json({ error: "Code expired or invalid. Request a new one." }, 400);
+  }
+  if ((await sha256Hex(`${phone}:${parsed.data.code}`)) !== row.code_hash) {
+    await admin.from("phone_otps").update({ attempts: row.attempts + 1 }).eq("phone", phone);
+    return c.json({ error: "Incorrect code" }, 400);
+  }
+  await admin.from("phone_otps").delete().eq("phone", phone);
+
+  const token = await new SignJWT({ email: `${phone}@phone.finratio.local`, name: phone })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(await phoneUid(phone))
+    .setIssuer(PHONE_JWT_ISSUER)
+    .setAudience(FIREBASE_PROJECT_ID)
+    .setIssuedAt()
+    .setExpirationTime("30d")
+    .sign(phoneJwtKey);
+
+  return c.json({ token });
 });
 
 // ---- Admin: user management (SUPER_ADMIN only) ----

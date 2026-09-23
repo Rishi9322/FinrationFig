@@ -28,6 +28,14 @@ export const CALCULATORS: CalculatorConfig[] = [
     icon: "GitMerge",
   },
   {
+    id: "profit-percent",
+    name: "Profit %",
+    description: "Profit before tax as a percentage of sales.",
+    shortDescription: "Assess profitability relative to sales",
+    path: "/calculators/profit-percent",
+    icon: "Percent",
+  },
+  {
     id: "current-ratio",
     name: "Current Ratio",
     description: "Evaluates short-term liquidity by comparing current assets to current liabilities.",

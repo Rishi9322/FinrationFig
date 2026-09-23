@@ -1,12 +1,16 @@
 import { useState } from "react"
 import { Link, useNavigate, useSearchParams } from "react-router"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
-import type { ConfirmationResult } from "firebase/auth"
 import { signinSchema } from "../../../lib/validations"
-import { signin, sendPhoneOTP, confirmPhoneOTP } from "../../../lib/auth"
+import { signin, sendWhatsAppOTP, confirmWhatsAppOTP } from "../../../lib/auth"
 import { OAuthButtons } from "../../components/auth/OAuthButtons"
 import { toast } from "sonner"
 import { ThemeToggle } from "../../components/ThemeToggle"
+
+// WhatsApp OTP delivery isn't confirmed working yet on the provider side (see
+// the messaginghub.solutions relay debugging). The tab is wired up end-to-end
+// underneath; flip this once real sends verify to re-expose it in the UI.
+const WHATSAPP_OTP_ENABLED = false
 
 export default function SigninPage() {
   const navigate = useNavigate()
@@ -23,7 +27,7 @@ export default function SigninPage() {
 
   const [phone, setPhone] = useState("")
   const [otp, setOtp] = useState("")
-  const [confirmation, setConfirmation] = useState<ConfirmationResult | null>(null)
+  const [otpSent, setOtpSent] = useState(false)
 
   function goToDestination(role: string | undefined) {
     toast.success("Signed in successfully")
@@ -53,17 +57,11 @@ export default function SigninPage() {
   async function handleSendOtp(e: React.FormEvent) {
     e.preventDefault()
     setError("")
-    const digits = phone.replace(/[^\d+]/g, "")
-    const e164 = digits.startsWith("+") ? digits : `+91${digits}`
-    if (!/^\+\d{10,15}$/.test(e164)) {
-      setError("Enter a valid phone number")
-      return
-    }
     setIsLoading(true)
     try {
-      const result = await sendPhoneOTP(e164)
-      setConfirmation(result)
-      toast.success("OTP sent")
+      await sendWhatsAppOTP(phone)
+      setOtpSent(true)
+      toast.success("OTP sent on WhatsApp")
     } catch (err: any) {
       setError(err.message || "Could not send OTP")
     } finally {
@@ -74,10 +72,9 @@ export default function SigninPage() {
   async function handleVerifyOtp(e: React.FormEvent) {
     e.preventDefault()
     setError("")
-    if (!confirmation) return
     setIsLoading(true)
     try {
-      const data = await confirmPhoneOTP(confirmation, otp.trim())
+      const data = await confirmWhatsAppOTP(phone, otp.trim())
       goToDestination(data.user?.role)
     } catch (err: any) {
       setError(err.message || "Invalid OTP")
@@ -111,24 +108,26 @@ export default function SigninPage() {
 
         {/* Card */}
         <div className="bg-card border border-foreground/8 rounded-2xl p-8">
-          <div className="flex bg-background border border-foreground/10 rounded-lg p-1 mb-5 text-sm">
-            <button
-              type="button"
-              onClick={() => { setMode("email"); setError("") }}
-              className={`flex-1 py-1.5 rounded-md font-medium transition-colors ${mode === "email" ? "bg-primary text-white" : "text-muted-foreground hover:text-white"}`}
-            >
-              Email
-            </button>
-            <button
-              type="button"
-              onClick={() => { setMode("phone"); setError("") }}
-              className={`flex-1 py-1.5 rounded-md font-medium transition-colors ${mode === "phone" ? "bg-primary text-white" : "text-muted-foreground hover:text-white"}`}
-            >
-              Phone OTP
-            </button>
-          </div>
+          {WHATSAPP_OTP_ENABLED && (
+            <div className="flex bg-background border border-foreground/10 rounded-lg p-1 mb-5 text-sm">
+              <button
+                type="button"
+                onClick={() => { setMode("email"); setError("") }}
+                className={`flex-1 py-1.5 rounded-md font-medium transition-colors ${mode === "email" ? "bg-primary text-white" : "text-muted-foreground hover:text-white"}`}
+              >
+                Email
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode("phone"); setError("") }}
+                className={`flex-1 py-1.5 rounded-md font-medium transition-colors ${mode === "phone" ? "bg-primary text-white" : "text-muted-foreground hover:text-white"}`}
+              >
+                WhatsApp OTP
+              </button>
+            </div>
+          )}
 
-          {mode === "email" ? (
+          {mode === "email" || !WHATSAPP_OTP_ENABLED ? (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-foreground">Email</label>
@@ -188,7 +187,7 @@ export default function SigninPage() {
               </button>
             </form>
           ) : (
-            <form onSubmit={confirmation ? handleVerifyOtp : handleSendOtp} className="space-y-4">
+            <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-foreground">Phone number</label>
                 <input
@@ -196,12 +195,12 @@ export default function SigninPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="+91 98765 43210"
-                  disabled={!!confirmation}
+                  disabled={otpSent}
                   className="w-full px-4 py-2.5 bg-background border border-foreground/10 rounded-lg text-foreground text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors disabled:opacity-60"
                 />
               </div>
 
-              {confirmation && (
+              {otpSent && (
                 <div className="space-y-1.5">
                   <label className="block text-sm font-medium text-foreground">Enter OTP</label>
                   <input
@@ -214,7 +213,7 @@ export default function SigninPage() {
                   />
                   <button
                     type="button"
-                    onClick={() => { setConfirmation(null); setOtp("") }}
+                    onClick={() => { setOtpSent(false); setOtp("") }}
                     className="text-xs text-link hover:text-foreground transition-colors"
                   >
                     Use a different number
@@ -228,9 +227,6 @@ export default function SigninPage() {
                 </div>
               )}
 
-              {/* Invisible reCAPTCHA anchor required by Firebase phone auth */}
-              <div id="recaptcha-container" />
-
               <button
                 type="submit"
                 disabled={isLoading}
@@ -239,12 +235,12 @@ export default function SigninPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    {confirmation ? "Verifying..." : "Sending OTP..."}
+                    {otpSent ? "Verifying..." : "Sending OTP..."}
                   </>
-                ) : confirmation ? (
+                ) : otpSent ? (
                   "Verify OTP"
                 ) : (
-                  "Send OTP"
+                  "Send OTP on WhatsApp"
                 )}
               </button>
             </form>

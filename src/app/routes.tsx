@@ -20,6 +20,7 @@ import { AdminSettingsPage } from "./pages/admin/AdminSettingsPage"
 import CalculatorsIndexPage from "./pages/calculators/CalculatorsIndexPage"
 import DebtEquityPage from "./pages/calculators/DebtEquityPage"
 import QuasiDebtEquityPage from "./pages/calculators/QuasiDebtEquityPage"
+import ProfitPercentPage from "./pages/calculators/ProfitPercentPage"
 import CurrentRatioPage from "./pages/calculators/CurrentRatioPage"
 import DscrPage from "./pages/calculators/DscrPage"
 import EbitdaPage from "./pages/calculators/EbitdaPage"
@@ -157,6 +158,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedLayout>
         <QuasiDebtEquityPage />
+      </ProtectedLayout>
+    ),
+  },
+  {
+    path: "/calculators/profit-percent",
+    element: (
+      <ProtectedLayout>
+        <ProfitPercentPage />
       </ProtectedLayout>
     ),
   },

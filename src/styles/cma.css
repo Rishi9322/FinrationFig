@@ -1,44 +1,32 @@
-/* cma.css - CMA Terminal Design System
-   Follows the site-wide theme toggle (the "dark" class on <html> from
-   src/lib/theme.tsx) instead of its own switch, so there's one light/dark
-   control for the whole app, not a separate one just for this page. */
+/* cma.css - CMA module theming.
+   Maps onto the app's own design tokens (theme.css) instead of a separate
+   palette/font stack, so this module reads as part of FinRatio rather than a
+   different app bolted on - same colors, fonts, radius and card treatment as
+   every other page, still following the shared dark-mode toggle. */
 .cma-container {
-  --cma-bg: #F8FAFC;
-  --cma-panel-bg: #FFFFFF;
-  --cma-panel-bg-alt: #F1F5F9;
-  --cma-border: #E2E8F0;
-  --cma-border-strong: #CBD5E1;
-  --cma-text: #1E293B;
-  --cma-text-strong: #0F172A;
-  --cma-text-muted: #64748B;
-  --cma-text-faint: #94A3B8;
-  --cma-hover-bg: #E2E8F0;
-  --cma-code-bg: #F1F5F9;
-  --cma-scrollbar-thumb: #CBD5E1;
-  --cma-scrollbar-thumb-hover: #94A3B8;
+  --cma-bg: var(--background);
+  --cma-panel-bg: var(--card);
+  --cma-panel-bg-alt: var(--secondary);
+  --cma-border: var(--border);
+  --cma-border-strong: var(--border);
+  --cma-text: var(--foreground);
+  --cma-text-strong: var(--foreground);
+  --cma-text-muted: var(--muted-foreground);
+  --cma-text-faint: var(--muted-foreground);
+  --cma-hover-bg: var(--secondary);
+  --cma-code-bg: var(--secondary);
+  --cma-scrollbar-thumb: var(--border);
+  --cma-scrollbar-thumb-hover: var(--muted-foreground);
   --cma-shadow: rgba(15, 23, 42, 0.08);
 
   background-color: var(--cma-bg);
   color: var(--cma-text);
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   min-height: 100vh;
   width: 100%;
 }
 
 .dark .cma-container {
-  --cma-bg: #080B10;
-  --cma-panel-bg: #0E1218;
-  --cma-panel-bg-alt: #111720;
-  --cma-border: #1A2030;
-  --cma-border-strong: #334155;
-  --cma-text: #E2E8F0;
-  --cma-text-strong: #F8FAFC;
-  --cma-text-muted: #94A3B8;
-  --cma-text-faint: #64748B;
-  --cma-hover-bg: #1A2030;
-  --cma-code-bg: #131A24;
-  --cma-scrollbar-thumb: #2A3345;
-  --cma-scrollbar-thumb-hover: #3B4658;
   --cma-shadow: rgba(0, 0, 0, 0.5);
 }
 
@@ -77,8 +65,9 @@
 }
 
 .cma-title {
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-family: 'Instrument Serif', serif;
+  font-size: 1.75rem;
+  font-weight: 400;
   color: var(--cma-text-strong);
 }
 
@@ -99,7 +88,7 @@
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 500;
-  border-radius: 4px;
+  border-radius: 0.5rem;
   transition: all 0.2s;
   white-space: nowrap;
 }
@@ -110,9 +99,9 @@
 }
 
 .cma-tab.active {
-  color: #2563EB;
-  background-color: rgba(37, 99, 235, 0.1);
-  box-shadow: inset 0 -2px 0 #2563EB;
+  color: var(--link);
+  background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+  box-shadow: inset 0 -2px 0 var(--primary);
 }
 
 .cma-content {
@@ -125,7 +114,7 @@
 .cma-table-container {
   background-color: var(--cma-panel-bg);
   border: 1px solid var(--cma-border);
-  border-radius: 8px;
+  border-radius: 0.75rem;
   overflow: hidden;
   margin-bottom: 2rem;
   box-shadow: 0 4px 6px -1px var(--cma-shadow);
@@ -135,14 +124,14 @@
   width: 100%;
   border-collapse: collapse;
   text-align: right;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Geist Mono', monospace;
   font-size: 0.875rem;
 }
 
 .cma-table th {
   background-color: var(--cma-panel-bg-alt);
   color: var(--cma-text-muted);
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-weight: 600;
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--cma-border);
@@ -154,7 +143,7 @@
 .cma-table th:first-child,
 .cma-table td:first-child {
   text-align: left;
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   position: sticky;
   left: 0;
   background-color: inherit;
@@ -198,15 +187,15 @@
 
 /* Value colors */
 .val-positive {
-  color: #10B981;
+  color: var(--accent);
 }
 
 .val-negative {
-  color: #EF4444;
+  color: var(--destructive);
 }
 
 .val-warning {
-  color: #F59E0B;
+  color: var(--warning);
 }
 
 .val-zero {
@@ -221,34 +210,34 @@
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
-  font-family: 'IBM Plex Sans', sans-serif;
+  font-family: 'DM Sans', sans-serif;
 }
 
 .badge-green {
-  background-color: rgba(16, 185, 129, 0.1);
-  color: #10B981;
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background-color: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .badge-red {
-  background-color: rgba(239, 68, 68, 0.1);
-  color: #EF4444;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background-color: color-mix(in srgb, var(--destructive) 12%, transparent);
+  color: var(--destructive);
+  border: 1px solid color-mix(in srgb, var(--destructive) 25%, transparent);
 }
 
 .badge-amber {
-  background-color: rgba(245, 158, 11, 0.1);
-  color: #F59E0B;
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  background-color: color-mix(in srgb, var(--warning) 12%, transparent);
+  color: var(--warning);
+  border: 1px solid color-mix(in srgb, var(--warning) 25%, transparent);
 }
 
 /* Buttons */
 .cma-btn {
-  background-color: #2563EB;
-  color: white;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
   border: none;
   padding: 0.5rem 1.25rem;
-  border-radius: 6px;
+  border-radius: 0.75rem;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -258,7 +247,7 @@
 }
 
 .cma-btn:hover {
-  background-color: #1D4ED8;
+  background-color: var(--primary-hover);
 }
 
 .cma-btn-outline {

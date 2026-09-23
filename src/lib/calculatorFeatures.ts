@@ -8,6 +8,7 @@ export type CalculatorFeature = {
 export const CALCULATOR_FEATURES: CalculatorFeature[] = [
   { slug: "debt-equity", name: "Debt-to-Equity Ratio" },
   { slug: "quasi-debt-equity", name: "Quasi Debt-to-Equity Ratio" },
+  { slug: "profit-percent", name: "Profit %" },
   { slug: "current-ratio", name: "Current Ratio" },
   { slug: "dscr", name: "Debt Service Coverage Ratio" },
   { slug: "ebitda", name: "EBITDA" },

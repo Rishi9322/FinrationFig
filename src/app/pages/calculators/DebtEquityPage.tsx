@@ -3,8 +3,12 @@ import { CalculatorShell } from "../../components/calculators/CalculatorShell"
 import { calculateDebtEquity, CalculationResult } from "../../../lib/financialCalculations"
 import { ResultCard } from "../../components/calculators/ResultCard"
 import { CurrencyInput } from "../../components/ui/CurrencyInput"
+import { getCurrentUser } from "../../../lib/auth"
+import { getEquityVariant, EQUITY_VARIANT_LABELS } from "../../../lib/constitutionFormulas"
 
 export default function DebtEquityPage() {
+  const variant = getEquityVariant(getCurrentUser()?.businessConstitution)
+  const labels = variant ? EQUITY_VARIANT_LABELS[variant] : null
   const [totalDebt, setTotalDebt] = useState("")
   const [totalEquity, setTotalEquity] = useState("")
   const [result, setResult] = useState<CalculationResult | null>(null)
@@ -45,19 +49,19 @@ export default function DebtEquityPage() {
     >
       <div className="space-y-4">
         <CurrencyInput
-          label="Total Debt"
+          label={labels ? "Total Outside Liabilities" : "Total Debt"}
           value={totalDebt}
           onChange={setTotalDebt}
-          placeholder="Enter total debt"
+          placeholder={labels ? "Enter total outside liabilities" : "Enter total debt"}
           helperText="All borrowed funds and liabilities"
         />
 
         <CurrencyInput
-          label="Total Equity"
+          label={labels?.base ?? "Total Equity"}
           value={totalEquity}
           onChange={setTotalEquity}
-          placeholder="Enter total equity"
-          helperText="Shareholders' equity or net worth"
+          placeholder={labels ? `Enter ${labels.base.toLowerCase()}` : "Enter total equity"}
+          helperText={labels?.baseHelper ?? "Shareholders' equity or net worth"}
           error={error || undefined}
         />
       </div>

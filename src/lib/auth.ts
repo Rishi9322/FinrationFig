@@ -2,18 +2,16 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
-  signInWithPhoneNumber,
-  RecaptchaVerifier,
+  linkWithPopup,
   sendEmailVerification,
   sendPasswordResetEmail,
   updateProfile,
   onAuthStateChanged,
   signOut as firebaseSignOut,
   type User as FirebaseUser,
-  type ConfirmationResult,
 } from "firebase/auth"
 import { auth, googleProvider } from "./firebaseClient"
-import { apiCall, apiRequest } from "./apiSession"
+import { apiCall, apiRequest, setPhoneSessionToken, clearPhoneSessionToken } from "./apiSession"
 import { RESTRICTED_FEATURES, type CalculatorFeature as CatalogFeature } from "./calculatorFeatures"
 
 export type Role = "SUPER_ADMIN" | "ADMIN" | "USER"
@@ -133,27 +131,24 @@ export async function verifyOTP(_email: string, _otp: string) {
   return { user: loaded }
 }
 
-// Phone OTP sign-in. Firebase requires an invisible reCAPTCHA bound to a DOM
-// node before it will send an SMS; the caller supplies that node's id (it
-// must already be mounted). One verifier is reused for the session.
-let recaptchaVerifier: RecaptchaVerifier | null = null
-export async function sendPhoneOTP(
-  phoneNumber: string,
-  recaptchaContainerId = "recaptcha-container"
-): Promise<ConfirmationResult> {
-  if (!recaptchaVerifier) {
-    recaptchaVerifier = new RecaptchaVerifier(auth, recaptchaContainerId, { size: "invisible" })
-  }
-  return signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
+// Phone OTP sign-in, delivered over WhatsApp. This bypasses Firebase's own
+// phone provider (SMS-only) - the edge function sends the code and, on a
+// correct verify, hands back a session token of its own (see apiSession.ts).
+export async function sendWhatsAppOTP(phone: string) {
+  return apiCall("/auth/phone/send-otp", { method: "POST", body: JSON.stringify({ phone }) })
 }
 
-export async function confirmPhoneOTP(confirmation: ConfirmationResult, code: string) {
-  const cred = await confirmation.confirm(code)
-  const user = await loadProfile(cred.user)
-  if (user?.status === "SUSPENDED") {
-    await firebaseSignOut(auth)
+export async function confirmWhatsAppOTP(phone: string, code: string) {
+  const { token } = await apiCall("/auth/phone/verify-otp", { method: "POST", body: JSON.stringify({ phone, code }) })
+  setPhoneSessionToken(token)
+  const data = await apiCall("/me")
+  if (!data.user) { clearPhoneSessionToken(); throw new Error("Could not load profile") }
+  const user: User = { ...data.user, isVerified: true }
+  if (user.status === "SUSPENDED") {
+    clearPhoneSessionToken()
     throw new Error("Account suspended")
   }
+  setCurrentUser(user)
   return { user }
 }
 
@@ -163,6 +158,28 @@ export const ENABLED_OAUTH_PROVIDERS: { provider: OAuthProvider; label: string }
 ]
 export async function signInWithOAuth(_provider: OAuthProvider = "google") {
   await signInWithGoogle()
+}
+
+// Adds Google as a second way in for the current (already signed-in) account,
+// keeping the same Firebase uid - no profile/backend change needed.
+export async function linkGoogleAccount(): Promise<void> {
+  const user = auth.currentUser
+  if (!user) throw new Error("You must be signed in")
+  try {
+    await linkWithPopup(user, googleProvider)
+  } catch (err: any) {
+    if (err?.code === "auth/credential-already-in-use") {
+      throw new Error("That Google account is already linked to a different login")
+    }
+    if (err?.code === "auth/popup-closed-by-user") {
+      throw new Error("Google linking was cancelled")
+    }
+    throw err
+  }
+}
+
+export function isGoogleLinked(): boolean {
+  return auth.currentUser?.providerData.some((p) => p.providerId === "google.com") ?? false
 }
 
 // Firebase has no built-in passwordless-code UI here; keep the export a no-op
@@ -215,6 +232,7 @@ export async function signout() {
   try {
     await firebaseSignOut(auth)
   } finally {
+    clearPhoneSessionToken()
     clearCurrentUser()
   }
 }
@@ -311,6 +329,7 @@ export async function exportMyData(): Promise<Blob> {
 export async function deleteMyAccount(): Promise<void> {
   await apiCall("/me", { method: "DELETE" })
   await firebaseSignOut(auth)
+  clearPhoneSessionToken()
   clearCurrentUser()
 }
 

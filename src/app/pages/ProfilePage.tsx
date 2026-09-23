@@ -1,6 +1,6 @@
 import { useState } from "react"
-import { UserCircle, Loader2 } from "lucide-react"
-import { getCurrentUser, updateOwnProfile } from "../../lib/auth"
+import { UserCircle, Loader2, Check } from "lucide-react"
+import { getCurrentUser, updateOwnProfile, linkGoogleAccount, isGoogleLinked } from "../../lib/auth"
 import { toast } from "sonner"
 import {
   Select,
@@ -31,8 +31,23 @@ export default function ProfilePage() {
   const [name, setName] = useState(user?.name ?? "")
   const [constitution, setConstitution] = useState(user?.businessConstitution ?? "")
   const [isSaving, setIsSaving] = useState(false)
+  const [googleLinked, setGoogleLinked] = useState(isGoogleLinked())
+  const [isLinkingGoogle, setIsLinkingGoogle] = useState(false)
 
   if (!user) return null
+
+  async function handleLinkGoogle() {
+    setIsLinkingGoogle(true)
+    try {
+      await linkGoogleAccount()
+      setGoogleLinked(true)
+      toast.success("Google account linked")
+    } catch (err) {
+      toast.error((err as Error).message || "Could not link Google account")
+    } finally {
+      setIsLinkingGoogle(false)
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -104,6 +119,32 @@ export default function ProfilePage() {
               <div className="px-4 py-2.5 bg-foreground/3 border border-foreground/5 rounded-lg text-sm text-muted-foreground">
                 {user.role}
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-foreground">Sign-in methods</label>
+              {googleLinked ? (
+                <div className="flex items-center gap-2 px-4 py-2.5 bg-foreground/3 border border-foreground/5 rounded-lg text-sm text-muted-foreground">
+                  <Check className="h-4 w-4 text-emerald-500" />
+                  Google account linked
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleLinkGoogle}
+                  disabled={isLinkingGoogle}
+                  className="w-full flex items-center justify-center gap-2 bg-background border border-foreground/10 hover:border-primary/60 disabled:opacity-60 text-foreground py-2.5 rounded-lg text-sm font-medium transition-colors"
+                >
+                  {isLinkingGoogle ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Linking...
+                    </>
+                  ) : (
+                    "Link Google account"
+                  )}
+                </button>
+              )}
             </div>
 
             <button

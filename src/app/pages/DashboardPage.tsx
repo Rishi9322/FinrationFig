@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react"
-import { Link } from "react-router"
-import { getCurrentUser, hasAllCalculatorAccess } from "../../lib/auth"
+import { Link, useSearchParams } from "react-router"
+import { getCurrentUser, hasAllCalculatorAccess, isGoogleLinked } from "../../lib/auth"
 import { getUserCalculations, SavedCalculation } from "../../lib/calculationStorage"
 import { CALCULATORS } from "../../lib/calculatorConfig"
 import { RiskBadge } from "../components/ui/RiskBadge"
 import * as Icons from "lucide-react"
 import { RiskLevel } from "../../lib/financialCalculations"
-import { ArrowRight, BarChart3, TrendingUp, Sparkles, Loader2 } from "lucide-react"
+import { ArrowRight, BarChart3, TrendingUp, Sparkles, Loader2, X } from "lucide-react"
 import { fetchAIAnalysis } from "../../lib/ai"
 import { toast } from "sonner"
 
@@ -16,6 +16,14 @@ export default function DashboardPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null)
   const user = getCurrentUser()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [showWelcome, setShowWelcome] = useState(searchParams.get("welcome") === "1" && !isGoogleLinked())
+
+  function dismissWelcome() {
+    setShowWelcome(false)
+    searchParams.delete("welcome")
+    setSearchParams(searchParams, { replace: true })
+  }
 
   useEffect(() => {
     async function loadCalculations() {
@@ -91,6 +99,24 @@ Provide a cohesive overall summary of the company's financial health based on th
   return (
     <div className="min-h-screen bg-background py-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {showWelcome && (
+          <div className="mb-6 flex items-start justify-between gap-4 bg-primary/8 border border-primary/20 rounded-xl px-4 py-3">
+            <p className="text-sm text-foreground">
+              Add a backup sign-in so you never get locked out.{" "}
+              <Link to="/profile" className="text-link hover:text-foreground font-medium transition-colors">
+                Link your Google account
+              </Link>
+            </p>
+            <button
+              type="button"
+              onClick={dismissWelcome}
+              className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              aria-label="Dismiss"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         {/* Header */}
         <div className="mb-8">
           <p className="text-xs font-['Geist_Mono'] text-link uppercase tracking-widest mb-2">Dashboard</p>

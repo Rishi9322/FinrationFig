@@ -3,8 +3,12 @@ import { CalculatorShell } from "../../components/calculators/CalculatorShell"
 import { calculateQuasiDebtEquity, CalculationResult } from "../../../lib/financialCalculations"
 import { ResultCard } from "../../components/calculators/ResultCard"
 import { CurrencyInput } from "../../components/ui/CurrencyInput"
+import { getCurrentUser } from "../../../lib/auth"
+import { getEquityVariant, EQUITY_VARIANT_LABELS } from "../../../lib/constitutionFormulas"
 
 export default function QuasiDebtEquityPage() {
+  const variant = getEquityVariant(getCurrentUser()?.businessConstitution)
+  const labels = variant ? EQUITY_VARIANT_LABELS[variant] : null
   const [totalDebt, setTotalDebt] = useState("")
   const [quasiDebt, setQuasiDebt] = useState("")
   const [equity, setEquity] = useState("")
@@ -47,27 +51,27 @@ export default function QuasiDebtEquityPage() {
     >
       <div className="space-y-4">
         <CurrencyInput
-          label="Total Debt"
+          label={labels ? "Total Outside Liabilities" : "Total Debt"}
           value={totalDebt}
           onChange={setTotalDebt}
-          placeholder="Enter total debt"
+          placeholder={labels ? "Enter total outside liabilities" : "Enter total debt"}
           helperText="All borrowed funds and liabilities"
         />
 
         <CurrencyInput
-          label="Quasi Debt"
+          label={labels?.addOn ?? "Quasi Debt"}
           value={quasiDebt}
           onChange={setQuasiDebt}
-          placeholder="Enter quasi debt"
-          helperText="Hybrid instruments like preference shares, and directors' unsecured loans"
+          placeholder={labels ? `Enter ${labels.addOn.toLowerCase()}` : "Enter quasi debt"}
+          helperText={labels?.addOnHelper ?? "Hybrid instruments like preference shares, and directors' unsecured loans"}
         />
 
         <CurrencyInput
-          label="Equity"
+          label={labels?.base ?? "Equity"}
           value={equity}
           onChange={setEquity}
-          placeholder="Enter equity"
-          helperText="Shareholders' equity or net worth"
+          placeholder={labels ? `Enter ${labels.base.toLowerCase()}` : "Enter equity"}
+          helperText={labels?.baseHelper ?? "Shareholders' equity or net worth"}
           error={error || undefined}
         />
       </div>
