@@ -63,7 +63,7 @@ export function DataInputEngine() {
 
     if (lowerName.endsWith('.pdf')) {
       await import('../../../lib/pdfWorker');
-      const pdfjs = await import('pdfjs-dist/legacy/build/pdf');
+      const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs');
 
       const buffer = await file.arrayBuffer();
       const uint8 = new Uint8Array(buffer);

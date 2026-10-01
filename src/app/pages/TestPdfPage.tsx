@@ -10,7 +10,7 @@ export default function TestPdfPage() {
     try {
       setResult("Loading pdfjs...");
       await import("../../lib/pdfWorker");
-      const pdfjs = await import("pdfjs-dist/legacy/build/pdf");
+      const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
       const pdfjsLib = pdfjs.default || pdfjs;
 
       setResult("Reading buffer...");
