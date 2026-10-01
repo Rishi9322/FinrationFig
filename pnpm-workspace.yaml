@@ -10,3 +10,10 @@ overrides:
   # dropping it removes the vulnerable tar@6 path (node-pre-gyp).
   canvas: '-'
   'tar@<7.5.19': '>=7.5.19'
+  # Patched versions of vulnerable indirect dependencies.
+  '@grpc/grpc-js@<1.13.6': '>=1.13.6'
+  '@xmldom/xmldom@<0.8.15': '>=0.8.15'
+  'browserslist@<4.28.7': '>=4.28.7'
+  'nanoid@<3.3.18': '>=3.3.18'
+  'postcss@<8.5.18': '>=8.5.18'
+  'undici@<7.29.1': '>=7.29.1'
