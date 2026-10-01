@@ -2,16 +2,7 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { signout } from '../../../lib/auth';
-import {
-  LayoutDashboard,
-  Users,
-  Calculator,
-  Settings,
-  BarChart3,
-  Shield,
-  LogOut,
-  FileUp,
-} from 'lucide-react';
+import { LayoutDashboard, Users, BarChart3, FileUp, MessageSquare, Ticket, LogOut } from 'lucide-react';
 
 export function AdminSidebar() {
   const location = useLocation();
@@ -36,12 +27,7 @@ export function AdminSidebar() {
     {
       icon: Users,
       label: 'Users',
-      href: '/admin/users',
-    },
-    {
-      icon: Calculator,
-      label: 'Calculators',
-      href: '/admin/calculators',
+      href: '/admin',
     },
     {
       icon: BarChart3,
@@ -54,14 +40,14 @@ export function AdminSidebar() {
       href: '/admin/uploads',
     },
     {
-      icon: Shield,
-      label: 'Permissions',
-      href: '/admin/permissions',
+      icon: MessageSquare,
+      label: 'Feedback',
+      href: '/admin/feedback',
     },
     {
-      icon: Settings,
-      label: 'Settings',
-      href: '/admin/settings',
+      icon: Ticket,
+      label: 'Invites',
+      href: '/admin/invites',
     },
   ];
 

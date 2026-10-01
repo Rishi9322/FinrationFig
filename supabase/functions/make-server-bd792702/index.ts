@@ -860,6 +860,29 @@ app.get(`${API_PREFIX}/admin/uploads/:id/download`, async (c) => {
   });
 });
 
+// Metadata only - inputs/results can be large; the list needs who, what and when.
+app.get(`${API_PREFIX}/admin/calculations`, async (c) => {
+  const auth = await requireSuperAdmin(c);
+  if (!auth) return c.res;
+  const limit = Math.min(Number(c.req.query("limit") ?? 500) || 500, 2000);
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("calculations")
+    .select("id, user_id, calculator_type, created_at")
+    .order("created_at", { ascending: false }).limit(limit);
+  const rows = data ?? [];
+  const ids = [...new Set(rows.map((r: any) => r.user_id))];
+  const { data: profiles } = ids.length
+    ? await admin.from("profiles").select("id, email").in("id", ids)
+    : { data: [] as any[] };
+  const emailById = new Map((profiles ?? []).map((p: any) => [p.id, p.email]));
+  return c.json({
+    calculations: rows.map((r: any) => ({
+      id: r.id, userId: r.user_id, userEmail: emailById.get(r.user_id) ?? null,
+      calculatorType: r.calculator_type, createdAt: r.created_at,
+    })),
+  });
+});
+
 // ---- Account: export + delete (self) ----
 app.get(`${API_PREFIX}/me/export`, async (c) => {
   const auth = await requireAuth(c);

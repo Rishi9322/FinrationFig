@@ -12,11 +12,7 @@ import DashboardPage from "./pages/DashboardPage"
 import AccessDeniedPage from "./pages/AccessDeniedPage"
 import UsersAdminPage from "./pages/admin/UsersAdminPage"
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage"
-import { AdminUsersPage } from "./pages/admin/AdminUsersPage"
-import { AdminCalculatorsPage } from "./pages/admin/AdminCalculatorsPage"
 import { AdminCalculationsPage } from "./pages/admin/AdminCalculationsPage"
-import { AdminPermissionsPage } from "./pages/admin/AdminPermissionsPage"
-import { AdminSettingsPage } from "./pages/admin/AdminSettingsPage"
 import CalculatorsIndexPage from "./pages/calculators/CalculatorsIndexPage"
 import DebtEquityPage from "./pages/calculators/DebtEquityPage"
 import QuasiDebtEquityPage from "./pages/calculators/QuasiDebtEquityPage"
@@ -309,14 +305,6 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: "/admin/users",
-    element: (
-      <ProtectedLayout requiredRole="SUPER_ADMIN">
-        <AdminUsersPage />
-      </ProtectedLayout>
-    ),
-  },
-  {
     path: "/admin/uploads",
     element: (
       <ProtectedLayout requiredRole="SUPER_ADMIN">
@@ -325,34 +313,10 @@ export const router = createBrowserRouter([
     ),
   },
   {
-    path: "/admin/calculators",
-    element: (
-      <ProtectedLayout requiredRole="SUPER_ADMIN">
-        <AdminCalculatorsPage />
-      </ProtectedLayout>
-    ),
-  },
-  {
     path: "/admin/calculations",
     element: (
       <ProtectedLayout requiredRole="SUPER_ADMIN">
         <AdminCalculationsPage />
-      </ProtectedLayout>
-    ),
-  },
-  {
-    path: "/admin/permissions",
-    element: (
-      <ProtectedLayout requiredRole="SUPER_ADMIN">
-        <AdminPermissionsPage />
-      </ProtectedLayout>
-    ),
-  },
-  {
-    path: "/admin/settings",
-    element: (
-      <ProtectedLayout requiredRole="SUPER_ADMIN">
-        <AdminSettingsPage />
       </ProtectedLayout>
     ),
   },

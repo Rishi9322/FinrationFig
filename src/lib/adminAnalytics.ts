@@ -37,6 +37,27 @@ export async function getAdminUploads(): Promise<AdminUpload[]> {
   return data.uploads || []
 }
 
+export interface AdminCalculation {
+  id: string
+  userId: string
+  userEmail: string | null
+  calculatorType: string
+  createdAt: string
+}
+
+export async function getAdminCalculations(): Promise<AdminCalculation[]> {
+  const data = await apiCall("/admin/calculations")
+  return data.calculations || []
+}
+
+/** RFC 4180 CSV; quotes every field so commas/newlines in emails or types are safe. */
+export function calculationsToCsv(rows: AdminCalculation[]): string {
+  const q = (v: string | null) => `"${(v ?? "").replace(/"/g, '""')}"`
+  const header = ["id", "userEmail", "userId", "calculatorType", "createdAt"].map(q).join(",")
+  const lines = rows.map((r) => [r.id, r.userEmail, r.userId, r.calculatorType, r.createdAt].map(q).join(","))
+  return [header, ...lines].join("\r\n")
+}
+
 /** Fetches with the auth header (a plain <a href> can't), then saves via a temp link. */
 export async function downloadAdminUpload(upload: AdminUpload): Promise<void> {
   const res = await apiRequest(`/admin/uploads/${upload.id}/download`)

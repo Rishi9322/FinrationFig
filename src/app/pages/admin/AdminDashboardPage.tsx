@@ -100,7 +100,7 @@ export function AdminDashboardPage() {
         <div className="bg-white rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-slate-900 mb-4">Quick Actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Link to="/admin/users" className="block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center">Manage Users</Link>
+            <Link to="/admin" className="block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center">Manage Users</Link>
             <Link to="/admin/uploads" className="block px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-center">User Uploads</Link>
             <Link to="/admin/invites" className="block px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 text-center">Manage Invites</Link>
           </div>
