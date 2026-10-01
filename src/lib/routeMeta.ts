@@ -24,6 +24,11 @@ const STATIC_ROUTES: Record<string, RouteMeta> = {
   "/blog": { title: `Blog - ${SITE_NAME}`, description: "Financial insights for Indian MSMEs - credit, cash flow, and ratio literacy, curated from across the web with full credit to original authors." },
   "/auth/signup": { title: `Sign Up - ${SITE_NAME}`, description: "Create a free FinRatio account to start analyzing your business's financial ratios." },
   "/auth/signin": { title: `Sign In - ${SITE_NAME}`, description: "Sign in to your FinRatio account." },
+  "/privacy": { title: `Privacy Policy - ${SITE_NAME}`, description: "How FinRatio collects, uses and protects your personal data." },
+  "/terms": { title: `Terms of Use - ${SITE_NAME}`, description: "The terms that govern your use of FinRatio." },
+  "/disclaimer": { title: `Disclaimer - ${SITE_NAME}`, description: "FinRatio results and AI analysis are indicative and not financial advice." },
+  "/cookies": { title: `Cookie Policy - ${SITE_NAME}`, description: "The cookies FinRatio uses and how to control analytics." },
+  "/grievance": { title: `Grievance Redressal - ${SITE_NAME}`, description: "How to raise a complaint with FinRatio's Grievance Officer." },
 }
 
 // Calculator routes reuse the name/description already maintained in

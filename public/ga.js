@@ -64,7 +64,12 @@
     var text = document.createElement('p')
     text.textContent =
       'We use analytics cookies to understand how FinRatio is used. ' +
-      'They are optional — the site works fine without them.'
+      'They are optional — the site works fine without them. '
+    var more = document.createElement('a')
+    more.href = '/cookies'
+    more.textContent = 'Cookie Policy'
+    more.style.color = '#93C5FD'
+    text.appendChild(more)
 
     var actions = document.createElement('div')
     var decline = document.createElement('button')

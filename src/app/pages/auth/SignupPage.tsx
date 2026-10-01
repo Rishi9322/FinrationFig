@@ -10,6 +10,7 @@ export default function SignupPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [name, setName] = useState("")
+  const [agreed, setAgreed] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -48,6 +49,10 @@ export default function SignupPage() {
         if (err.path[0]) fieldErrors[err.path[0] as string] = err.message
       })
       setErrors(fieldErrors)
+      return
+    }
+    if (!agreed) {
+      setErrors({ terms: "Please accept the Terms of Use and Privacy Policy to continue." })
       return
     }
     setIsLoading(true)
@@ -222,6 +227,25 @@ export default function SignupPage() {
                 </button>
               </div>
               {errors.confirmPassword && <p className="text-xs text-destructive">{errors.confirmPassword}</p>}
+            </div>
+
+            <div className="space-y-1">
+              <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={agreed}
+                  onChange={(e) => setAgreed(e.target.checked)}
+                  className="mt-0.5"
+                  aria-describedby={errors.terms ? "terms-error" : undefined}
+                />
+                <span>
+                  I agree to the{" "}
+                  <Link to="/terms" target="_blank" className="text-link underline">Terms of Use</Link>,{" "}
+                  <Link to="/privacy" target="_blank" className="text-link underline">Privacy Policy</Link> and{" "}
+                  <Link to="/disclaimer" target="_blank" className="text-link underline">Disclaimer</Link>.
+                </span>
+              </label>
+              {errors.terms && <p id="terms-error" className="text-xs text-destructive">{errors.terms}</p>}
             </div>
 
             <button

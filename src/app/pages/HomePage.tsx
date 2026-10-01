@@ -505,8 +505,13 @@ export default function HomePage() {
             <a href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</a>
             <Link to="/auth/signin" className="hover:text-foreground transition-colors">Sign In</Link>
             <Link to="/auth/signup" className="hover:text-foreground transition-colors">Sign Up</Link>
+            <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy</Link>
+            <Link to="/terms" className="hover:text-foreground transition-colors">Terms</Link>
+            <Link to="/disclaimer" className="hover:text-foreground transition-colors">Disclaimer</Link>
+            <Link to="/cookies" className="hover:text-foreground transition-colors">Cookies</Link>
+            <Link to="/grievance" className="hover:text-foreground transition-colors">Grievance</Link>
           </nav>
-          <p className="text-xs text-muted-foreground">© 2026 FinRatio. All rights reserved.</p>
+          <p className="text-xs text-muted-foreground">© 2026 Balaji Credit Services Pvt. Ltd. All rights reserved.</p>
         </div>
       </footer>
     </main>

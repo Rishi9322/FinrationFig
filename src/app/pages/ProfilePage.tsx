@@ -1,7 +1,9 @@
 import { useState } from "react"
+import { Link, useNavigate } from "react-router"
 import { UserCircle, Loader2, Check } from "lucide-react"
-import { getCurrentUser, updateOwnProfile, linkGoogleAccount, isGoogleLinked } from "../../lib/auth"
+import { getCurrentUser, updateOwnProfile, linkGoogleAccount, isGoogleLinked, exportMyData, deleteMyAccount } from "../../lib/auth"
 import { toast } from "sonner"
+import { ConfirmDialog } from "../components/admin/ConfirmDialog"
 import {
   Select,
   SelectContent,
@@ -28,6 +30,8 @@ const CONSTITUTIONS = [
 
 export default function ProfilePage() {
   const user = getCurrentUser()
+  const navigate = useNavigate()
+  const [isExporting, setIsExporting] = useState(false)
   const [name, setName] = useState(user?.name ?? "")
   const [constitution, setConstitution] = useState(user?.businessConstitution ?? "")
   const [isSaving, setIsSaving] = useState(false)
@@ -46,6 +50,32 @@ export default function ProfilePage() {
       toast.error((err as Error).message || "Could not link Google account")
     } finally {
       setIsLinkingGoogle(false)
+    }
+  }
+
+  async function handleExport() {
+    setIsExporting(true)
+    try {
+      const url = URL.createObjectURL(await exportMyData())
+      const a = document.createElement("a")
+      a.href = url
+      a.download = "finratio-my-data.json"
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      toast.error((err as Error).message || "Could not export your data")
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  async function handleDeleteAccount() {
+    try {
+      await deleteMyAccount()
+      toast.success("Your account and data have been deleted")
+      navigate("/")
+    } catch (err) {
+      toast.error((err as Error).message || "Could not delete your account")
     }
   }
 
@@ -162,6 +192,40 @@ export default function ProfilePage() {
               )}
             </button>
           </form>
+        </div>
+
+        <div className="bg-card border border-foreground/8 rounded-xl p-8 mt-6">
+          <h2 className="text-lg font-medium text-foreground mb-1">Your data</h2>
+          <p className="text-sm text-muted-foreground mb-5">
+            Download a copy of the data we hold about you, or permanently delete your account. See our{" "}
+            <Link to="/privacy" className="text-link underline">Privacy Policy</Link>.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={isExporting}
+              className="flex-1 flex items-center justify-center gap-2 bg-background border border-foreground/10 hover:border-primary/60 disabled:opacity-60 text-foreground py-2.5 rounded-lg text-sm font-medium transition-colors"
+            >
+              {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Export my data
+            </button>
+            <ConfirmDialog
+              title="Delete your account?"
+              description="This permanently deletes your login, profile, saved calculations and uploaded files. It cannot be undone."
+              confirmLabel="Delete account"
+              destructive
+              onConfirm={handleDeleteAccount}
+              trigger={
+                <button
+                  type="button"
+                  className="flex-1 bg-background border border-destructive/40 hover:bg-destructive/10 text-destructive py-2.5 rounded-lg text-sm font-medium transition-colors"
+                >
+                  Delete account
+                </button>
+              }
+            />
+          </div>
         </div>
       </div>
     </div>

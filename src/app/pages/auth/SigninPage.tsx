@@ -260,6 +260,12 @@ export default function SigninPage() {
               Sign up
             </Link>
           </p>
+
+          <p className="text-xs text-center text-muted-foreground mt-3">
+            By signing in you agree to our{" "}
+            <Link to="/terms" className="text-link underline">Terms of Use</Link> and{" "}
+            <Link to="/privacy" className="text-link underline">Privacy Policy</Link>.
+          </p>
         </div>
       </div>
     </div>

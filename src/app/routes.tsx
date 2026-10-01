@@ -34,6 +34,7 @@ import ProfilePage from "./pages/ProfilePage"
 import FeedbackPage from "./pages/FeedbackPage"
 import AdminFeedbackPage from "./pages/admin/AdminFeedbackPage"
 import AdminBlogPage from "./pages/admin/AdminBlogPage"
+import { PrivacyPage, TermsPage, DisclaimerPage, CookiePolicyPage, GrievancePage } from "./pages/legal/LegalPages"
 import { AdminUploadsPage } from "./pages/admin/AdminUploadsPage"
 import AdminInvitesPage from "./pages/admin/AdminInvitesPage"
 import BlogIndexPage from "./pages/BlogIndexPage"
@@ -320,6 +321,11 @@ export const router = createBrowserRouter([
       </ProtectedLayout>
     ),
   },
+  { path: "/privacy", element: <PrivacyPage /> },
+  { path: "/terms", element: <TermsPage /> },
+  { path: "/disclaimer", element: <DisclaimerPage /> },
+  { path: "/cookies", element: <CookiePolicyPage /> },
+  { path: "/grievance", element: <GrievancePage /> },
   {
     path: "*",
     element: <Navigate to="/" replace />,
