@@ -5,3 +5,8 @@ allowBuilds:
   '@tailwindcss/oxide': set this to true or false
   canvas: set this to true or false
   protobufjs: set this to true or false
+overrides:
+  # canvas is an optional native dep of pdfjs-dist that a browser app never uses;
+  # dropping it removes the vulnerable tar@6 path (node-pre-gyp).
+  canvas: '-'
+  'tar@<7.5.19': '>=7.5.19'
