@@ -2,6 +2,7 @@ import { Hono } from "npm:hono";
 import { createClient } from "npm:@supabase/supabase-js";
 import { z } from "npm:zod";
 import { jwtVerify, createRemoteJWKSet, SignJWT } from "npm:jose";
+import { ANALYTICS_DAYS, lastDays, countByDay, countByKey, averageRating } from "./analytics.ts";
 
 // Auth is Firebase. This function only does what needs the service role: the AI
 // proxy (keeps the OpenRouter key server-side), admin user management, and
@@ -780,6 +781,83 @@ app.get(`${API_PREFIX}/admin/audit`, async (c) => {
     .select("id, event, actor_id, target_id, outcome, note, ip, created_at")
     .order("created_at", { ascending: false }).limit(limit);
   return c.json({ events: data ?? [] });
+});
+
+// ---- Admin: analytics + user uploads (SUPER_ADMIN only) ----
+app.get(`${API_PREFIX}/admin/analytics`, async (c) => {
+  const auth = await requireSuperAdmin(c);
+  if (!auth) return c.res;
+  const admin = getSupabaseAdminClient();
+  const days = lastDays(ANALYTICS_DAYS);
+  const since = `${days[0]}T00:00:00Z`;
+  const count = async (table: string, filter?: (q: any) => any) => {
+    const q = admin.from(table).select("*", { count: "exact", head: true });
+    return (await (filter ? filter(q) : q)).count ?? 0;
+  };
+  const [totalUsers, suspendedUsers, totalCalculations, totalUploads, totalFeedback,
+    recentUsers, recentCalcs, calcTypes, ratings] = await Promise.all([
+    count("profiles"),
+    count("profiles", (q) => q.eq("status", "SUSPENDED")),
+    count("calculations"),
+    count("file_uploads"),
+    count("feedback"),
+    admin.from("profiles").select("created_at").gte("created_at", since).limit(10000),
+    admin.from("calculations").select("created_at").gte("created_at", since).limit(10000),
+    // ponytail: capped at 10k rows; move to a SQL group-by if calculations outgrow that
+    admin.from("calculations").select("calculator_type").limit(10000),
+    admin.from("feedback").select("rating"),
+  ]);
+  return c.json({
+    totals: {
+      users: totalUsers, activeUsers: totalUsers - suspendedUsers, suspendedUsers,
+      calculations: totalCalculations, uploads: totalUploads, feedback: totalFeedback,
+      avgRating: averageRating((ratings.data ?? []).map((r: any) => r.rating)),
+    },
+    signupsByDay: countByDay((recentUsers.data ?? []).map((r: any) => r.created_at), days),
+    calculationsByDay: countByDay((recentCalcs.data ?? []).map((r: any) => r.created_at), days),
+    calculationsByType: countByKey((calcTypes.data ?? []).map((r: any) => r.calculator_type)),
+  });
+});
+
+// Metadata only - file_base64 can be ~13 MB per row, so it is never in the list.
+app.get(`${API_PREFIX}/admin/uploads`, async (c) => {
+  const auth = await requireSuperAdmin(c);
+  if (!auth) return c.res;
+  const limit = Math.min(Number(c.req.query("limit") ?? 200) || 200, 500);
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("file_uploads")
+    .select("id, user_id, filename, content_type, size_bytes, created_at")
+    .order("created_at", { ascending: false }).limit(limit);
+  const rows = data ?? [];
+  const ids = [...new Set(rows.map((r: any) => r.user_id))];
+  const { data: profiles } = ids.length
+    ? await admin.from("profiles").select("id, email").in("id", ids)
+    : { data: [] as any[] };
+  const emailById = new Map((profiles ?? []).map((p: any) => [p.id, p.email]));
+  return c.json({
+    uploads: rows.map((r: any) => ({
+      id: r.id, userId: r.user_id, userEmail: emailById.get(r.user_id) ?? null,
+      filename: r.filename, contentType: r.content_type, sizeBytes: r.size_bytes, createdAt: r.created_at,
+    })),
+  });
+});
+
+app.get(`${API_PREFIX}/admin/uploads/:id/download`, async (c) => {
+  const auth = await requireSuperAdmin(c);
+  if (!auth) return c.res;
+  const id = c.req.param("id");
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("file_uploads")
+    .select("filename, content_type, file_base64").eq("id", id).maybeSingle();
+  if (!data) return c.json({ error: "File not found" }, 404);
+  await auditLog(c, "admin.upload-download", { actorId: auth.profile.id, targetId: id, outcome: "success" });
+  const bytes = Uint8Array.from(atob(data.file_base64), (ch) => ch.charCodeAt(0));
+  const safeName = String(data.filename).replace(/[^\w.\- ]/g, "_");
+  return c.body(bytes, 200, {
+    "Content-Type": data.content_type || "application/octet-stream",
+    "Content-Disposition": `attachment; filename="${safeName}"`,
+    "X-Content-Type-Options": "nosniff",
+  });
 });
 
 // ---- Account: export + delete (self) ----

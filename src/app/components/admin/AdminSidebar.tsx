@@ -10,6 +10,7 @@ import {
   BarChart3,
   Shield,
   LogOut,
+  FileUp,
 } from 'lucide-react';
 
 export function AdminSidebar() {
@@ -46,6 +47,11 @@ export function AdminSidebar() {
       icon: BarChart3,
       label: 'Calculations',
       href: '/admin/calculations',
+    },
+    {
+      icon: FileUp,
+      label: 'Uploads',
+      href: '/admin/uploads',
     },
     {
       icon: Shield,
