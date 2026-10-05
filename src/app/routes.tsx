@@ -36,6 +36,7 @@ import AdminFeedbackPage from "./pages/admin/AdminFeedbackPage"
 import AdminBlogPage from "./pages/admin/AdminBlogPage"
 import { PrivacyPage, TermsPage, DisclaimerPage, CookiePolicyPage, GrievancePage } from "./pages/legal/LegalPages"
 import { AdminUploadsPage } from "./pages/admin/AdminUploadsPage"
+import { AdminNewsPage } from "./pages/admin/AdminNewsPage"
 import AdminInvitesPage from "./pages/admin/AdminInvitesPage"
 import BlogIndexPage from "./pages/BlogIndexPage"
 import BlogPostPage from "./pages/BlogPostPage"
@@ -310,6 +311,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedLayout requiredRole="SUPER_ADMIN">
         <AdminUploadsPage />
+      </ProtectedLayout>
+    ),
+  },
+  {
+    path: "/admin/news",
+    element: (
+      <ProtectedLayout requiredRole="SUPER_ADMIN">
+        <AdminNewsPage />
       </ProtectedLayout>
     ),
   },

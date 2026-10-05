@@ -2,12 +2,15 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router"
 import { toast } from "sonner"
 import { listPublishedPosts, BlogPost } from "../../lib/blog"
+import { listApprovedNews, NewsItem } from "../../lib/news"
 
 export default function BlogIndexPage() {
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [news, setNews] = useState<NewsItem[]>([])
 
   useEffect(() => {
+    listApprovedNews().then(setNews).catch(() => { /* the news box is optional */ })
     listPublishedPosts()
       .then(setPosts)
       .catch((err) => toast.error(err.message || "Failed to load posts"))
@@ -47,6 +50,31 @@ export default function BlogIndexPage() {
               </Link>
             ))}
           </div>
+        )}
+
+        {news.length > 0 && (
+          <section className="mt-12" aria-labelledby="latest-web">
+            <h2 id="latest-web" className="text-2xl font-normal text-foreground mb-1" style={{ fontFamily: "'Instrument Serif', serif" }}>
+              Latest from the web
+            </h2>
+            <p className="text-xs text-muted-foreground mb-4">
+              Headlines selected by our team. Each link opens the original publisher; all rights remain with them.
+            </p>
+            <ul className="space-y-3">
+              {news.map((n) => (
+                <li key={n.id} className="bg-card border border-foreground/8 rounded-xl p-4">
+                  <a href={n.url} target="_blank" rel="noopener noreferrer nofollow" className="text-foreground hover:text-primary">
+                    {n.title}
+                  </a>
+                  {n.snippet && <p className="text-sm text-muted-foreground mt-1">{n.snippet}</p>}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {n.author ? `${n.author} · ` : ""}{n.sourceName}
+                    {n.publishedAt ? ` · ${new Date(n.publishedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}` : ""}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
       </div>
     </main>

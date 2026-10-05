@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { signout } from '../../../lib/auth';
-import { LayoutDashboard, Users, BarChart3, FileUp, MessageSquare, Ticket, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, BarChart3, FileUp, MessageSquare, Ticket, Newspaper, LogOut } from 'lucide-react';
 
 export function AdminSidebar() {
   const location = useLocation();
@@ -38,6 +38,11 @@ export function AdminSidebar() {
       icon: FileUp,
       label: 'Uploads',
       href: '/admin/uploads',
+    },
+    {
+      icon: Newspaper,
+      label: 'News',
+      href: '/admin/news',
     },
     {
       icon: MessageSquare,

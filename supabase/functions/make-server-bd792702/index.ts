@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js";
 import { z } from "npm:zod";
 import { jwtVerify, createRemoteJWKSet, SignJWT } from "npm:jose";
 import { callProviders, failureMessage, type Provider } from "./failover.ts";
+import { parseFeed, parseGdelt, toRows, type NewsSource, type RawItem } from "./news.ts";
 import { ANALYTICS_DAYS, lastDays, countByDay, countByKey, averageRating } from "./analytics.ts";
 
 // Auth is Firebase. This function only does what needs the service role: the AI
@@ -453,6 +454,130 @@ app.delete(`${API_PREFIX}/admin/blog/:id`, async (c) => {
   const admin = getSupabaseAdminClient();
   await admin.from("blog_posts").delete().eq("id", c.req.param("id"));
   return c.json({ message: "Post deleted" });
+});
+
+// ---- News feed: headline + link + credit, human-approved ----
+const NEWS_REFRESH_MS = 6 * 3600_000;
+const NEWS_MAX_BYTES = 2_000_000;
+
+function newsSourceView(r: any) {
+  return {
+    id: r.id, name: r.name, kind: r.kind, url: r.url, enabled: r.enabled, display: r.display,
+    note: r.note, lastFetchedAt: r.last_fetched_at, lastStatus: r.last_status,
+  };
+}
+
+function newsItemView(r: any, sourceName?: string) {
+  return {
+    id: r.id, title: r.title, url: r.url, author: r.author, snippet: r.snippet,
+    publishedAt: r.published_at, status: r.status, sourceId: r.source_id, sourceName: sourceName ?? r.source_id,
+  };
+}
+
+async function fetchNewsSource(s: NewsSource): Promise<RawItem[]> {
+  const res = await fetch(s.url, {
+    headers: { "User-Agent": "FinRatioBot/1.0 (+https://finratio.site)", Accept: "application/json, application/rss+xml, application/xml, text/xml" },
+    signal: AbortSignal.timeout(15_000),
+    redirect: "follow",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = (await res.text()).slice(0, NEWS_MAX_BYTES);
+  if (s.kind === "gdelt") {
+    try { return parseGdelt(JSON.parse(text)); } catch { throw new Error("not JSON (rate limited?)"); }
+  }
+  return parseFeed(text);
+}
+
+// force=true ignores the freshness window (admin "Refresh now").
+async function refreshNews(force: boolean): Promise<{ added: number; sources: number }> {
+  const admin = getSupabaseAdminClient();
+  const { data: sources } = await admin.from("news_sources").select("*").eq("enabled", true);
+  let added = 0, ran = 0;
+  const cutoff = new Date(Date.now() - NEWS_REFRESH_MS).toISOString();
+  // Backdated so that if this run is cut off before finishing, the source is retried
+  // in 10 minutes instead of waiting out the whole window.
+  const claimStamp = new Date(Date.now() - NEWS_REFRESH_MS + 10 * 60_000).toISOString();
+  await Promise.all((sources ?? []).map(async (r: any) => {
+    // Claim the source first so concurrent visitors don't all fetch it.
+    let claim = admin.from("news_sources").update({ last_fetched_at: claimStamp }).eq("id", r.id);
+    if (!force) claim = claim.or(`last_fetched_at.is.null,last_fetched_at.lt.${cutoff}`);
+    const { data: claimed } = await claim.select("id");
+    if (!claimed?.length) return;
+    ran++;
+    try {
+      const rows = toRows({
+        id: r.id, name: r.name, kind: r.kind, url: r.url, enabled: r.enabled, display: r.display,
+        includeTerms: r.include_terms ?? [], excludeTerms: r.exclude_terms ?? [], maxAgeDays: r.max_age_days,
+      }, await fetchNewsSource(r));
+      let n = 0;
+      if (rows.length) {
+        const { data: ins } = await admin.from("news_items").upsert(rows, { onConflict: "url", ignoreDuplicates: true }).select("id");
+        n = ins?.length ?? 0;
+      }
+      added += n;
+      await admin.from("news_sources").update({ last_fetched_at: nowIso(), last_status: `ok: ${rows.length} fetched, ${n} new` }).eq("id", r.id);
+    } catch (e) {
+      await admin.from("news_sources").update({ last_status: `error: ${String((e as Error).message).slice(0, 120)}` }).eq("id", r.id);
+    }
+  }));
+  return { added, sources: ran };
+}
+
+app.get(`${API_PREFIX}/news`, async (c) => {
+  const admin = getSupabaseAdminClient();
+  // Keep the queue fresh without a cron: the first visitor after the window triggers it.
+  // Work done after the response is not guaranteed to finish here, so wait (capped) for it.
+  // The blog page loads this box without blocking, so nobody sits watching a spinner.
+  const refresh = refreshNews(false).catch((e) => console.warn("[news] refresh failed", e));
+  try { (globalThis as any).EdgeRuntime?.waitUntil(refresh); } catch { /* best effort */ }
+  await Promise.race([refresh, new Promise((r) => setTimeout(r, 10_000))]);
+  const { data } = await admin.from("news_items").select("*, news_sources(name)")
+    .eq("status", "approved").order("published_at", { ascending: false, nullsFirst: false }).limit(12);
+  c.header("Cache-Control", "public, max-age=300");
+  return c.json({ items: (data ?? []).map((r: any) => newsItemView(r, r.news_sources?.name)) });
+});
+
+app.get(`${API_PREFIX}/admin/news`, async (c) => {
+  const auth = await requireAdmin(c);
+  if (!auth) return c.res;
+  const status = c.req.query("status");
+  const admin = getSupabaseAdminClient();
+  let q = admin.from("news_items").select("*, news_sources(name)").order("created_at", { ascending: false }).limit(200);
+  if (status === "pending" || status === "approved" || status === "rejected") q = q.eq("status", status);
+  const [{ data: items }, { data: sources }] = await Promise.all([q, admin.from("news_sources").select("*").order("id")]);
+  return c.json({
+    items: (items ?? []).map((r: any) => newsItemView(r, r.news_sources?.name)),
+    sources: (sources ?? []).map(newsSourceView),
+  });
+});
+
+app.put(`${API_PREFIX}/admin/news/sources/:id`, async (c) => {
+  const auth = await requireAdmin(c);
+  if (!auth) return c.res;
+  const parsed = await parseBody(c, z.object({ enabled: z.boolean() }));
+  if (!parsed.ok) return parsed.response;
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("news_sources").update({ enabled: parsed.data.enabled }).eq("id", c.req.param("id")).select("*").single();
+  if (!data) return c.json({ error: "Source not found" }, 404);
+  await auditLog(c, "news.source", { actorId: auth.uid, targetId: data.id, outcome: "success", note: parsed.data.enabled ? "enabled" : "disabled" });
+  return c.json({ source: newsSourceView(data) });
+});
+
+app.put(`${API_PREFIX}/admin/news/:id`, async (c) => {
+  const auth = await requireAdmin(c);
+  if (!auth) return c.res;
+  const parsed = await parseBody(c, z.object({ status: z.enum(["pending", "approved", "rejected"]) }));
+  if (!parsed.ok) return parsed.response;
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("news_items").update({ status: parsed.data.status }).eq("id", c.req.param("id")).select("*").single();
+  if (!data) return c.json({ error: "Item not found" }, 404);
+  return c.json({ item: newsItemView(data) });
+});
+
+app.post(`${API_PREFIX}/admin/news/refresh`, async (c) => {
+  const auth = await requireAdmin(c);
+  if (!auth) return c.res;
+  return c.json(await refreshNews(true));
 });
 
 app.get(`${API_PREFIX}/admin/feedback`, async (c) => {
