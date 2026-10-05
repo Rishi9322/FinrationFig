@@ -2,6 +2,7 @@ import { Hono } from "npm:hono";
 import { createClient } from "npm:@supabase/supabase-js";
 import { z } from "npm:zod";
 import { jwtVerify, createRemoteJWKSet, SignJWT } from "npm:jose";
+import { callProviders } from "./failover.ts";
 import { ANALYTICS_DAYS, lastDays, countByDay, countByKey, averageRating } from "./analytics.ts";
 
 // Auth is Firebase. This function only does what needs the service role: the AI
@@ -990,61 +991,34 @@ app.post(`${API_PREFIX}/ai/chat`, async (c) => {
     ...(typeof body.max_tokens === "number" ? { max_tokens: body.max_tokens } : {}),
   };
 
-  let last: Response | null = null;
-  for (const provider of providers) {
-    let upstream: Response;
-    try {
-      upstream = await fetch(provider.url, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${provider.key}`,
-          "Content-Type": "application/json",
-          ...provider.headers,
-        },
-        body: JSON.stringify({ ...payload, model: provider.model }),
-        // Per provider, not per request: a cold model can hang indefinitely, and
-        // failing over after 12s beats making the user wait out a long timeout -
-        // every provider here normally answers well under that.
-        signal: AbortSignal.timeout(12_000),
-      });
-    } catch (error) {
-      // Network failure or timeout — treat like an outage and try the next one.
-      console.error(`[ai/chat] ${provider.name} unreachable`, error);
-      continue;
+  const result = await callProviders(providers, payload, {
+    log: (message, detail) => console.error(message, detail ?? ""),
+  });
+
+  if (result.ok) {
+    // Returning a raw Response replaces the one the CORS middleware decorated,
+    // so the headers it set are lost unless they are repeated here. Without
+    // them the browser rejects the reply even though the call succeeded.
+    const headers: Record<string, string> = {
+      "Content-Type": result.upstream.headers.get("Content-Type") ?? "application/json",
+      "Cache-Control": "no-store",
+      "X-AI-Provider": result.provider,
+      "Access-Control-Expose-Headers": "X-AI-Provider",
+    };
+    const origin = c.req.header("Origin");
+    if (origin && isAllowedOrigin(origin)) {
+      headers["Access-Control-Allow-Origin"] = origin;
+      headers["Access-Control-Allow-Credentials"] = "true";
+      headers["Vary"] = "Origin";
     }
-
-    if (upstream.ok) {
-      // Returning a raw Response replaces the one the CORS middleware decorated,
-      // so the headers it set are lost unless they are repeated here. Without
-      // them the browser rejects the reply even though the call succeeded.
-      const headers: Record<string, string> = {
-        "Content-Type": upstream.headers.get("Content-Type") ?? "application/json",
-        "Cache-Control": "no-store",
-        "X-AI-Provider": provider.name,
-        "Access-Control-Expose-Headers": "X-AI-Provider",
-      };
-      const origin = c.req.header("Origin");
-      if (origin && isAllowedOrigin(origin)) {
-        headers["Access-Control-Allow-Origin"] = origin;
-        headers["Access-Control-Allow-Credentials"] = "true";
-        headers["Vary"] = "Origin";
-      }
-      return new Response(upstream.body, { status: 200, headers });
-    }
-
-    console.error(`[ai/chat] ${provider.name} error`, upstream.status);
-    last = upstream;
-
-    // 4xx other than throttling means the request itself is bad, so failing over
-    // would just repeat it against another provider.
-    if (upstream.status < 500 && upstream.status !== 429) break;
+    return new Response(result.upstream.body, { status: 200, headers });
   }
 
-  if (last && last.status === 429) {
+  if (result.status === 429) {
     return c.json(
       { error: "Every AI provider is rate-limited right now. Please try again in a few seconds." },
       429,
-      { "Retry-After": last.headers.get("Retry-After") ?? "10" },
+      { "Retry-After": result.retryAfter ?? "10" },
     );
   }
   return c.json({ error: "AI request failed" }, 502);
