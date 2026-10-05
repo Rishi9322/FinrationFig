@@ -22,14 +22,9 @@ export function htmlToRows(html: string): string {
 
 export async function docxToText(buffer: ArrayBuffer): Promise<string> {
   const mammoth = await import("mammoth");
-  let html: string;
-  try {
-    // Browser build: reads an ArrayBuffer.
-    html = (await mammoth.convertToHtml({ arrayBuffer: buffer })).value;
-  } catch (err) {
-    // Node build (tests): only accepts a Buffer.
-    if (!/could not find file/i.test(String((err as Error)?.message)) || typeof Buffer === "undefined") throw err;
-    html = (await mammoth.convertToHtml({ buffer: Buffer.from(buffer) } as any)).value;
-  }
+  // mammoth's Node build only accepts a Buffer; its browser build only an ArrayBuffer.
+  const isNode = typeof process !== "undefined" && !!process.versions?.node;
+  const input = isNode ? ({ buffer: Buffer.from(buffer) } as any) : { arrayBuffer: buffer };
+  const html = (await mammoth.convertToHtml(input)).value;
   return htmlToRows(html);
 }

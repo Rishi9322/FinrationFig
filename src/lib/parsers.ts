@@ -22,14 +22,15 @@ function itemsFromRowsWithHeader(rows: string[][]): LineItem[] {
     .filter((it) => it.name)
 }
 
-async function parseXLSXBuffer(buffer: ArrayBuffer): Promise<LineItem[]> {
+async function parseXLSXBuffer(buffer: ArrayBuffer): Promise<{ items: LineItem[]; sheetNames: string[] }> {
   // dynamic import so app still builds if xlsx not installed; caller should have added dependency
   const XLSX = await import("xlsx")
   const wb = XLSX.read(new Uint8Array(buffer), { type: "array" })
   const ws = wb.Sheets[wb.SheetNames[0]]
   const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 })
-  if (!rows || rows.length === 0) return []
-  return itemsFromRowsWithHeader(rows.map((r) => (Array.isArray(r) ? r : Object.values(r)).map((c) => String(c ?? "").trim())))
+  if (!rows || rows.length === 0) return { items: [], sheetNames: wb.SheetNames }
+  const items = itemsFromRowsWithHeader(rows.map((r) => (Array.isArray(r) ? r : Object.values(r)).map((c) => String(c ?? "").trim())))
+  return { items, sheetNames: wb.SheetNames }
 }
 
 /** Sections + totals + a confidence built from checks (see statementParsing.scoreExtraction). */
@@ -99,8 +100,11 @@ export async function parseFile(file: File): Promise<ParsedBalanceSheet> {
 
     if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
       const buffer = await file.arrayBuffer()
-      const items = await parseXLSXBuffer(buffer)
-      return fromItems({ name, format: "xlsx", parsedAt }, items, "Parsed first sheet of Excel workbook.", true)
+      const { items, sheetNames } = await parseXLSXBuffer(buffer)
+      const note = sheetNames.length > 1
+        ? `Only the first sheet ("${sheetNames[0]}") was read; this workbook has ${sheetNames.length} sheets (${sheetNames.join(", ")}). Move the statement to the first sheet if it is elsewhere.`
+        : "Parsed the workbook's sheet."
+      return fromItems({ name, format: "xlsx", parsedAt }, items, note, true)
     }
 
     // For PDF, images, and DOCX attempt to extract text (OCR / PDF text / DOCX parser)

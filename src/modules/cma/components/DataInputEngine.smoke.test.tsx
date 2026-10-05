@@ -140,6 +140,31 @@ describe("DataInputEngine classification + save flow", () => {
     expect(screen.queryByText(/scanned or photographed/i)).not.toBeInTheDocument();
   });
 
+  it("if two uploads overlap, only the newest one's results are shown", async () => {
+    // The first (slow) upload's replies arrive AFTER the second (fast) one has finished.
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, opts: any) => {
+      const body = JSON.parse(opts.body);
+      const text = body.messages.map((m: any) => m.content).join("\n");
+      const slow = text.includes("slow.txt") || text.includes("SLOWFILE");
+      if (slow) await new Promise((r) => setTimeout(r, 400));
+      const isClassify = body.messages[0].content.includes("classify uploaded documents");
+      const content = isClassify
+        ? { ...classifyResponse, docType: slow ? "Slow Document" : "Fast Document" }
+        : { ...parsedResponse, company: "Test Co" };
+      return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify(content) } }] }) };
+    }));
+
+    render(<CmaProvider><DataInputEngine /></CmaProvider>);
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement;
+    uploadFile(input, new File([`SLOWFILE ${BALANCE_TEXT}`], "slow.txt", { type: "text/plain" }));
+    uploadFile(input, new File([BALANCE_TEXT], "fast.txt", { type: "text/plain" }));
+
+    await waitFor(() => expect(screen.getByText("Fast Document")).toBeInTheDocument());
+    await new Promise((r) => setTimeout(r, 700)); // let the slow upload's replies land
+    expect(screen.getByText("Fast Document")).toBeInTheDocument();
+    expect(screen.queryByText("Slow Document")).not.toBeInTheDocument();
+  });
+
   it("a rejected upload does not leave the previous file's data on screen", async () => {
     stubAi({});
     render(<CmaProvider><DataInputEngine /></CmaProvider>);

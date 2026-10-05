@@ -107,15 +107,15 @@ export function BalanceSheetReport({ parsed, businessConstitution, userId }: Pro
 
   return (
     <div className="bs-report bg-card rounded-xl border border-foreground/8 p-6 space-y-6" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-      <div className="flex items-start justify-between gap-4 pb-4 border-b border-foreground/8">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-foreground/8">
+        <div className="min-w-0 flex-1 basis-56">
           <h3 className="text-sm font-medium text-foreground">Balance Sheet Report</h3>
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-xs text-muted-foreground mt-1 break-words">
             {parsed.sourceFilename ?? "Uploaded file"} · Overall extraction confidence {avgConfidence}%
           </p>
-          {parsed.metadata?.notes && <p className="text-xs text-muted-foreground mt-1">{parsed.metadata.notes}</p>}
+          {parsed.metadata?.notes && <p className="text-xs text-muted-foreground mt-1 break-words">{parsed.metadata.notes}</p>}
         </div>
-        <div className="flex items-center gap-2 shrink-0 no-print">
+        <div className="flex flex-wrap items-center gap-2 no-print">
           <button
             onClick={handleSaveAll}
             disabled={isSaving}

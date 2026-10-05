@@ -71,6 +71,9 @@ const isYearLike = (s: string) => /^(?:19|20)\d{2}$/.test(s.trim());
 const isNoteRef = (s: string) => /^\d{1,2}$/.test(s.trim());
 const isBig = (s: string) => /[,.]/.test(s) || s.replace(/\D/g, "").length >= 3;
 
+/** A label that starts mid-sentence is the second half of a wrapped one. */
+const CONTINUATION = /^(?:[a-z]|(?:and|of|from|to|for|on|against|with|&)\b)/;
+
 const NOTE_REF_IN_LABEL = /\(?\s*(?:refer\s+)?note\s*(?:no\.?)?\s*\d+[a-z]?\s*\)?/gi;
 
 /**
@@ -102,12 +105,37 @@ export function rowToItem(cells: string[], yearIdx: number | null = null): LineI
   return { name: label, value: parseAmount(amount) };
 }
 
-/** Index of the latest-year column in a header like "Particulars | 2024-25 | 2025-26", or null. */
+const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+/**
+ * A sortable key for a period header cell, or NaN if it isn't one. Handles
+ * "2025-26", "FY25", "Mar-25", "March 2025", "31-Mar-24", "31/03/2025".
+ */
+export function periodKey(cell: string): number {
+  const c = cell.trim().toLowerCase();
+  if (!c || c.length > 30) return NaN;
+  const year = (y: string) => (y.length === 2 ? 2000 + Number(y) : Number(y));
+
+  let m = c.match(/(\d{1,2})[/.-](\d{1,2})[/.-]((?:19|20)?\d{2})\b/); // 31/03/2025, 31.03.25
+  if (m) return year(m[3]) * 12 + Number(m[2]);
+
+  m = c.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s'.,/-]*((?:19|20)?\d{2})\b/); // Mar-25, March 2025, 31-Mar-24
+  if (m) return year(m[2]) * 12 + MONTHS.indexOf(m[1]) + 1;
+
+  m = c.match(/\bfy\s*['-]?\s*((?:19|20)?\d{2})\b/); // FY25, FY 2025
+  if (m) return year(m[1]) * 12 + 3;
+
+  m = c.match(/\b((?:19|20)\d{2})\b/); // 2025-26, 2024, "year ended 2025"
+  if (m) return Number(m[1]) * 12 + 3;
+  return NaN;
+}
+
+/** Index of the latest-period column in a header like "Particulars | 2024-25 | 2025-26", or null. */
 export function yearColumnIndex(header: string[]): number | null {
-  const years = header.map((c) => (c.match(/(?:19|20)\d{2}/) ? Number(c.match(/(?:19|20)\d{2}/)![0]) : NaN));
-  const found = years.filter((y) => !isNaN(y));
+  const keys = header.map(periodKey);
+  const found = keys.filter((k) => !isNaN(k));
   if (found.length < 2 || new Set(found).size < 2) return null;
-  return years.indexOf(Math.max(...found));
+  return keys.indexOf(Math.max(...found));
 }
 
 /** Rows of cells -> line items, honouring a year header when there is one. */
@@ -129,13 +157,26 @@ export function itemsFromRows(rows: string[][]): LineItem[] {
  */
 export function parseStatementLines(text: string): LineItem[] {
   const items: LineItem[] = [];
+  // A long label that wrapped onto two lines: "Cash Credit" / "from Bank   300".
+  let pending: string | null = null;
+  const push = (it: LineItem) => {
+    if (pending && CONTINUATION.test(it.name)) it = { ...it, name: `${pending} ${it.name}` };
+    pending = null;
+    items.push(it);
+  };
+  const noteLabelOnly = (line: string) => {
+    pending = hasWords(line) && !/\d/.test(line) && line.length <= 60 ? cleanLabel(line) : null;
+  };
+
   for (const raw of text.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line || line.startsWith("---")) continue;
 
     if (line.includes("|") || line.includes("\t")) {
-      const it = rowToItem(line.split(/\s*[|\t]\s*/).map((c) => c.trim()).filter(Boolean));
-      if (it) items.push(it);
+      const cells = line.split(/\s*[|\t]\s*/).map((c) => c.trim()).filter(Boolean);
+      const it = rowToItem(cells);
+      if (it) push(it);
+      else noteLabelOnly(cells.join(" "));
       continue;
     }
 
@@ -143,11 +184,11 @@ export function parseStatementLines(text: string): LineItem[] {
     while (tokens.length && /^(?:dr|cr)\.?$/i.test(tokens[tokens.length - 1])) tokens.pop(); // "250 Dr"
     let end = tokens.length;
     while (end > 0 && isAmountCell(tokens[end - 1])) end--;
-    if (end === tokens.length) continue; // no trailing amount
+    if (end === tokens.length) { noteLabelOnly(line); continue; } // no trailing amount
     const label = cleanLabel(tokens.slice(0, end).join(" "));
     const amount = pickAmount(tokens.slice(end), label);
     if (amount === undefined || !hasWords(label)) continue;
-    items.push({ name: label, value: parseAmount(amount) });
+    push({ name: label, value: parseAmount(amount) });
   }
   return items;
 }
@@ -179,12 +220,16 @@ const TOTAL_LIABILITIES = /^total\s+(?:(?:equity|capital|shareholders?[’']?s?[
 const TOTAL_EQUITY = /^(?:(?:tangible\s+)?net\s*worth|total\s+(?:shareholders?[’']?s?[’']?\s*(?:funds?|equity)|equity|(?:tangible\s+)?net\s*worth))\b/i;
 const ANY_TOTAL = /^(?:total|sub[-\s]?total|grand\s+total)\b/i;
 
+/** Ratios and percentages sit beside the statement but are not amounts in it. */
+const RATIO_LINE = /\bratio\b|\bper\s*cent\b|\bdays\b|\bcoverage\b|\bmargin\b(?!\s*money)|\b(?:ROE|ROCE|ROA|DSCR|ISCR|EBITDA\s+margin)\b|%/i;
+
 /** Place each line into a section, pull out explicit totals, never double count them. */
 export function buildSections(items: LineItem[]): Sectioned {
   const out: Sectioned = { assets: [], liabilities: [], equity: [], totals: {}, unclassified: [] };
 
   for (const it of items) {
     const name = it.name.trim();
+    if (RATIO_LINE.test(name)) continue;
     const section = (): BalanceSection => ({ name, amount: it.value });
 
     if (TOTAL_ASSETS.test(name)) { out.totals.totalAssets = it.value; continue; }
@@ -235,7 +280,9 @@ export function scoreExtraction(
   if (n === 0) return { confidence: 0.05, notes: ["No line items with amounts could be read from this file."] };
 
   let conf = 0.15 + 0.25 * Math.min(1, n / 12);
-  if (n < 6) notes.push(`Only ${n} line item${n === 1 ? "" : "s"} with amounts were found.`);
+  // Contradictory figures cap the final score, whatever bonuses are added later.
+  let cap = 0.95;
+  if (n < 6) notes.push(`Only ${n} line item${n === 1 ? "" : "s"} with amounts ${n === 1 ? "was" : "were"} found.`);
 
   const placed = sections.assets.length + sections.liabilities.length + sections.equity.length;
   const share = placed / (placed + sections.unclassified.length || 1);
@@ -257,9 +304,11 @@ export function scoreExtraction(
       notes.push("Total assets agree with total liabilities, and the line items add up to them.");
     } else if (totalsTie) {
       conf += 0.1;
+      cap = 0.55;
       notes.push("The totals agree, but the line items do not add up to them - some lines may be missing or misclassified.");
     } else {
       conf += 0.05;
+      cap = 0.45;
       notes.push("Total assets and total liabilities do not agree - check the figures.");
     }
   } else if (ta !== undefined || tl !== undefined) {
@@ -275,5 +324,5 @@ export function scoreExtraction(
   }
 
   if (opts.structured) conf += 0.05;
-  return { confidence: Math.round(Math.min(0.95, conf) * 100) / 100, notes };
+  return { confidence: Math.round(Math.min(cap, conf) * 100) / 100, notes };
 }

@@ -255,7 +255,7 @@ export default function BalanceSheetUpload({ userId }: Props) {
               ) : null
             )}
           </div>
-          {mapped.notes && <p className="text-xs text-muted-foreground leading-relaxed">{mapped.notes}</p>}
+          {mapped.notes && (extraction ?? 1) >= 0.1 && <p className="text-xs text-muted-foreground leading-relaxed">{mapped.notes}</p>}
           {parsed?.metadata?.notes && (
             <p className={`text-xs leading-relaxed ${(extraction ?? 1) < 0.5 ? "text-destructive" : "text-muted-foreground"}`}>
               {(extraction ?? 1) < 0.5 ? "Low confidence - check every figure before relying on these results. " : ""}

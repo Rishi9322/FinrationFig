@@ -41,6 +41,8 @@ export function DataInputEngine() {
     }
   };
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Only the most recent upload may write results: if two overlap, the older reply is dropped.
+  const uploadSeq = useRef(0);
 
   useEffect(() => {
     if (!user) {
@@ -166,6 +168,9 @@ export function DataInputEngine() {
       return;
     }
 
+    const seq = ++uploadSeq.current;
+    const superseded = () => seq !== uploadSeq.current;
+
     setIsLoading(true);
     setError("");
     // Start from nothing: if this upload is rejected or fails, the previous
@@ -182,6 +187,7 @@ export function DataInputEngine() {
       });
 
       const { text: extractedText, pages } = await extractFileText(file);
+      if (superseded()) return;
       const format = inferSourceFormat(file.name);
 
       // A scan/photo has no text layer. Sending nothing to the AI only invites
@@ -208,6 +214,8 @@ export function DataInputEngine() {
         parseCmaFinancialData(extractedText, { sourceFormat: format, sourceName: file.name }),
       ]);
 
+      if (superseded()) return;
+
       // Blend the model's answer with checks we can verify; a failed classifier
       // is reported in the reasons instead of silently hiding the card.
       const scored = scoreClassification(modelResult, extractedText, { source, pages });
@@ -224,10 +232,12 @@ export function DataInputEngine() {
       setSourceMeta({ sourceName: file.name, sourceFormat: format });
       setActiveTab(1);
     } catch (err: any) {
-      setError(err.message || "Failed to parse the file");
+      if (!superseded()) setError(err.message || "Failed to parse the file");
     } finally {
-      setIsClassifying(false);
-      setIsLoading(false);
+      if (!superseded()) {
+        setIsClassifying(false);
+        setIsLoading(false);
+      }
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
