@@ -52,17 +52,9 @@
   <body>
     <!-- Set the theme class before first paint so there's no flash of the
          wrong theme while React hydrates. Keep this logic in sync with
-         src/lib/theme.tsx's getInitialTheme(). -->
-    <script>
-      (function () {
-        try {
-          var t = localStorage.getItem("finratio-theme")
-          if (t !== "light") document.documentElement.classList.add("dark")
-        } catch (e) {
-          document.documentElement.classList.add("dark")
-        }
-      })()
-    </script>
+         src/lib/theme.tsx's getInitialTheme(). It is an external file, not inline,
+         because the CSP forbids inline scripts. -->
+    <script src="/theme-init.js"></script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
