@@ -5,6 +5,7 @@ import { Toaster } from "./components/ui/sonner"
 import { Analytics } from "@vercel/analytics/react"
 import { getRouteMeta } from "../lib/routeMeta"
 import { ThemeProvider } from "../lib/theme"
+import { InstallPrompt } from "./components/InstallPrompt"
 
 // Per-route <title>/<meta description>/<link canonical>. The app is a client
 // router (createBrowserRouter, not nested layout routes with an Outlet), so
@@ -31,6 +32,7 @@ export default function App() {
     <ThemeProvider>
       <RouterProvider router={router} />
       <Toaster />
+      <InstallPrompt />
       <Analytics />
     </ThemeProvider>
   )

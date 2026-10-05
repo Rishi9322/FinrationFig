@@ -1,11 +1,22 @@
 {
   "rewrites": [
     {
-      "source": "/((?!api/.*|assets/.*|favicon.ico|robots.txt|sitemap.xml|ga.js|theme-init.js).*)",
+      "source": "/((?!api/.*|assets/.*|favicon.ico|robots.txt|sitemap.xml|ga.js|theme-init.js|sw.js|offline.html|manifest.webmanifest|icon-.*|apple-touch-icon.png|favicon-.*).*)",
       "destination": "/index.html"
     }
   ],
   "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [{ "key": "Content-Type", "value": "application/manifest+json" }]
+    },
     {
       "source": "/(.*)",
       "headers": [
