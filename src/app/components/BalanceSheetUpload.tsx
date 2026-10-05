@@ -140,7 +140,10 @@ export default function BalanceSheetUpload({ userId }: Props) {
     }
   }
 
-  const confidencePct = mapped ? Math.round((mapped.confidence ?? 0) * 100) : null
+  // How well the FILE was read (balance checks, lines classified...) caps how much any
+  // single mapped input can be trusted, so show the lower of the two.
+  const extraction: number | undefined = parsed?.metadata?.confidence
+  const confidencePct = mapped ? Math.round(Math.min(mapped.confidence ?? 0, extraction ?? 1) * 100) : null
   const confidenceColor = confidencePct === null ? "" : confidencePct >= 70 ? "#10B981" : confidencePct >= 40 ? "#f59e0b" : "#ef4444"
 
   return (
@@ -253,6 +256,12 @@ export default function BalanceSheetUpload({ userId }: Props) {
             )}
           </div>
           {mapped.notes && <p className="text-xs text-muted-foreground leading-relaxed">{mapped.notes}</p>}
+          {parsed?.metadata?.notes && (
+            <p className={`text-xs leading-relaxed ${(extraction ?? 1) < 0.5 ? "text-destructive" : "text-muted-foreground"}`}>
+              {(extraction ?? 1) < 0.5 ? "Low confidence - check every figure before relying on these results. " : ""}
+              {parsed.metadata.notes}
+            </p>
+          )}
         </div>
       )}
 

@@ -109,3 +109,6 @@ __pycache__/
 .serverless/
 .firebase/
 .vercel
+
+# Test fixtures for the Word statement reader
+!src/lib/__fixtures__/*.docx

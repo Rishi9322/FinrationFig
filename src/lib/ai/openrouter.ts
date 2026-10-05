@@ -1,4 +1,5 @@
 import { aiChat } from "../ai";
+import { selectFinancialExcerpt, selectExtractionText, parseModelConfidence, parseBool } from "../confidence";
 
 // Model identity is decided server-side; this label is only used in exports.
 const OPENROUTER_MODEL_NAME = "server-configured";
@@ -179,10 +180,23 @@ export type DocumentClassification = {
   confidence: number;
   reason: string;
   durationMs?: number;
+  /** Why the confidence is what it is (shown to the user). */
+  reasons?: string[];
+  likelyScanned?: boolean;
 };
 
-export async function classifyFinancialDocument(rawText: string, sourceName?: string): Promise<DocumentClassification> {
-  const excerpt = truncateText(rawText, 4000, 1000);
+/** What the model actually said, before we blend it with our own checks. */
+export type ModelClassification = {
+  isFinancialDocument: boolean | null;
+  docType: string;
+  confidence: number | null;
+  reason: string;
+  durationMs: number;
+};
+
+export async function classifyFinancialDocument(rawText: string, sourceName?: string): Promise<ModelClassification> {
+  // Statements are rarely on page one: show the model the statement text, not the cover.
+  const excerpt = selectFinancialExcerpt(rawText, 4000);
   const startedAt = performance.now();
 
   const response = await aiChat({
@@ -217,10 +231,12 @@ A document is a financial document if it contains balance sheet, P&L, trial bala
   const parsed = safeJsonParse(data.choices[0].message.content);
   const durationMs = Math.round(performance.now() - startedAt);
   console.log(`[openrouter] classifyFinancialDocument took ${durationMs}ms`);
+  // Keep what the model said as-is (null when unusable) - scoreClassification
+  // blends it with our own checks, so a reply like "85%" is no longer read as 0.
   return {
-    isFinancialDocument: Boolean(parsed.isFinancialDocument),
-    docType: String(parsed.docType || "Other Financial Statement"),
-    confidence: Number(parsed.confidence) || 0,
+    isFinancialDocument: parseBool(parsed.isFinancialDocument),
+    docType: String(parsed.docType || ""),
+    confidence: parseModelConfidence(parsed.confidence),
     reason: String(parsed.reason || ""),
     durationMs,
   };
@@ -229,7 +245,7 @@ A document is a financial document if it contains balance sheet, P&L, trial bala
 export async function parseCmaFinancialData(rawText: string, options: ParseOptions = {}) {
   const startedAt = performance.now();
   const learningContext = buildLearningContext(rawText, options.sourceFormat);
-  const sourceExcerpt = truncateText(rawText);
+  const sourceExcerpt = selectExtractionText(rawText);
   const sourceDescriptor = [
     options.sourceName ? `Source file: ${options.sourceName}` : null,
     options.sourceFormat ? `Source format: ${options.sourceFormat}` : null,

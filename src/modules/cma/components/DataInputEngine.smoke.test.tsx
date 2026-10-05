@@ -76,8 +76,85 @@ describe("DataInputEngine classification + save flow", () => {
     uploadFile(input, file)
 
     await waitFor(() => expect(screen.getByText("Balance Sheet")).toBeInTheDocument());
-    expect(screen.getByText(/Confidence: 92%/)).toBeInTheDocument();
+    // Blended: the model said 92%, and the text itself carries three statement markers.
+    const shown = Number(screen.getByText(/Confidence: \d+%/).textContent!.match(/Confidence: (\d+)%/)![1]);
+    expect(shown).toBeGreaterThanOrEqual(75);
+    expect(shown).toBeLessThanOrEqual(95);
     expect(screen.getByText(/Data Parsed Successfully for/)).toHaveTextContent("Test Co");
+  });
+
+  // Same mock as beforeEach, with per-test control of the classifier.
+  const stubAi = (classify: { reply?: unknown; fail?: boolean }) =>
+    vi.stubGlobal("fetch", vi.fn(async (_url: string, opts: any) => {
+      const body = JSON.parse(opts.body);
+      const isClassify = body.messages[0].content.includes("classify uploaded documents");
+      if (isClassify && classify.fail) {
+        return { ok: false, status: 502, json: async () => ({ error: "Bad gateway" }) };
+      }
+      const content = isClassify ? (classify.reply ?? classifyResponse) : parsedResponse;
+      return { ok: true, json: async () => ({ choices: [{ message: { content: JSON.stringify(content) } }] }) };
+    }));
+
+  const BALANCE_TEXT = "Balance Sheet of Test Co\nShare Capital 1000\nReserves and Surplus 500\nTotal Liabilities 1500\nFixed Assets 900\nSundry Debtors 600\nTotal Assets 1500";
+
+  it("a model reply of '85%' is honoured instead of shown as 0%", async () => {
+    stubAi({ reply: { ...classifyResponse, confidence: "85%" } });
+    render(<CmaProvider><DataInputEngine /></CmaProvider>);
+    uploadFile(document.querySelector('input[type="file"]') as HTMLInputElement,
+      new File([BALANCE_TEXT], "balance-sheet.txt", { type: "text/plain" }));
+
+    await waitFor(() => expect(screen.getByText(/Confidence: \d+%/)).toBeInTheDocument());
+    const shown = Number(screen.getByText(/Confidence: \d+%/).textContent!.match(/Confidence: (\d+)%/)![1]);
+    expect(shown).toBeGreaterThanOrEqual(80);
+  });
+
+  it("a failed classifier is reported (not silently hidden) and the upload still completes", async () => {
+    stubAi({ fail: true });
+    render(<CmaProvider><DataInputEngine /></CmaProvider>);
+    uploadFile(document.querySelector('input[type="file"]') as HTMLInputElement,
+      new File([BALANCE_TEXT], "balance-sheet.txt", { type: "text/plain" }));
+
+    await waitFor(() => expect(screen.getByText(/Data Parsed Successfully for/)).toBeInTheDocument());
+    expect(screen.getByText(/classifier was unavailable/i)).toBeInTheDocument();
+    expect(screen.getByText(/Confidence: \d+%/)).toBeInTheDocument();
+  });
+
+  it("a file with almost no text is rejected with a clear message and never reaches the AI", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+    render(<CmaProvider><DataInputEngine /></CmaProvider>);
+    uploadFile(document.querySelector('input[type="file"]') as HTMLInputElement,
+      new File(["hi"], "blank.txt", { type: "text/plain" }));
+
+    await waitFor(() => expect(screen.getByText(/almost no readable text/i)).toBeInTheDocument());
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("a short but real CSV is not mistaken for a scan", async () => {
+    stubAi({});
+    render(<CmaProvider><DataInputEngine /></CmaProvider>);
+    uploadFile(document.querySelector('input[type="file"]') as HTMLInputElement,
+      new File(["Particulars,Amount\nShare Capital,1000\nTotal Assets,1500\nTotal Liabilities,1500"], "bs.csv", { type: "text/csv" }));
+
+    await waitFor(() => expect(screen.getByText(/Data Parsed Successfully for/)).toBeInTheDocument());
+    expect(screen.queryByText(/scanned or photographed/i)).not.toBeInTheDocument();
+  });
+
+  it("a rejected upload does not leave the previous file's data on screen", async () => {
+    stubAi({});
+    render(<CmaProvider><DataInputEngine /></CmaProvider>);
+    const input = () => document.querySelector('input[type="file"]') as HTMLInputElement;
+
+    uploadFile(input(), new File([BALANCE_TEXT], "good.txt", { type: "text/plain" }));
+    await waitFor(() => expect(screen.getByText(/Data Parsed Successfully for/)).toBeInTheDocument());
+
+    // Re-open the uploader tab and upload a file with no readable text.
+    fireEvent.click(screen.getAllByRole("button").find((b) => /upload|input/i.test(b.textContent ?? "")) ?? document.body);
+    uploadFile(input(), new File(["hi"], "blank.txt", { type: "text/plain" }));
+
+    await waitFor(() => expect(screen.getByText(/almost no readable text/i)).toBeInTheDocument());
+    expect(screen.queryByText(/Data Parsed Successfully for/)).not.toBeInTheDocument();
+    expect(screen.queryByText("good.txt")).not.toBeInTheDocument();
   });
 
   it("accepts docx/pdf/xlsx/csv in the file input", () => {

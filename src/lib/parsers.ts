@@ -1,96 +1,59 @@
 import type ParsedBalanceSheet from "./parsedBalanceSheet"
-import type { LineItem, ReceivableItem } from "./parsedBalanceSheet"
-
-// Handles Indian comma-grouped amounts ("12,34,567"), plain commas, and
-// accounting-style negatives in parentheses ("(1,234)").
-function parseAmount(raw: unknown): number {
-  const str = String(raw ?? "").trim()
-  if (!str) return 0
-  const negative = /^\(.*\)$/.test(str)
-  const cleaned = str.replace(/[(),]/g, "").replace(/[^0-9.\-]+/g, "")
-  const value = Number(cleaned)
-  if (isNaN(value)) return 0
-  return negative ? -Math.abs(value) : value
-}
+import type { LineItem, ReceivableItem, SourceFormat } from "./parsedBalanceSheet"
+import { parseAmount, parseStatementLines, pdfItemsToRows, buildSections, scoreExtraction, splitCsvLine, itemsFromRows } from "./statementParsing"
+import { docxToText } from "./docxText"
 
 function parseCSVText(text: string): LineItem[] {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
   if (lines.length === 0) return []
+  return itemsFromRowsWithHeader(lines.map(splitCsvLine))
+}
 
-  // detect header
-  const headers = lines[0].split(/,|\t/).map((h) => h.trim().toLowerCase())
-  const hasHeaderName = headers.some((h) => /name|account|description/.test(h))
-  const hasHeaderValue = headers.some((h) => /value|amount|balance|amt/.test(h))
+/** An explicit "Name, Amount" header picks those columns; otherwise statement rules apply. */
+function itemsFromRowsWithHeader(rows: string[][]): LineItem[] {
+  const headers = rows[0].map((h) => h.toLowerCase())
+  const idxName = headers.findIndex((h) => /name|account|description/.test(h))
+  const idxValue = headers.findIndex((h) => /value|amount|balance|amt/.test(h))
+  if (idxName === -1 || idxValue === -1) return itemsFromRows(rows)
 
-  const rows = hasHeaderName && hasHeaderValue ? lines.slice(1) : lines
-
-  const items: LineItem[] = rows.map((r) => {
-    const cols = r.split(/,|\t/).map((c) => c.trim())
-    if (hasHeaderName && hasHeaderValue) {
-      const idxName = headers.findIndex((h) => /name|account|description/.test(h))
-      const idxValue = headers.findIndex((h) => /value|amount|balance|amt/.test(h))
-      return { name: cols[idxName] || cols[0] || "", value: parseAmount(cols[idxValue]) }
-    }
-
-    // fallback: last column numeric
-    const name = cols.slice(0, -1).join(" ") || cols[0]
-    return { name: name || "item", value: parseAmount(cols[cols.length - 1]) }
-  })
-
-  return items.filter((it) => it && (typeof it.value === "number"))
+  return rows
+    .slice(1)
+    .map((cols) => ({ name: (cols[idxName] || cols[0] || "").trim(), value: parseAmount(cols[idxValue]) }))
+    .filter((it) => it.name)
 }
 
 async function parseXLSXBuffer(buffer: ArrayBuffer): Promise<LineItem[]> {
   // dynamic import so app still builds if xlsx not installed; caller should have added dependency
   const XLSX = await import("xlsx")
-  const data = new Uint8Array(buffer)
-  const wb = XLSX.read(data, { type: "array" })
-  const first = wb.SheetNames[0]
-  const ws = wb.Sheets[first]
-  // try to get rows as arrays
-  const rows: any[] = XLSX.utils.sheet_to_json(ws, { header: 1 })
+  const wb = XLSX.read(new Uint8Array(buffer), { type: "array" })
+  const ws = wb.Sheets[wb.SheetNames[0]]
+  const rows: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1 })
   if (!rows || rows.length === 0) return []
-
-  const header = rows[0].map((h: any) => String(h).toLowerCase())
-  const hasName = header.some((h: string) => /name|account|description/.test(h))
-  const hasValue = header.some((h: string) => /value|amount|balance|amt/.test(h))
-
-  const dataRows = hasName && hasValue ? rows.slice(1) : rows
-
-  const items: LineItem[] = dataRows.map((r) => {
-    if (!Array.isArray(r)) r = Object.values(r)
-    if (hasName && hasValue) {
-      const idxName = header.findIndex((h: string) => /name|account|description/.test(h))
-      const idxValue = header.findIndex((h: string) => /value|amount|balance|amt/.test(h))
-      return { name: String(r[idxName] ?? "").trim(), value: parseAmount(r[idxValue]) }
-    }
-    const name = r.slice(0, -1).join(" ")
-    return { name: name || String(r[0] ?? ""), value: parseAmount(r[r.length - 1]) }
-  })
-
-  return items
+  return itemsFromRowsWithHeader(rows.map((r) => (Array.isArray(r) ? r : Object.values(r)).map((c) => String(c ?? "").trim())))
 }
 
-function tryExtractTotals(items: LineItem[]) {
-  const assets: LineItem[] = []
-  const liabilities: LineItem[] = []
-  const equity: LineItem[] = []
-
-  for (const it of items) {
-    const n = it.name.toLowerCase()
-    // Liability/equity patterns are checked first: names like "Bank Overdraft" or
-    // "Bank Borrowings" contain "bank" and would otherwise be misclassified as
-    // assets by the generic cash/bank asset pattern below.
-    if (/liabilit|payable|creditor|overdraft|borrowing|\bdebt\b|tax payable|\bloan\b/.test(n)) liabilities.push(it)
-    else if (/equity|capital|reserves|share/.test(n)) equity.push(it)
-    else if (/asset|cash|bank|receivable|inventory|stock|sundry debtors/.test(n)) assets.push(it)
-    else {
-      // heuristics: amounts > 0.9*max maybe assets
-      assets.push(it)
-    }
+/** Sections + totals + a confidence built from checks (see statementParsing.scoreExtraction). */
+function fromItems(
+  base: { name: string; format: SourceFormat; parsedAt: string },
+  items: LineItem[],
+  note: string,
+  structured: boolean,
+): ParsedBalanceSheet {
+  const sections = buildSections(items)
+  const score = scoreExtraction(items, sections, { structured })
+  return {
+    sourceFilename: base.name,
+    originalFormat: base.format,
+    parsedAt: base.parsedAt,
+    accounts: items,
+    balanceSheet: {
+      assets: sections.assets,
+      liabilities: sections.liabilities,
+      equity: sections.equity,
+      totals: sections.totals,
+    },
+    metadata: { confidence: score.confidence, notes: [note, ...score.notes].join(" ") },
   }
-
-  return { assets, liabilities, equity }
 }
 
 export async function parseFile(file: File): Promise<ParsedBalanceSheet> {
@@ -122,43 +85,22 @@ export async function parseFile(file: File): Promise<ParsedBalanceSheet> {
         }
       }
 
-      const sections = tryExtractTotals(items)
-      return {
-        sourceFilename: name,
-        originalFormat: "json",
-        parsedAt,
-        accounts: items,
-        balanceSheet: { assets: sections.assets, liabilities: sections.liabilities, equity: sections.equity },
-        metadata: { confidence: 0.6, notes: "Parsed generic JSON" },
-      }
+      return fromItems({ name, format: "json", parsedAt }, items, "Parsed generic JSON.", true)
     }
 
     if (lower.endsWith(".csv") || lower.endsWith(".tsv") || lower.endsWith(".txt")) {
       const text = await file.text()
-      const items = parseCSVText(text)
-      const sections = tryExtractTotals(items)
-      return {
-        sourceFilename: name,
-        originalFormat: "csv",
-        parsedAt,
-        accounts: items,
-        balanceSheet: { assets: sections.assets, liabilities: sections.liabilities, equity: sections.equity },
-        metadata: { confidence: 0.6, notes: "Parsed CSV/TSV text" },
-      }
+      // A .txt statement is usually "label  amount" lines rather than delimited
+      // columns (and the CSV reader would split "1,000" at its comma), so try that first.
+      let items = lower.endsWith(".txt") ? parseStatementLines(text) : []
+      if (items.filter((i) => i.value !== 0).length < 3) items = parseCSVText(text)
+      return fromItems({ name, format: "csv", parsedAt }, items, "Parsed CSV/TSV text.", !lower.endsWith(".txt"))
     }
 
     if (lower.endsWith(".xlsx") || lower.endsWith(".xls")) {
       const buffer = await file.arrayBuffer()
       const items = await parseXLSXBuffer(buffer)
-      const sections = tryExtractTotals(items)
-      return {
-        sourceFilename: name,
-        originalFormat: "xlsx",
-        parsedAt,
-        accounts: items,
-        balanceSheet: { assets: sections.assets, liabilities: sections.liabilities, equity: sections.equity },
-        metadata: { confidence: 0.7, notes: "Parsed first sheet of Excel workbook" },
-      }
+      return fromItems({ name, format: "xlsx", parsedAt }, items, "Parsed first sheet of Excel workbook.", true)
     }
 
     // For PDF, images, and DOCX attempt to extract text (OCR / PDF text / DOCX parser)
@@ -167,11 +109,8 @@ export async function parseFile(file: File): Promise<ParsedBalanceSheet> {
         let extracted = ""
 
         if (lower.endsWith(".docx")) {
-          // mammoth works well in-browser for docx
-          const mammoth = await import("mammoth")
-          const buffer = await file.arrayBuffer()
-          const res = await mammoth.extractRawText({ arrayBuffer: buffer })
-          extracted = String(res.value || "")
+          // Table rows stay together as "label | amount" lines (raw text split every cell onto its own line).
+          extracted = await docxToText(await file.arrayBuffer())
         } else if (lower.endsWith(".pdf")) {
           // use pdfjs to extract text from PDF pages
           await import("./pdfWorker")
@@ -186,13 +125,12 @@ export async function parseFile(file: File): Promise<ParsedBalanceSheet> {
             try {
               const page = await doc.getPage(i)
               const content = await page.getTextContent()
-              const strings = content.items.map((it: any) => (it as any).str || "")
-              textParts.push(strings.join(" "))
+              textParts.push(pdfItemsToRows(content.items as any[]).join("\n"))
             } catch (e) {
               // continue on page errors
             }
           }
-          extracted = textParts.join(" \n")
+          extracted = textParts.join("\n")
         } else if (lower.match(/\.png$|\.jpg$|\.jpeg$/)) {
           // use tesseract.js for OCR on images
           const tesseractMod = await import("tesseract.js")
@@ -226,18 +164,13 @@ export async function parseFile(file: File): Promise<ParsedBalanceSheet> {
           }
         }
 
-        // parse extracted text into line items
-        const items = extracted ? parseCSVText(extracted) : []
-        const sections = tryExtractTotals(items)
-        const confidenceNote = extracted ? 0.5 : 0.2
-        return {
-          sourceFilename: name,
-          originalFormat: lower.endsWith(".pdf") ? "pdf" : lower.endsWith(".docx") ? "docx" : "other",
-          parsedAt,
-          accounts: items,
-          balanceSheet: { assets: sections.assets, liabilities: sections.liabilities, equity: sections.equity },
-          metadata: { confidence: confidenceNote, notes: "Text extracted via OCR/PDF/DOCX parser; please verify classification" },
-        }
+        // parse extracted text into label/amount line items
+        const items = extracted ? parseStatementLines(extracted) : []
+        const format = (lower.endsWith(".pdf") ? "pdf" : lower.endsWith(".docx") ? "docx" : "other") as SourceFormat
+        const note = extracted.trim()
+          ? "Text read from the document; please verify the classification."
+          : "No text could be read - this looks like a scanned document."
+        return fromItems({ name, format, parsedAt }, items, note, false)
       } catch (err: any) {
         return {
           sourceFilename: name,
@@ -252,16 +185,9 @@ export async function parseFile(file: File): Promise<ParsedBalanceSheet> {
 
     // unknown -> try text
     const text = await file.text()
-    const items = parseCSVText(text)
-    const sections = tryExtractTotals(items)
-    return {
-      sourceFilename: name,
-      originalFormat: "other",
-      parsedAt,
-      accounts: items,
-      balanceSheet: { assets: sections.assets, liabilities: sections.liabilities, equity: sections.equity },
-      metadata: { confidence: 0.5, notes: "Best-effort parsed as delimited text" },
-    }
+    let items = parseStatementLines(text)
+    if (items.filter((i) => i.value !== 0).length < 3) items = parseCSVText(text)
+    return fromItems({ name, format: "other", parsedAt }, items, "Best-effort parse as delimited text.", false)
   } catch (err: any) {
     return {
       sourceFilename: name,

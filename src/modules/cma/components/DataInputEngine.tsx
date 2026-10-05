@@ -6,6 +6,8 @@ import { uploadBalanceSheetFile, MAX_UPLOAD_BYTES } from '../../../lib/uploadSto
 import { saveCmaDocument, getSavedCmaDocuments, updateCmaCaseMeta, EMPTY_CASE_META, type SavedCmaDocument, type CaseMeta, type CaseStatus } from '../../../lib/cmaDocumentStorage';
 import { useAuth } from '../../../app/hooks/useAuth';
 import { ManualReview } from './ManualReview';
+import { assessText, scoreClassification, type SourceKind } from '../../../lib/confidence';
+import { docxToText } from '../../../lib/docxText';
 
 const CASE_STATUSES: CaseStatus[] = ["New", "Under Review", "Awaiting Docs", "Memo Ready", "Approved", "Declined"];
 
@@ -58,7 +60,15 @@ export function DataInputEngine() {
     return 'other';
   };
 
-  const extractFileText = async (file: File) => {
+  const sourceKindOf = (fileName: string): SourceKind => {
+    const lowerName = fileName.toLowerCase();
+    if (lowerName.endsWith('.pdf')) return 'pdf';
+    if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls') || lowerName.endsWith('.csv')) return 'sheet';
+    return 'text';
+  };
+
+  // `pages` is only known for PDFs; it lets us tell a scan (no text layer) from a short document.
+  const extractFileText = async (file: File): Promise<{ text: string; pages?: number }> => {
     const lowerName = file.name.toLowerCase();
 
     if (lowerName.endsWith('.pdf')) {
@@ -98,7 +108,7 @@ export function DataInputEngine() {
         }
       }
 
-      return textParts.join('\n');
+      return { text: textParts.join('\n'), pages: doc.numPages };
     }
 
     if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) {
@@ -115,14 +125,12 @@ export function DataInputEngine() {
         sheetParts.push(sheetCsv);
       }
 
-      return sheetParts.join('\n');
+      return { text: sheetParts.join('\n') };
     }
 
     if (lowerName.endsWith('.docx')) {
-      const mammoth = await import('mammoth');
-      const buffer = await file.arrayBuffer();
-      const res = await mammoth.extractRawText({ arrayBuffer: buffer });
-      return String(res.value || '');
+      // Table rows are kept together (raw text puts every cell on its own line).
+      return { text: await docxToText(await file.arrayBuffer()) };
     }
 
     if (lowerName.endsWith('.doc')) {
@@ -130,7 +138,7 @@ export function DataInputEngine() {
     }
 
     if (lowerName.endsWith('.csv') || lowerName.endsWith('.txt')) {
-      return await file.text();
+      return { text: await file.text() };
     }
 
     throw new Error('Unsupported file format. Please upload PDF, DOCX, XLS/XLSX, or CSV.');
@@ -160,26 +168,58 @@ export function DataInputEngine() {
 
     setIsLoading(true);
     setError("");
+    // Start from nothing: if this upload is rejected or fails, the previous
+    // file's data must not stay on screen (or be saved against the new file).
     setClassification(null);
+    setParsedData(null);
+    setSourceMeta({ sourceName: null, sourceFormat: 'txt' });
+    setSourceName(null);
+    setRawText("");
 
     try {
       uploadBalanceSheetFile(file).catch(() => {
         // Best-effort - parsing below doesn't depend on this succeeding.
       });
 
-      const extractedText = await extractFileText(file);
+      const { text: extractedText, pages } = await extractFileText(file);
+      const format = inferSourceFormat(file.name);
+
+      // A scan/photo has no text layer. Sending nothing to the AI only invites
+      // invented numbers, so stop here with a clear next step.
+      const source = sourceKindOf(file.name);
+      const quality = assessText(extractedText, { source, pages });
+      if (quality.likelyScanned) {
+        setError('This looks like a scanned or photographed document - almost no text could be read from it. Upload a text-based PDF, or an Excel/CSV file, for reliable extraction.');
+        return;
+      }
+      if (quality.empty) {
+        setError('This file contains almost no readable text. Please check it and upload again.');
+        return;
+      }
+
+      // Only a file that passed the checks above becomes "the current file".
       setRawText(extractedText);
       setSourceName(file.name);
-      const format = inferSourceFormat(file.name);
       setSourceFormat(format);
 
       setIsClassifying(true);
-      const [classificationResult, parsed] = await Promise.all([
+      const [modelResult, parsed] = await Promise.all([
         classifyFinancialDocument(extractedText, file.name).catch(() => null),
         parseCmaFinancialData(extractedText, { sourceFormat: format, sourceName: file.name }),
       ]);
 
-      setClassification(classificationResult);
+      // Blend the model's answer with checks we can verify; a failed classifier
+      // is reported in the reasons instead of silently hiding the card.
+      const scored = scoreClassification(modelResult, extractedText, { source, pages });
+      setClassification({
+        isFinancialDocument: scored.isFinancialDocument,
+        docType: scored.docType,
+        confidence: scored.confidence,
+        reason: scored.reason,
+        reasons: scored.reasons,
+        likelyScanned: scored.likelyScanned,
+        durationMs: modelResult?.durationMs,
+      });
       setParsedData(parsed);
       setSourceMeta({ sourceName: file.name, sourceFormat: format });
       setActiveTab(1);

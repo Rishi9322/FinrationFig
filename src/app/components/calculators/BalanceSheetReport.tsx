@@ -53,6 +53,8 @@ type ReportRow = {
   calculator: CalculatorType
   result: CalculationResult | null
   confidence: number
+  /** No automatic mapping for this calculator - left out of the overall extraction score. */
+  unmapped: boolean
   error: string | null
 }
 
@@ -63,15 +65,22 @@ export function BalanceSheetReport({ parsed, businessConstitution, userId }: Pro
     return SECTIONS.flatMap((s) => s.calculators).map((calculator) => {
       const mapped = mapToCalculator(calculator, parsed, businessConstitution)
       try {
-        return { calculator, result: runCalculator(calculator, mapped.inputs), confidence: mapped.confidence, error: null }
+        return { calculator, result: runCalculator(calculator, mapped.inputs), confidence: mapped.confidence, unmapped: !!mapped.unmapped, error: null }
       } catch (err: any) {
-        return { calculator, result: null, confidence: mapped.confidence, error: String(err?.message || err) }
+        return { calculator, result: null, confidence: mapped.confidence, unmapped: !!mapped.unmapped, error: String(err?.message || err) }
       }
     })
   }, [parsed, businessConstitution])
 
   const rowsByCalculator = new Map(rows.map((r) => [r.calculator, r]))
-  const avgConfidence = Math.round((rows.reduce((s, r) => s + r.confidence, 0) / rows.length) * 100)
+  // Extraction confidence is about how well the file was read, so calculators with
+  // no automatic mapping at all must not drag it down.
+  const mappedRows = rows.filter((r) => !r.unmapped)
+  const mappedAvg = mappedRows.length ? mappedRows.reduce((s, r) => s + r.confidence, 0) / mappedRows.length : 0
+  // The per-calculator figures say how well each input matched; the file-level score says
+  // how well the file was read at all (do the totals tie, were the lines classified...). The
+  // headline can't be more confident than the file itself.
+  const avgConfidence = Math.round(Math.min(mappedAvg, parsed.metadata?.confidence ?? 1) * 100)
 
   async function handleSaveAll() {
     if (!userId) return toast.error("Please sign in to save this report")
@@ -104,6 +113,7 @@ export function BalanceSheetReport({ parsed, businessConstitution, userId }: Pro
           <p className="text-xs text-muted-foreground mt-1">
             {parsed.sourceFilename ?? "Uploaded file"} · Overall extraction confidence {avgConfidence}%
           </p>
+          {parsed.metadata?.notes && <p className="text-xs text-muted-foreground mt-1">{parsed.metadata.notes}</p>}
         </div>
         <div className="flex items-center gap-2 shrink-0 no-print">
           <button

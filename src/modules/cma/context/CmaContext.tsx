@@ -30,7 +30,7 @@ export const EDITABLE_KEY_FIELDS = [
 ] as const;
 
 interface CmaContextType extends CmaState {
-  setParsedData: (data: CmaParsedData) => void;
+  setParsedData: (data: CmaParsedData | null) => void;
   setActiveTab: (tab: number) => void;
   setIsLoading: (loading: boolean) => void;
   setCreditOpinion: (opinion: string | ((prev: string) => string)) => void;
@@ -85,7 +85,8 @@ export function CmaProvider({ children }: { children: React.ReactNode }) {
     return { isBalanced, differences };
   }, [parsedData]);
 
-  const setParsedData = (data: CmaParsedData) => {
+  // null clears the case (a new upload starts from nothing, never from stale data).
+  const setParsedData = (data: CmaParsedData | null) => {
     setParsedDataState(data);
     setIsVerified(false); // a fresh parse always needs re-review
   };

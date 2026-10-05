@@ -1,10 +1,12 @@
 import { CalculatorType } from "./financialCalculations"
 import type ParsedBalanceSheet from "./parsedBalanceSheet"
 
-type MapperResult = {
+export type MapperResult = {
   inputs: Record<string, unknown>
   confidence: number // 0-1
   notes?: string
+  /** No automatic mapping exists for this calculator (says nothing about the extraction itself). */
+  unmapped?: true
 }
 
 // Sole proprietorships and partnerships report a single "net profit" (there's
@@ -32,6 +34,26 @@ function findIncomeValue(income: Record<string, any>, patterns: RegExp[]): numbe
     }
   }
   return undefined
+}
+
+// Bank borrowings under any of their Indian names - missing cash credit made a
+// leveraged firm look debt-free.
+const DEBT_PATTERNS = [/loan/, /borrow/, /debt/, /overdraft/, /bond/, /debenture/, /cash\s*credit/, /working\s*capital/, /bills?\s*(?:payable|discounted)/]
+
+/**
+ * Liabilities excluding equity, for when no debt line matched. Indian balance
+ * sheets give "Total Liabilities" as capital + liabilities (= total assets), so
+ * using it as debt would count the owners' funds as borrowings.
+ */
+function liabilitiesExcludingEquity(parsed: ParsedBalanceSheet): number {
+  const t = parsed.balanceSheet.totals
+  if (
+    typeof t?.totalLiabilities === "number" && typeof t.totalAssets === "number" && typeof t.totalEquity === "number" &&
+    Math.abs(t.totalLiabilities - t.totalAssets) <= 0.01 * Math.max(Math.abs(t.totalAssets), 1)
+  ) {
+    return t.totalLiabilities - t.totalEquity
+  }
+  return getTotalLiabilities(parsed).value
 }
 
 function sumSections(items: { amount: number }[] | undefined) {
@@ -85,12 +107,10 @@ export function mapToCalculator(
   switch (calculatorType) {
     case "debt-equity": {
       // Try to pick only debt-like liabilities first
-      const debtNames = [/loan/, /borrow/, /debt/, /overdraft/, /bond/] 
-      const { sum: debtSum, matched } = findAndSumByName(parsed.balanceSheet.liabilities, debtNames)
-      const totalLiabilities = getTotalLiabilities(parsed)
-      const totalEquity = getTotalEquity(parsed)
+      const { sum: debtSum, matched } = findAndSumByName(parsed.balanceSheet.liabilities, DEBT_PATTERNS)
+            const totalEquity = getTotalEquity(parsed)
 
-      const totalDebt = matched > 0 ? debtSum : totalLiabilities.value
+      const totalDebt = matched > 0 ? debtSum : liabilitiesExcludingEquity(parsed)
       if (matched === 0) notes.push("No explicit debt line matched; using total liabilities as debt")
 
       return {
@@ -112,14 +132,11 @@ export function mapToCalculator(
           ? [/partner/, /proprietor/, /relative/, /unsecured/, /subordinated/, /quasi/]
           : [/director/, /preference/, /convertible/, /quasi/, /subordinated/, /unsecured/]
       const { sum: quasiSum, matched: quasiMatched } = findAndSumByName(parsed.balanceSheet.liabilities, quasiNames)
-
-      const debtNames = [/loan/, /borrow/, /debt/, /overdraft/, /bond/]
       const nonQuasiLiabilities = (parsed.balanceSheet.liabilities || []).filter(
         (s) => !quasiNames.some((p) => p.test((s.name || "").toLowerCase()))
       )
-      const { sum: debtSum, matched: debtMatched } = findAndSumByName(nonQuasiLiabilities, debtNames)
-      const totalLiabilities = getTotalLiabilities(parsed)
-      const totalDebt = debtMatched > 0 ? debtSum : totalLiabilities.value - quasiSum
+      const { sum: debtSum, matched: debtMatched } = findAndSumByName(nonQuasiLiabilities, DEBT_PATTERNS)
+      const totalDebt = debtMatched > 0 ? debtSum : liabilitiesExcludingEquity(parsed) - quasiSum
 
       const equity = getTotalEquity(parsed)
 
@@ -133,8 +150,8 @@ export function mapToCalculator(
     case "current-ratio":
     case "net-working-capital": {
       // heuristic: look for 'current' in section names
-      const currentAssets = findAndSumByName(parsed.balanceSheet.assets, [/current/, /cash/, /bank/, /receivable/, /inventory/])
-      const currentLiabilities = findAndSumByName(parsed.balanceSheet.liabilities, [/current/, /payable/, /creditors/, /overdraft/])
+      const currentAssets = findAndSumByName(parsed.balanceSheet.assets, [/current/, /cash/, /bank/, /receivable/, /debtor/, /inventory/, /\bstock/, /advance/, /prepaid/])
+      const currentLiabilities = findAndSumByName(parsed.balanceSheet.liabilities, [/current/, /payable/, /creditors/, /overdraft/, /cash\s*credit/, /bills?\s*(?:payable|discounted)/, /provision/, /outstanding/, /short[-\s]?term/])
 
       // fallback to totals
       const ca = currentAssets.matched > 0 ? currentAssets.sum : getTotalAssets(parsed).value
@@ -274,7 +291,7 @@ export function mapToCalculator(
     case "valuation":
     case "working-capital-cycle":
     default: {
-      return { inputs: {}, confidence: 0.2, notes: "No automatic mapping available for this calculator; manual input recommended" }
+      return { inputs: {}, confidence: 0.2, unmapped: true, notes: "No automatic mapping available for this calculator; manual input recommended" }
     }
   }
 }
