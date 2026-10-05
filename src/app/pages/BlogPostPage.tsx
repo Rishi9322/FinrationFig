@@ -42,13 +42,13 @@ export default function BlogPostPage() {
 
             {post.sourceName && (
               <div className="bg-card border border-foreground/8 rounded-lg px-4 py-3 mb-8 text-sm text-muted-foreground">
-                Originally published by <span className="text-foreground">{post.sourceName}</span>
+                Based on content from <span className="text-foreground">{post.sourceName}</span>
                 {post.sourceUrl && (
                   <a href={post.sourceUrl} target="_blank" rel="noopener noreferrer nofollow" className="inline-flex items-center gap-1 ml-2 text-link hover:underline">
                     Read the original <ExternalLink className="h-3 w-3" />
                   </a>
                 )}
-                . Reproduced here with credit for FinRatio's Indian MSME audience.
+                . This is FinRatio's own summary for Indian MSME readers; all rights remain with the original author or publisher.
               </div>
             )}
 
