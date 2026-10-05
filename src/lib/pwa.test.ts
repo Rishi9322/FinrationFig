@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
-import { isIos, recentlyDismissed, isStandalone } from "./pwa";
+import { isIos, recentlyDismissed, isStandalone, mayReloadForStaleChunk } from "./pwa";
 
 const root = path.resolve(__dirname, "../..");
 const pub = (f: string) => path.join(root, "public", f);
@@ -114,5 +114,21 @@ describe("installable-app assets", () => {
     expect(rewrite.test("/dashboard/cma-generator")).toBe(true); // real routes still fall back to the SPA
     const swHeaders = v.headers.find((h: any) => h.source === "/sw.js").headers;
     expect(swHeaders.find((h: any) => h.key === "Cache-Control").value).toMatch(/no-cache/);
+  });
+});
+
+describe("mayReloadForStaleChunk", () => {
+  const now = Date.UTC(2026, 9, 5, 12, 0, 0);
+  it("allows the first reload", () => {
+    expect(mayReloadForStaleChunk(null, now)).toBe(true);
+  });
+  it("blocks a second reload within a minute (no reload loop)", () => {
+    expect(mayReloadForStaleChunk(String(now - 5_000), now)).toBe(false);
+  });
+  it("allows another reload after the cooldown, so a tab open across two deploys recovers twice", () => {
+    expect(mayReloadForStaleChunk(String(now - 61_000), now)).toBe(true);
+  });
+  it("ignores a corrupt value", () => {
+    expect(mayReloadForStaleChunk("garbage", now)).toBe(true);
   });
 });

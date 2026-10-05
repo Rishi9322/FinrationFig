@@ -35,16 +35,27 @@ export function writeDismissed(now = Date.now()): void {
   try { localStorage.setItem(INSTALL_DISMISS_KEY, String(now)); } catch { /* private mode */ }
 }
 
+export const CHUNK_RELOAD_KEY = "finratio-chunk-reload";
+const CHUNK_RELOAD_COOLDOWN_MS = 60_000;
+
+/** One reload per cooldown window: enough to pick up a new deploy, never a loop. */
+export function mayReloadForStaleChunk(raw: string | null, now = Date.now()): boolean {
+  const at = Number(raw);
+  return !(Number.isFinite(at) && at > 0 && now - at < CHUNK_RELOAD_COOLDOWN_MS);
+}
+
 /**
  * After a deploy, a tab opened before it may ask for a lazy chunk (pdf/xlsx
- * parsers...) whose hashed file no longer exists. Reload once to pick up the
- * new build; the session flag stops a reload loop if something else is wrong.
+ * parsers...) whose hashed file no longer exists. Reload to pick up the new
+ * build. Rate-limited by timestamp (not a permanent flag), so a tab that stays
+ * open across several deploys still recovers each time, but a genuinely broken
+ * chunk can't cause a reload loop.
  */
 export function recoverFromStaleChunks(): void {
   window.addEventListener("vite:preloadError", () => {
     try {
-      if (sessionStorage.getItem("finratio-chunk-reload")) return;
-      sessionStorage.setItem("finratio-chunk-reload", "1");
+      if (!mayReloadForStaleChunk(sessionStorage.getItem(CHUNK_RELOAD_KEY))) return;
+      sessionStorage.setItem(CHUNK_RELOAD_KEY, String(Date.now()));
     } catch { /* private mode: reload anyway */ }
     window.location.reload();
   });
