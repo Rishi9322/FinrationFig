@@ -8,15 +8,17 @@
 // - Everything else is left alone: API calls (Supabase, Firebase, AI),
 //   analytics and any other-origin request never go through the cache, so
 //   financial data and auth are never served stale.
-const VERSION = "v1";
+const VERSION = "v2";
 const SHELL = `finratio-shell-${VERSION}`;
 const ASSETS = `finratio-assets-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
+// Shown by the offline page, so they must be available with no network.
+const OFFLINE_ASSETS = ["/icon-192.png", "/logo-mark-sm.png"];
 const MAX_ASSET_ENTRIES = 80;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(SHELL).then((c) => c.addAll([OFFLINE_URL, "/icon-192.png"])).then(() => self.skipWaiting()),
+    caches.open(SHELL).then((c) => c.addAll([OFFLINE_URL, ...OFFLINE_ASSETS])).then(() => self.skipWaiting()),
   );
 });
 
@@ -63,8 +65,8 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(cacheFirst(request));
     return;
   }
-  // The offline page's logo: precached at install, so it still shows offline.
-  if (url.pathname === "/icon-192.png") {
+  // The offline page's images: precached at install, so they still show offline.
+  if (OFFLINE_ASSETS.includes(url.pathname)) {
     event.respondWith(caches.match(request).then((hit) => hit || fetch(request)));
   }
 });

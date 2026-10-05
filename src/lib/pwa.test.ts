@@ -132,3 +132,22 @@ describe("mayReloadForStaleChunk", () => {
     expect(mayReloadForStaleChunk("garbage", now)).toBe(true);
   });
 });
+
+describe("transparent logo", () => {
+  const colorType = (f: string) => fs.readFileSync(pub(f))[25]; // PNG IHDR colour type: 6 = RGBA
+  it("the banner/offline logo and the HD mark are real transparent PNGs, not a flat tile", () => {
+    for (const f of ["logo-mark-sm.png", "logo-mark-hd.png"]) {
+      expect(fs.existsSync(pub(f)), f).toBe(true);
+      expect(colorType(f), `${f} must have an alpha channel`).toBe(6);
+    }
+  });
+  it("the HD mark is genuinely higher resolution than the original 328px-wide source", () => {
+    const h = fs.readFileSync(pub("logo-mark-hd.png"));
+    expect(h.readUInt32BE(20)).toBeGreaterThanOrEqual(600);
+  });
+  it("the offline page and the banner use the transparent mark, and the worker precaches it", () => {
+    expect(fs.readFileSync(pub("offline.html"), "utf8")).toMatch(/logo-mark-sm\.png/);
+    expect(fs.readFileSync(path.join(root, "src/app/components/InstallPrompt.tsx"), "utf8")).toMatch(/logo-mark-sm\.png/);
+    expect(fs.readFileSync(pub("sw.js"), "utf8")).toMatch(/OFFLINE_ASSETS = \[[^\]]*logo-mark-sm\.png/);
+  });
+});

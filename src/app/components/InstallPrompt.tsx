@@ -60,7 +60,7 @@ export function InstallPrompt() {
       // banner (z-9999): that one is answered first, then this is revealed.
       className="fixed bottom-0 inset-x-0 z-[9980] flex items-center gap-3 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-card border-t border-foreground/10 shadow-lg"
     >
-      <img src="/icon-192.png" alt="" className="w-10 h-10 rounded-xl shrink-0" />
+      <img src="/logo-mark-sm.png" alt="" className="h-10 w-auto shrink-0" />
       <div className="min-w-0 flex-1 text-sm">
         <div className="font-medium text-foreground">Install FinRatio</div>
         {deferred ? (
