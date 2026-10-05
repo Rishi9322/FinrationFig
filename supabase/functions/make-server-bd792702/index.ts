@@ -2,7 +2,7 @@ import { Hono } from "npm:hono";
 import { createClient } from "npm:@supabase/supabase-js";
 import { z } from "npm:zod";
 import { jwtVerify, createRemoteJWKSet, SignJWT } from "npm:jose";
-import { callProviders } from "./failover.ts";
+import { callProviders, failureMessage, type Provider } from "./failover.ts";
 import { ANALYTICS_DAYS, lastDays, countByDay, countByKey, averageRating } from "./analytics.ts";
 
 // Auth is Firebase. This function only does what needs the service role: the AI
@@ -925,44 +925,54 @@ app.delete(`${API_PREFIX}/me`, async (c) => {
 // Every provider below speaks the OpenAI chat-completions shape, so one body
 // serves all three. Try the fastest managed route first, then cheaper/free
 // fallbacks so users see first tokens sooner without losing resiliency.
-function chatProviders() {
+function chatProviders(): Provider[] {
   const openRouterKey = Deno.env.get("OPENROUTER_API_KEY");
   const nvidiaKey = Deno.env.get("NVIDIA_API_KEY");
   const gatewayKey = Deno.env.get("AI_GATEWAY_API_KEY");
+  const list: Provider[] = [];
 
-  return [
-    gatewayKey && {
-      name: "vercel-ai-gateway",
+  if (gatewayKey) {
+    const gateway = (model: string, timeoutMs: number): Provider => ({
+      name: `vercel-ai-gateway:${model}`,
       url: "https://ai-gateway.vercel.sh/v1/chat/completions",
       key: gatewayKey,
-      // Deliberately not a reasoning model: gpt-5-mini spends ~50s on hidden
-      // reasoning tokens before it writes anything, which is far too slow for a
-      // short summary. Flash answers the same prompt in under ten seconds.
-      model: Deno.env.get("AI_GATEWAY_MODEL") || "google/gemini-2.5-flash",
-      headers: {} as Record<string, string>,
-    },
-    nvidiaKey && {
+      model,
+      headers: {},
+      timeoutMs,
+    });
+    // Primary: deliberately not a reasoning model (they spend ~50s on hidden
+    // reasoning before writing anything). A big CMA extraction can still take
+    // ~45s here, hence the generous limit.
+    list.push(gateway(Deno.env.get("AI_GATEWAY_MODEL") || "google/gemini-2.5-flash", 60_000));
+    // Fallbacks run through the SAME working key but are different vendors, so one
+    // vendor being slow or down never takes the feature down. Comma-separated override.
+    const fallbacks = (Deno.env.get("AI_GATEWAY_FALLBACK_MODELS") ?? "openai/gpt-4.1-mini,anthropic/claude-haiku-4.5")
+      .split(",").map((m) => m.trim()).filter(Boolean);
+    for (const model of fallbacks) list.push(gateway(model, 35_000));
+  }
+  // Last resorts, only if configured. Both have been unreliable (retired model,
+  // free-tier rate limits) and the circuit breaker skips a retired one.
+  if (nvidiaKey) {
+    list.push({
       name: "nvidia",
       url: "https://integrate.api.nvidia.com/v1/chat/completions",
       key: nvidiaKey,
-      // Not every NVIDIA-hosted model is warm; llama-3.3-70b routinely hangs
-      // past 90s on the free tier, while this one answers in under a second.
       model: Deno.env.get("NVIDIA_MODEL_NAME") || "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-      headers: {} as Record<string, string>,
-    },
-    openRouterKey && {
+      headers: {},
+      timeoutMs: 15_000,
+    });
+  }
+  if (openRouterKey) {
+    list.push({
       name: "openrouter",
       url: "https://openrouter.ai/api/v1/chat/completions",
       key: openRouterKey,
       model: Deno.env.get("OPENROUTER_MODEL_NAME") || "google/gemma-4-31b-it:free",
-      headers: {
-        "HTTP-Referer": ALLOWED_ORIGINS[0],
-        "X-Title": "FinRatio",
-      } as Record<string, string>,
-    },
-  ].filter(Boolean) as Array<{
-    name: string; url: string; key: string; model: string; headers: Record<string, string>;
-  }>;
+      headers: { "HTTP-Referer": ALLOWED_ORIGINS[0], "X-Title": "FinRatio" },
+      timeoutMs: 25_000,
+    });
+  }
+  return list;
 }
 
 app.post(`${API_PREFIX}/ai/chat`, async (c) => {
@@ -1014,14 +1024,11 @@ app.post(`${API_PREFIX}/ai/chat`, async (c) => {
     return new Response(result.upstream.body, { status: 200, headers });
   }
 
-  if (result.status === 429) {
-    return c.json(
-      { error: "Every AI provider is rate-limited right now. Please try again in a few seconds." },
-      429,
-      { "Retry-After": result.retryAfter ?? "10" },
-    );
-  }
-  return c.json({ error: "AI request failed" }, 502);
+  console.error("[ai/chat] all providers failed", JSON.stringify(result.attempts));
+  // `reason` lets the app decide whether a quiet retry is worthwhile.
+  const failure = { error: failureMessage(result.reason), reason: result.reason };
+  if (result.status === 429) return c.json(failure, 429, { "Retry-After": result.retryAfter ?? "10" });
+  return c.json(failure, 502);
 });
 
 // ---- User data. Supabase's Firebase third-party auth doesn't reliably map

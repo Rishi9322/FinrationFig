@@ -220,7 +220,7 @@ A document is a financial document if it contains balance sheet, P&L, trial bala
           content: [sourceName ? `Filename: ${sourceName}` : "", "Extracted text:", excerpt].filter(Boolean).join("\n")
         }
       ]
-  });
+  }, { retry: false });
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
