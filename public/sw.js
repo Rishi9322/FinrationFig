@@ -8,7 +8,7 @@
 // - Everything else is left alone: API calls (Supabase, Firebase, AI),
 //   analytics and any other-origin request never go through the cache, so
 //   financial data and auth are never served stale.
-const VERSION = "v2";
+const VERSION = "v3";
 const SHELL = `finratio-shell-${VERSION}`;
 const ASSETS = `finratio-assets-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
