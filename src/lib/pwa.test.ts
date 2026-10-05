@@ -63,7 +63,7 @@ describe("installable-app assets", () => {
     const sizes = new Set<string>();
     let maskable = false;
     for (const icon of manifest.icons) {
-      const file = pub(icon.src.replace(/^\//, ""));
+      const file = pub(icon.src.replace(/^\//, "").split("?")[0]);
       expect(fs.existsSync(file), icon.src).toBe(true);
       const buf = fs.readFileSync(file);
       expect(buf.subarray(1, 4).toString()).toBe("PNG");
@@ -89,7 +89,7 @@ describe("installable-app assets", () => {
     expect(html).toMatch(/name="theme-color" content="#050A14"/i);
     const m = html.match(/rel="apple-touch-icon"[^>]*href="([^"]+)"/);
     expect(m).toBeTruthy();
-    const buf = fs.readFileSync(pub(m![1].replace(/^\//, "")));
+    const buf = fs.readFileSync(pub(m![1].replace(/^\//, "").split("?")[0]));
     expect(buf.readUInt32BE(16)).toBe(buf.readUInt32BE(20)); // square
   });
 
@@ -133,21 +133,64 @@ describe("mayReloadForStaleChunk", () => {
   });
 });
 
-describe("transparent logo", () => {
-  const colorType = (f: string) => fs.readFileSync(pub(f))[25]; // PNG IHDR colour type: 6 = RGBA
-  it("the banner/offline logo and the HD mark are real transparent PNGs, not a flat tile", () => {
-    for (const f of ["logo-mark-sm.png", "logo-mark-hd.png"]) {
-      expect(fs.existsSync(pub(f)), f).toBe(true);
-      expect(colorType(f), `${f} must have an alpha channel`).toBe(6);
+describe("app icon", () => {
+  it("the install banner and offline page use the app icon, and the worker precaches it", () => {
+    expect(fs.readFileSync(pub("offline.html"), "utf8")).toMatch(/src="\/icon-192\.png"/);
+    expect(fs.readFileSync(path.join(root, "src/app/components/InstallPrompt.tsx"), "utf8")).toMatch(/src="\/icon-192\.png"/);
+    expect(fs.readFileSync(pub("sw.js"), "utf8")).toMatch(/OFFLINE_ASSETS = \[[^\]]*icon-192\.png/);
+  });
+
+  it("icon URLs carry a version tag, so installed apps and browsers refetch after a change", () => {
+    const manifest = JSON.parse(fs.readFileSync(pub("manifest.webmanifest"), "utf8"));
+    for (const i of manifest.icons) expect(i.src, i.src).toMatch(/\?v=\d+$/);
+    expect(fs.readFileSync(path.join(root, "index.html"), "utf8")).toMatch(/apple-touch-icon\.png\?v=\d+/);
+  });
+
+  it("the source artwork is kept so every asset can be regenerated", () => {
+    expect(fs.existsSync(path.join(root, "design", "app-icon.png"))).toBe(true);
+    expect(fs.existsSync(path.join(root, "scripts", "generate-icons.py"))).toBe(true);
+  });
+});
+
+describe("favicons Google can use", () => {
+  const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
+  const png = (f: string) => fs.readFileSync(pub(f));
+
+  it("serves a real favicon.ico (it used to 404) containing 16/32/48", () => {
+    const ico = png("favicon.ico");
+    expect(ico.readUInt16LE(0)).toBe(0);       // reserved
+    expect(ico.readUInt16LE(2)).toBe(1);       // type: icon
+    expect(ico.readUInt16LE(4)).toBeGreaterThanOrEqual(3); // image count
+  });
+
+  it("declares square PNG favicons whose sizes are multiples of 48 (Google's rule) and exist at that size", () => {
+    for (const s of [48, 96, 192]) {
+      expect(html).toContain(`href="/favicon-${s}.png?v=`);
+      const b = png(`favicon-${s}.png`);
+      expect([b.readUInt32BE(16), b.readUInt32BE(20)]).toEqual([s, s]);
     }
   });
-  it("the HD mark is genuinely higher resolution than the original 328px-wide source", () => {
-    const h = fs.readFileSync(pub("logo-mark-hd.png"));
-    expect(h.readUInt32BE(20)).toBeGreaterThanOrEqual(600);
+
+  it("does not declare the big home-screen icon as a favicon (Google would crop its corners in a circle)", () => {
+    expect(html).not.toMatch(/rel="icon"[^>]*icon-512\.png/);
   });
-  it("the offline page and the banner use the transparent mark, and the worker precaches it", () => {
-    expect(fs.readFileSync(pub("offline.html"), "utf8")).toMatch(/logo-mark-sm\.png/);
-    expect(fs.readFileSync(path.join(root, "src/app/components/InstallPrompt.tsx"), "utf8")).toMatch(/logo-mark-sm\.png/);
-    expect(fs.readFileSync(pub("sw.js"), "utf8")).toMatch(/OFFLINE_ASSETS = \[[^\]]*logo-mark-sm\.png/);
+
+  it("the old 848 KB wide favicon.png is gone: it is a small square now", () => {
+    const b = png("favicon.png");
+    expect(b.readUInt32BE(16)).toBe(b.readUInt32BE(20));
+    expect(b.length).toBeLessThan(50_000);
+  });
+
+  it("the page has a descriptive title and Organization + WebSite structured data with the logo", () => {
+    expect(html).toMatch(/<title>FinRatio - Financial Ratio Analysis for Indian SMEs<\/title>/);
+    expect(html).toContain('"@type": "Organization"');
+    expect(html).toContain('"@type": "WebSite"');
+    expect(html).toContain("https://finratio.site/icon-512.png");
+  });
+
+  it("the in-app logo is a tight transparent crop (not the old image with big empty margins)", () => {
+    const b = png("logo-mark.png");
+    expect(b[25]).toBe(6); // RGBA
+    expect(b.readUInt32BE(16) / b.readUInt32BE(20)).toBeGreaterThan(0.7); // roughly square, not 328x574 portrait
   });
 });

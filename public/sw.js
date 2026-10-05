@@ -8,12 +8,12 @@
 // - Everything else is left alone: API calls (Supabase, Firebase, AI),
 //   analytics and any other-origin request never go through the cache, so
 //   financial data and auth are never served stale.
-const VERSION = "v3";
+const VERSION = "v5";
 const SHELL = `finratio-shell-${VERSION}`;
 const ASSETS = `finratio-assets-${VERSION}`;
 const OFFLINE_URL = "/offline.html";
 // Shown by the offline page, so they must be available with no network.
-const OFFLINE_ASSETS = ["/icon-192.png", "/logo-mark-sm.png"];
+const OFFLINE_ASSETS = ["/icon-192.png"];
 const MAX_ASSET_ENTRIES = 80;
 
 self.addEventListener("install", (event) => {

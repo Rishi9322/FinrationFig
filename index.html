@@ -3,10 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <!-- Favicons. Google wants a square image whose size is a multiple of 48px and shows
+         it cropped to a circle, so these are padded to stay inside the circle. The big
+         home-screen icons live in manifest.webmanifest, not here. -->
+    <link rel="icon" href="/favicon.ico?v=4" sizes="16x16 32x32 48x48" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=4" />
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png?v=4" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png?v=4" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png?v=4" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=4" />
     <!-- Installable app (add to home screen) -->
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#050A14" />
@@ -14,7 +19,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="FinRatio" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
-    <title>FinRatio SaaS</title>
+    <title>FinRatio - Financial Ratio Analysis for Indian SMEs</title>
     <meta name="description" content="FinRatio - financial intelligence for Indian business. Upload a balance sheet and run 12+ ratio calculators, CMA reports and risk assessments." />
     <link rel="canonical" href="https://finratio.site/" />
     <!-- Google Search Console verification: was shipping the literal
@@ -39,6 +44,31 @@
 
     <!-- JSON-LD: what FinRatio is, in a form both search and AI answer
          engines can quote directly instead of inferring from rendered JS. -->
+    <!-- Brand identity for search: tells Google the site's name and logo. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://finratio.site/#org",
+            "name": "FinRatio",
+            "url": "https://finratio.site/",
+            "logo": { "@type": "ImageObject", "url": "https://finratio.site/icon-512.png", "width": 512, "height": 512 },
+            "parentOrganization": { "@type": "Organization", "name": "Balaji Credit Services Pvt. Ltd.", "url": "https://balajicredits.com" }
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://finratio.site/#website",
+            "url": "https://finratio.site/",
+            "name": "FinRatio",
+            "alternateName": "FinRatio - Financial Ratio Analysis",
+            "inLanguage": "en-IN",
+            "publisher": { "@id": "https://finratio.site/#org" }
+          }
+        ]
+      }
+    </script>
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
