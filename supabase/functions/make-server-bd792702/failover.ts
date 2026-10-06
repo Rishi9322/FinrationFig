@@ -29,6 +29,8 @@ export type Provider = {
   name: string; url: string; key: string; model: string; headers: Record<string, string>;
   /** Overrides the default wait for this provider. */
   timeoutMs?: number;
+  /** Extra fields merged into this provider's request body (e.g. switch off a model's thinking mode). */
+  body?: Record<string, unknown>;
 };
 
 export type Attempt = { provider: string; outcome: number | "timeout" | "network" | "skipped" };
@@ -74,7 +76,7 @@ export async function callProviders(
           "Content-Type": "application/json",
           ...provider.headers,
         },
-        body: JSON.stringify({ ...payload, model: provider.model }),
+        body: JSON.stringify({ ...payload, ...provider.body, model: provider.model }),
         signal: AbortSignal.timeout(Math.min(provider.timeoutMs ?? opts.timeoutMs ?? PROVIDER_TIMEOUT_MS, remaining)),
       });
     } catch (error) {

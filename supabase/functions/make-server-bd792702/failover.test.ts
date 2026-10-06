@@ -94,6 +94,12 @@ describe("callProviders", () => {
     expect(init.headers.Authorization).toBe("Bearer secret");
   });
 
+  it("merges a provider's own body fields without letting them change the model", async () => {
+    const f = vi.fn(async () => ok()) as unknown as typeof fetch;
+    await callProviders([{ ...P("nvidia"), model: "nemo", body: { chat_template_kwargs: { enable_thinking: false }, model: "evil" } }], { messages: [1] }, { fetchImpl: f });
+    const [, init] = (f as any).mock.calls[0];
+    expect(JSON.parse(init.body)).toEqual({ messages: [1], chat_template_kwargs: { enable_thinking: false }, model: "nemo" });
+  });
   it("handles an empty provider list", async () => {
     expect(await callProviders([], {}, { fetchImpl: fakeFetch({}) })).toMatchObject({ ok: false, status: 502, reason: "unavailable" });
   });
