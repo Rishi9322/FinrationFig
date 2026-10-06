@@ -1084,7 +1084,8 @@ function chatProviders(): Provider[] {
       name: "nvidia",
       url: "https://integrate.api.nvidia.com/v1/chat/completions",
       key: nvidiaKey,
-      model: Deno.env.get("NVIDIA_MODEL_NAME") || "nvidia/nemotron-3.5-lightning-30b-a3b",
+      // Deliberately not NVIDIA_MODEL_NAME: that secret still holds a retired model id.
+      model: Deno.env.get("NVIDIA_FALLBACK_MODEL") || "nvidia/nemotron-3.5-lightning-30b-a3b",
       headers: {},
       timeoutMs: 15_000,
       // Fast answer, not a long reasoning trace: this is a failover route with a short time limit.
