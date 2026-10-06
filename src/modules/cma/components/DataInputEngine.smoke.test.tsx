@@ -127,7 +127,8 @@ describe("DataInputEngine classification + save flow", () => {
       new File(["hi"], "blank.txt", { type: "text/plain" }));
 
     await waitFor(() => expect(screen.getByText(/almost no readable text/i)).toBeInTheDocument());
-    expect(fetchSpy).not.toHaveBeenCalled();
+    // The diagnostic breadcrumb may go out; the AI must not be called.
+    expect(fetchSpy.mock.calls.some(([url]) => String(url).includes('/ai/'))).toBe(false);
   });
 
   it("a short but real CSV is not mistaken for a scan", async () => {
