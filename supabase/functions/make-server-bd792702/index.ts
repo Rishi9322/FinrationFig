@@ -1197,6 +1197,29 @@ app.post(`${API_PREFIX}/feedback`, async (c) => {
   return c.json({ id: data.id, createdAt: data.created_at }, 201);
 });
 
+// Diagnostic breadcrumbs (where a slow/stuck upload spent its time). Bounded on every axis:
+// two known kinds, a few small scalar fields, and a per-user hourly cap.
+const clientEventSchema = z.object({
+  kind: z.enum(["cma_upload_start", "cma_upload_end"]),
+  detail: z.record(z.string().max(40), z.union([z.string().max(300), z.number(), z.boolean(), z.null()]))
+    .refine((d) => Object.keys(d).length <= 25, "too many fields"),
+});
+
+app.post(`${API_PREFIX}/events`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.res;
+  const allowed = await validateRateLimit(`events:${auth.uid}`, 120, 60 * 60 * 1000);
+  if (!allowed) return c.json({ error: "Too many events" }, 429);
+  const parsed = await parseBody(c, clientEventSchema);
+  if (!parsed.ok) return parsed.response;
+  const admin = getSupabaseAdminClient();
+  const { error } = await admin.from("client_events").insert({
+    user_id: auth.uid, kind: parsed.data.kind, detail: parsed.data.detail,
+  });
+  if (error) return c.json({ error: "Could not record event" }, 500);
+  return c.json({ ok: true }, 201);
+});
+
 app.post(`${API_PREFIX}/onboarding`, async (c) => {
   const auth = await requireAuth(c);
   if (!auth) return c.res;

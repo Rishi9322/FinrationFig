@@ -8,6 +8,7 @@ import { useAuth } from '../../../app/hooks/useAuth';
 import { ManualReview } from './ManualReview';
 import { assessText, scoreClassification, type SourceKind } from '../../../lib/confidence';
 import { docxToText } from '../../../lib/docxText';
+import { logClientEvent, connectionInfo } from '../../../lib/telemetry';
 
 const CASE_STATUSES: CaseStatus[] = ["New", "Under Review", "Awaiting Docs", "Memo Ready", "Approved", "Declined"];
 
@@ -185,6 +186,16 @@ export function DataInputEngine() {
     const seq = ++uploadSeq.current;
     const superseded = () => seq !== uploadSeq.current;
 
+    // Breadcrumbs for diagnosing slow/stuck uploads (file type + size + timings only - never the name or contents).
+    const run = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+    const ext = (file.name.split('.').pop() || '').toLowerCase().slice(0, 8);
+    const t0 = performance.now();
+    const ms = () => Math.round(performance.now() - t0);
+    const timings: Record<string, number | string | boolean | null> = {};
+    let outcome = 'ok';
+    let errorText = '';
+    logClientEvent('cma_upload_start', { run, ext, sizeKB: Math.round(file.size / 1024), ...connectionInfo() });
+
     setIsLoading(true);
     setError("");
     // Start from nothing: if this upload is rejected or fails, the previous
@@ -201,6 +212,9 @@ export function DataInputEngine() {
       });
 
       const { text: extractedText, pages } = await extractFileText(file);
+      timings.extractMs = ms();
+      timings.pages = pages ?? null;
+      timings.chars = extractedText.length;
       if (superseded()) return;
       const format = inferSourceFormat(file.name);
 
@@ -210,10 +224,12 @@ export function DataInputEngine() {
       const quality = assessText(extractedText, { source, pages });
       if (quality.likelyScanned) {
         setError('This looks like a scanned or photographed document - almost no text could be read from it. Upload a text-based PDF, or an Excel/CSV file, for reliable extraction.');
+        outcome = 'scanned';
         return;
       }
       if (quality.empty) {
         setError('This file contains almost no readable text. Please check it and upload again.');
+        outcome = 'empty';
         return;
       }
 
@@ -223,11 +239,14 @@ export function DataInputEngine() {
       setSourceFormat(format);
 
       setIsClassifying(true);
+      const aiStart = ms();
       const [modelResult, parsed] = await Promise.all([
         classifyFinancialDocument(extractedText, file.name).catch(() => null),
         parseCmaFinancialData(extractedText, { sourceFormat: format, sourceName: file.name }),
       ]);
 
+      timings.aiMs = ms() - aiStart;
+      timings.classifierOk = modelResult !== null;
       if (superseded()) return;
 
       // Blend the model's answer with checks we can verify; a failed classifier
@@ -246,8 +265,14 @@ export function DataInputEngine() {
       setSourceMeta({ sourceName: file.name, sourceFormat: format });
       setActiveTab(1);
     } catch (err: any) {
+      outcome = 'error';
+      errorText = String(err?.message || err).slice(0, 200);
       if (!superseded()) setError(err.message || "Failed to parse the file");
     } finally {
+      logClientEvent('cma_upload_end', {
+        run, ext, outcome: superseded() && outcome === 'ok' ? 'cancelled' : outcome,
+        totalMs: ms(), error: errorText || null, ...timings,
+      });
       if (!superseded()) {
         setIsClassifying(false);
         setIsLoading(false);
