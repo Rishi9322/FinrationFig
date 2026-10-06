@@ -62,7 +62,7 @@ export function InstallPrompt() {
       className="fixed bottom-0 inset-x-0 z-[9980] flex flex-wrap items-center gap-x-3 gap-y-2 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-card border-t border-foreground/10 shadow-lg"
     >
       <img src="/icon-192.png" alt="" className="w-10 h-10 rounded-xl shrink-0" />
-      <div className="min-w-0 flex-1 basis-32 text-sm">
+      <div className="min-w-0 flex-1 basis-24 text-sm">
         <div className="font-medium text-foreground">Install FinRatio</div>
         {deferred ? (
           <div className="text-muted-foreground text-xs">Add it to your home screen for one-tap access.</div>

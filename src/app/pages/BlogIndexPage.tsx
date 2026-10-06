@@ -3,6 +3,7 @@ import { Link } from "react-router"
 import { toast } from "sonner"
 import { listPublishedPosts, BlogPost } from "../../lib/blog"
 import { listApprovedNews, NewsItem } from "../../lib/news"
+import { Skeleton } from "../components/ui/skeleton"
 
 export default function BlogIndexPage() {
   const [posts, setPosts] = useState<BlogPost[]>([])
@@ -28,7 +29,17 @@ export default function BlogIndexPage() {
         </p>
 
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <div role="status" aria-label="Loading posts" className="space-y-4">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="bg-card border border-foreground/8 rounded-xl p-5 sm:p-6 space-y-3">
+                <Skeleton className="bg-foreground/10 h-6 w-3/4" />
+                <Skeleton className="bg-foreground/10 h-4 w-full" />
+                <Skeleton className="bg-foreground/10 h-4 w-5/6" />
+                <Skeleton className="bg-foreground/10 h-3 w-40 mt-1" />
+              </div>
+            ))}
+            <span className="sr-only">Loading…</span>
+          </div>
         ) : posts.length === 0 ? (
           <p className="text-sm text-muted-foreground">No posts yet - check back soon.</p>
         ) : (
@@ -37,7 +48,7 @@ export default function BlogIndexPage() {
               <Link
                 key={p.id}
                 to={`/blog/${p.slug}`}
-                className="block bg-card border border-foreground/8 rounded-xl p-6 hover:border-primary/40 transition-colors"
+                className="block bg-card border border-foreground/8 rounded-xl p-5 sm:p-6 hover:border-primary/40 transition-colors"
               >
                 <h2 className="text-xl text-foreground mb-2" style={{ fontFamily: "'Instrument Serif', serif" }}>{p.title}</h2>
                 <p className="text-sm text-muted-foreground leading-relaxed mb-3">{p.excerpt}</p>
