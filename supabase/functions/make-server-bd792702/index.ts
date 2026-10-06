@@ -481,6 +481,7 @@ async function fetchNewsSource(s: NewsSource): Promise<RawItem[]> {
     redirect: "follow",
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (Number(res.headers.get("content-length") ?? 0) > NEWS_MAX_BYTES * 4) throw new Error("response too large");
   const text = (await res.text()).slice(0, NEWS_MAX_BYTES);
   if (s.kind === "gdelt") {
     try { return parseGdelt(JSON.parse(text)); } catch { throw new Error("not JSON (rate limited?)"); }
@@ -511,7 +512,8 @@ async function refreshNews(force: boolean): Promise<{ added: number; sources: nu
       }, await fetchNewsSource(r));
       let n = 0;
       if (rows.length) {
-        const { data: ins } = await admin.from("news_items").upsert(rows, { onConflict: "url", ignoreDuplicates: true }).select("id");
+        const { data: ins, error } = await admin.from("news_items").upsert(rows, { onConflict: "url", ignoreDuplicates: true }).select("id");
+        if (error) throw new Error(`save failed: ${error.message}`); // supabase-js returns errors, it doesn't throw
         n = ins?.length ?? 0;
       }
       added += n;
@@ -531,9 +533,9 @@ app.get(`${API_PREFIX}/news`, async (c) => {
   const refresh = refreshNews(false).catch((e) => console.warn("[news] refresh failed", e));
   try { (globalThis as any).EdgeRuntime?.waitUntil(refresh); } catch { /* best effort */ }
   await Promise.race([refresh, new Promise((r) => setTimeout(r, 10_000))]);
-  const { data } = await admin.from("news_items").select("*, news_sources(name)")
+  const { data, error } = await admin.from("news_items").select("*, news_sources(name)")
     .eq("status", "approved").order("published_at", { ascending: false, nullsFirst: false }).limit(12);
-  c.header("Cache-Control", "public, max-age=300");
+  if (!error) c.header("Cache-Control", "public, max-age=300"); // never cache a failure as "no news"
   return c.json({ items: (data ?? []).map((r: any) => newsItemView(r, r.news_sources?.name)) });
 });
 

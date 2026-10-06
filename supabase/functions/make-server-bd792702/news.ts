@@ -36,7 +36,7 @@ export interface NewsRow {
 
 export const MAX_TITLE = 200
 export const MAX_SNIPPET = 200
-export const MAX_NEW_PER_SOURCE = 30
+export const MAX_NEW_PER_SOURCE = 60
 
 const ENTITIES: Record<string, string> = {
   amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", rsquo: "'", lsquo: "'", ldquo: '"', rdquo: '"',
@@ -55,8 +55,9 @@ export function decodeEntities(s: string): string {
 
 /** Markup and entities -> plain text on one line. Safe to render: no tags survive. */
 export function stripHtml(html: string): string {
+  // Bound the input first: the tag regexes rescan on unclosed '<', so a huge malformed field would be slow.
   return decodeEntities(
-    html
+    html.slice(0, 20_000)
       .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
       .replace(/<(script|style)[\s\S]*?<\/\1>/gi, " ")
       .replace(/<[^>]*>/g, " "),
@@ -102,9 +103,12 @@ export function parseFeed(xml: string): RawItem[] {
     let link = stripHtml(tag(block, "link"))
     if (!link) {
       // Atom: <link rel="alternate" href="..."/> (prefer alternate, else first)
-      const alt = block.match(/<link\b[^>]*rel=["']alternate["'][^>]*href=["']([^"']+)["']/i)
-        ?? block.match(/<link\b[^>]*href=["']([^"']+)["']/i)
-      link = alt ? decodeEntities(alt[1]) : ""
+      // Judge each <link> tag on its own, in any attribute order; skip self/replies/enclosure.
+      for (const t of block.match(/<link\b[^>]*>/gi) ?? []) {
+        const href = t.match(/href=["']([^"']+)["']/i)?.[1]
+        const rel = t.match(/rel=["']([^"']+)["']/i)?.[1]?.toLowerCase()
+        if (href && (!rel || rel === "alternate")) { link = decodeEntities(href); break }
+      }
     }
     if (!link) link = stripHtml(tag(block, "guid"))
     const author = stripHtml(tag(block, "dc:creator") || tag(block, "author") || tag(block, "name"))

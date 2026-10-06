@@ -50,6 +50,14 @@ describe("parseFeed (Atom)", () => {
   });
 });
 
+describe("Atom link choice", () => {
+  it("ignores replies/enclosure links even when href comes before rel", () => {
+    const atom = `<feed><entry><title>T</title><link href="https://a.example/replies" rel="replies"/>
+<link href="https://a.example/post" rel="alternate"/><updated>2026-10-03T00:00:00Z</updated></entry></feed>`;
+    expect(toRows(src(), parseFeed(atom), now)[0].url).toBe("https://a.example/post");
+  });
+});
+
 describe("parseGdelt", () => {
   const data = { articles: [
     { url: "https://news.example/a", title: "RBI eases MSME norms", seendate: "20261004T093000Z", domain: "news.example" },
