@@ -1131,9 +1131,23 @@ app.post(`${API_PREFIX}/ai/chat`, async (c) => {
     ...(typeof body.max_tokens === "number" ? { max_tokens: body.max_tokens } : {}),
   };
 
+  const aiStartedAt = Date.now();
   const result = await callProviders(providers, payload, {
     log: (message, detail) => console.error(message, detail ?? ""),
   });
+
+  // Breadcrumb for diagnosing slow AI calls: which provider answered, how long it took,
+  // and how the others failed. No prompt or reply content - only its size.
+  try {
+    await getSupabaseAdminClient().from("client_events").insert({
+      user_id: auth.uid, kind: "ai_chat",
+      detail: {
+        ok: result.ok, provider: result.ok ? result.provider : null, ms: Date.now() - aiStartedAt,
+        stream: body.stream === true, promptChars: JSON.stringify(body.messages).length,
+        attempts: JSON.stringify(result.attempts).slice(0, 280),
+      },
+    });
+  } catch { /* diagnostics must never affect the answer */ }
 
   if (result.ok) {
     // Returning a raw Response replaces the one the CORS middleware decorated,
