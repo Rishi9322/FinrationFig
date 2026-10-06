@@ -61,6 +61,20 @@ describe("aiChat", () => {
     expect(apiRequest).toHaveBeenCalledTimes(2);
   });
 
+  it("a request that already hit its time limit is not retried (that would triple the wait)", async () => {
+    const timeout = Object.assign(new Error("The request took too long."), { name: "TimeoutError" });
+    apiRequest.mockRejectedValue(timeout);
+    await expect(aiChat(body, { sleep: noWait })).rejects.toMatchObject({ name: "TimeoutError" });
+    expect(apiRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it("an ordinary dropped connection is still retried quietly", async () => {
+    apiRequest.mockRejectedValueOnce(new TypeError("Failed to fetch")).mockResolvedValueOnce(okRes());
+    const res = await aiChat(body, { sleep: noWait });
+    expect(res.ok).toBe(true);
+    expect(apiRequest).toHaveBeenCalledTimes(2);
+  });
+
   it("an auth or bad-request error is thrown immediately, not retried", async () => {
     apiRequest.mockResolvedValueOnce(fail(401, { error: "Invalid session" }));
     await expect(aiChat(body, { sleep: noWait })).rejects.toMatchObject({ status: 401, message: "Invalid session" });

@@ -12,17 +12,43 @@ export function clearPhoneSessionToken(): void { localStorage.removeItem(PHONE_T
 // The edge routes that need the service role (AI proxy, admin, account ops)
 // authenticate with a Bearer token: the caller's Firebase ID token, or - for a
 // WhatsApp OTP session - the token above. The function verifies either kind.
+// A stalled connection (common on mobile data) makes fetch wait forever, which looks
+// like an endless spinner. The AI route may legitimately take ~2 minutes (the server
+// gives up at 130s); everything else should answer quickly.
+export const REQUEST_TIMEOUT_MS = 30_000
+export const AI_REQUEST_TIMEOUT_MS = 150_000
+
 export async function apiRequest(endpoint: string, options: RequestInit = {}): Promise<Response> {
   const token = auth.currentUser ? await auth.currentUser.getIdToken() : localStorage.getItem(PHONE_TOKEN_KEY)
 
-  return fetch(`${API_BASE}${endpoint}`, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  })
+  const controller = new AbortController()
+  const limit = endpoint.startsWith("/ai/") ? AI_REQUEST_TIMEOUT_MS : REQUEST_TIMEOUT_MS
+  const timer = setTimeout(() => controller.abort(), limit)
+  // Honour a caller's own signal (e.g. a Cancel button) as well as our time limit.
+  if (options.signal?.aborted) controller.abort() // cancelled while we were fetching the token
+  options.signal?.addEventListener("abort", () => controller.abort(), { once: true })
+
+  try {
+    return await fetch(`${API_BASE}${endpoint}`, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    })
+  } catch (error) {
+    if ((error as Error)?.name === "AbortError" && !options.signal?.aborted) {
+      const timeout = new Error("The request took too long. Please check your connection and try again.")
+      timeout.name = "TimeoutError"
+      throw timeout
+    }
+    throw error
+  } finally {
+    // The body of a streamed AI reply keeps flowing after this returns; only the wait for headers is limited.
+    clearTimeout(timer)
+  }
 }
 
 export async function apiCall(endpoint: string, options: RequestInit = {}) {

@@ -40,7 +40,10 @@ export async function aiChat(
       response = await apiRequest("/ai/chat", { method: "POST", body: JSON.stringify(body) })
     } catch (networkError) {
       // fetch itself failed (dropped mobile connection...): worth the same quiet retries.
-      const wait = retry && attempt < 2 ? 1500 * (attempt + 1) : null
+      // But a request that already waited out its whole time limit is not retried -
+      // that would just triple the wait on a connection that isn't working.
+      const timedOut = (networkError as Error)?.name === "TimeoutError"
+      const wait = retry && !timedOut && attempt < 2 ? 1500 * (attempt + 1) : null
       if (wait === null) throw networkError
       await sleep(wait)
       continue

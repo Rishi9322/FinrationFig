@@ -43,6 +43,20 @@ export function DataInputEngine() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Only the most recent upload may write results: if two overlap, the older reply is dropped.
   const uploadSeq = useRef(0);
+  // Seconds spent on the current upload, so a slow one (mobile data, a big file) shows progress
+  // and offers a way out instead of an unchanging spinner.
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!isLoading) { setElapsed(0); return; }
+    const t = setInterval(() => setElapsed((n) => n + 1), 1000);
+    return () => clearInterval(t);
+  }, [isLoading]);
+  const cancelUpload = () => {
+    uploadSeq.current++; // the in-flight upload sees it was superseded and drops its result
+    setIsClassifying(false);
+    setIsLoading(false);
+    setError('Cancelled. Upload the file again when you are ready.');
+  };
 
   useEffect(() => {
     if (!user) {
@@ -316,7 +330,17 @@ export function DataInputEngine() {
         {isLoading ? (
           <>
             <Loader2 className="w-6 h-6 text-link animate-spin" />
-            <p className="text-sm text-foreground">{isClassifying ? "Reading and parsing financials…" : `Extracting text from ${sourceName}…`}</p>
+            <p className="text-sm text-foreground">{isClassifying ? "Reading and parsing financials…" : "Reading your file…"}</p>
+            <p className="text-xs text-muted-foreground" role="status">
+              {elapsed < 15 ? `${elapsed}s` : `${elapsed}s - still working. Large files or a slow connection can take a minute or two.`}
+            </p>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); cancelUpload(); }}
+              className="mt-1 min-h-10 px-4 rounded-lg border border-foreground/20 text-sm text-foreground hover:bg-foreground/5"
+            >
+              Cancel
+            </button>
           </>
         ) : sourceName ? (
           <>
