@@ -50,7 +50,7 @@ export function AdminDashboardPage() {
   return (
     <AdminLayout>
       <div className="space-y-8">
-        <h1 className="text-4xl font-bold text-slate-900">Admin Dashboard</h1>
+        <h1 className="text-2xl sm:text-4xl font-bold text-slate-900">Admin Dashboard</h1>
 
         {loading ? (
           <div>Loading...</div>

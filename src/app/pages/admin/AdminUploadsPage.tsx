@@ -37,7 +37,7 @@ export function AdminUploadsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <h1 className="text-4xl font-bold text-slate-900">User Uploads</h1>
+        <h1 className="text-2xl sm:text-4xl font-bold text-slate-900">User Uploads</h1>
 
         {loading ? (
           <div>Loading...</div>

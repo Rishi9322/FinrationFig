@@ -58,10 +58,11 @@ export function InstallPrompt() {
       aria-label="Install FinRatio"
       // Bottom, so the site header stays visible. It sits just under the cookie
       // banner (z-9999): that one is answered first, then this is revealed.
-      className="fixed bottom-0 inset-x-0 z-[9980] flex items-center gap-3 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-card border-t border-foreground/10 shadow-lg"
+      // Wraps on very narrow screens (Fold cover display): the buttons drop under the text instead of squeezing it into a sliver.
+      className="fixed bottom-0 inset-x-0 z-[9980] flex flex-wrap items-center gap-x-3 gap-y-2 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-card border-t border-foreground/10 shadow-lg"
     >
       <img src="/icon-192.png" alt="" className="w-10 h-10 rounded-xl shrink-0" />
-      <div className="min-w-0 flex-1 text-sm">
+      <div className="min-w-0 flex-1 basis-32 text-sm">
         <div className="font-medium text-foreground">Install FinRatio</div>
         {deferred ? (
           <div className="text-muted-foreground text-xs">Add it to your home screen for one-tap access.</div>
@@ -75,7 +76,7 @@ export function InstallPrompt() {
         <button
           type="button"
           onClick={install}
-          className="shrink-0 inline-flex items-center gap-1.5 min-h-10 bg-primary hover:bg-primary-hover text-white text-sm font-medium px-4 py-2.5 rounded-lg"
+          className="shrink-0 ml-auto inline-flex items-center gap-1.5 min-h-10 bg-primary hover:bg-primary-hover text-white text-sm font-medium px-4 py-2.5 rounded-lg"
         >
           <Download className="h-4 w-4" /> Install
         </button>

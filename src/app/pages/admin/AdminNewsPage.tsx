@@ -51,8 +51,8 @@ export function AdminNewsPage() {
   return (
     <AdminLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-4xl font-bold text-slate-900">News feed</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl sm:text-4xl font-bold text-slate-900">News feed</h1>
           <button
             onClick={refresh}
             disabled={refreshing}

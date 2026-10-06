@@ -113,27 +113,28 @@ export default function HomePage() {
           scrolled ? "bg-background/90 backdrop-blur-md border-b border-foreground/8 shadow-lg" : ""
         }`}
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 w-full flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src="/logo-mark.png" alt="FinRatio" className="h-9 w-auto sm:h-9" />
-            <span className="text-lg font-semibold text-foreground tracking-tight">FinRatio</span>
-            <span className="text-[10px] font-['Geist_Mono'] bg-primary/20 text-link border border-primary/30 rounded px-1.5 py-0.5 leading-none">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 w-full flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <img src="/logo-mark.png" alt="FinRatio" className="h-8 sm:h-9 w-auto shrink-0" />
+            {/* Wordmark and β give way on the narrowest screens (Fold cover display) so the controls never overlap the logo. */}
+            <span className="hidden min-[340px]:inline text-lg font-semibold text-foreground tracking-tight">FinRatio</span>
+            <span className="hidden sm:inline text-[10px] font-['Geist_Mono'] bg-primary/20 text-link border border-primary/30 rounded px-1.5 py-0.5 leading-none">
               β
             </span>
           </div>
-          <nav className="flex items-center gap-3">
+          <nav className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <ThemeToggle />
             <Link
               to="/auth/signin"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors px-4 py-2 rounded-lg hover:bg-foreground/5"
+              className="text-sm text-foreground sm:text-muted-foreground hover:text-foreground transition-colors px-3 sm:px-4 py-2 rounded-lg border border-foreground/20 sm:border-transparent hover:bg-foreground/5 whitespace-nowrap"
             >
               Sign In
             </Link>
             <Link
               to="/auth/signup"
-              className="text-sm bg-primary hover:bg-primary-hover text-white px-5 py-2 rounded-lg font-medium transition-colors"
+              className="text-sm bg-primary hover:bg-primary-hover text-white px-3 sm:px-5 py-2 rounded-lg font-medium transition-colors whitespace-nowrap"
             >
-              Get Started
+              <span className="hidden min-[400px]:inline">Get </span>Started
             </Link>
           </nav>
         </div>
@@ -500,7 +501,7 @@ export default function HomePage() {
             </div>
             <p className="text-xs text-muted-foreground">Financial Intelligence for Indian Business</p>
           </div>
-          <nav className="flex items-center gap-6 text-sm text-muted-foreground">
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
             <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
             <a href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</a>
             <Link to="/auth/signin" className="hover:text-foreground transition-colors">Sign In</Link>

@@ -6,7 +6,7 @@ import { ThemeToggle } from "../../components/ThemeToggle"
 // old bookmarked URL lands somewhere sensible.
 export default function ResetPasswordPage() {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 pt-20 pb-12" style={{ fontFamily: "'DM Sans', sans-serif" }}>
       <ThemeToggle className="fixed top-4 right-4 z-10" />
       <div className="fixed inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at 50% 0%, rgba(37,99,235,0.09) 0%, transparent 65%)" }} />
       <div className="relative w-full max-w-sm">

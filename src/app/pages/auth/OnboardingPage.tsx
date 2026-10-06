@@ -69,7 +69,7 @@ export default function OnboardingPage() {
 
   return (
     <div
-      className="min-h-screen bg-background flex items-center justify-center px-4"
+      className="min-h-screen bg-background flex items-center justify-center px-4 pt-20 pb-10"
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
       <ThemeToggle className="fixed top-4 right-4 z-10" />
