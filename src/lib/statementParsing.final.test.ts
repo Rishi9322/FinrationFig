@@ -58,8 +58,8 @@ describe("labels that wrapped onto two lines are rejoined", () => {
   });
 
   it("an unrelated label-only line (a section heading) is NOT glued onto the next real line", () => {
-    expect(parseStatementLines("Current Liabilities\nSundry Creditors   250")).toEqual([item("Sundry Creditors", 250)]);
-    expect(parseStatementLines("EQUITY AND LIABILITIES\nShare Capital | 1,000")).toEqual([item("Share Capital", 1000)]);
+    expect(parseStatementLines("Current Liabilities\nSundry Creditors   250")).toMatchObject([item("Sundry Creditors", 250)]);
+    expect(parseStatementLines("EQUITY AND LIABILITIES\nShare Capital | 1,000")).toMatchObject([item("Share Capital", 1000)]);
   });
 });
 

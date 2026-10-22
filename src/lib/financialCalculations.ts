@@ -298,22 +298,19 @@ export function calculateNetWorkingCapital(
 export function calculateDrawingPower(
   eligibleStock: number,
   eligibleReceivables: number,
-  marginPercent: number
+  creditors: number
 ): CalculationResult {
-  if (eligibleStock < 0 || eligibleReceivables < 0) {
+  if (eligibleStock < 0 || eligibleReceivables < 0 || creditors < 0) {
     throw new Error("Values cannot be negative")
   }
-  if (marginPercent < 0 || marginPercent > 100) {
-    throw new Error("Margin percent must be between 0 and 100")
-  }
 
-  const drawingPower = (eligibleStock + eligibleReceivables) * (1 - marginPercent / 100)
-  const totalCollateral = eligibleStock + eligibleReceivables
+  const netCollateral = eligibleStock + eligibleReceivables - creditors
+  const drawingPower = (netCollateral * 75) / 100
 
   return {
     value: drawingPower,
     formatted: formatCurrency(drawingPower),
-    interpretation: `Drawing power based on ${marginPercent}% margin on eligible stock and receivables. Eligible collateral: ${formatCurrency(totalCollateral)}`,
+    interpretation: `Drawing power = 75% of (stock + debtors − creditors). Net collateral: ${formatCurrency(netCollateral)}`,
     risk: "n/a",
   }
 }
@@ -420,6 +417,19 @@ export interface PIDResult {
 }
 
 export function calculatePID(inputs: PIDInputs): PIDResult {
+  // Without these the sums divide by zero and the screen shows NaN / Infinity.
+  if (Object.values(inputs).some((v) => typeof v !== "number" || !Number.isFinite(v))) {
+    throw new Error("All PID inputs must be numbers")
+  }
+  if (inputs.salesCreditDays - inputs.purchaseCreditDays <= 0) {
+    throw new Error("Sales credit days must be more than purchase credit days - otherwise there is no gap for the facility to finance")
+  }
+  if (inputs.marginPercent < 0 || inputs.marginPercent >= 100) {
+    throw new Error("Margin percent must be at least 0 and below 100")
+  }
+  if (inputs.pidLimit < 0) {
+    throw new Error("PID limit cannot be negative")
+  }
   const gapDays = inputs.salesCreditDays - inputs.purchaseCreditDays
   const pidRotation = 365 / gapDays
   const purchaseSupported = inputs.pidLimit * pidRotation

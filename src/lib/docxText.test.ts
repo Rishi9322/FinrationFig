@@ -30,3 +30,28 @@ describe("htmlToRows", () => {
     expect(htmlToRows(html)).toBe("Balance Sheet\nShare Capital | 1,000\nTotal Assets | 2,600");
   });
 });
+
+describe("Word statements through the same classifier", () => {
+  const rows = (cells: string[][]) => `<table>${cells.map((r) => `<tr>${r.map((c) => `<td>${c}</td>`).join("")}</tr>`).join("")}</table>`;
+
+  it("a side-by-side (T-format) Word table keeps both sides", async () => {
+    const { buildSections } = await import("./statementParsing");
+    const html = rows([
+      ["Liabilities", "Amount", "Assets", "Amount"],
+      ["Capital Account", "10,00,000", "Closing Stock", "10,00,000"],
+      ["Bank OD A/c", "8,00,000", "Sundry Debtors", "8,00,000"],
+    ]);
+    const s = buildSections(parseStatementLines(htmlToRows(html)));
+    expect(s.assets.map((a) => a.name)).toEqual(["Closing Stock", "Sundry Debtors"]);
+    expect(s.liabilities.map((a) => a.name)).toEqual(["Bank OD A/c"]);
+    expect(s.equity.map((a) => a.name)).toEqual(["Capital Account"]);
+  });
+
+  it("heading paragraphs between tables and bulleted lines still count", async () => {
+    const { buildSections } = await import("./statementParsing");
+    const html = "<p>Current Assets</p><ul><li>Inventories 500</li><li>Cash 100</li></ul><p>Current Liabilities</p><ol><li>Trade payables 300</li></ol>";
+    const s = buildSections(parseStatementLines(htmlToRows(html)));
+    expect(s.assets.map((a) => a.amount)).toEqual([500, 100]);
+    expect(s.liabilities.map((a) => a.amount)).toEqual([300]);
+  });
+});

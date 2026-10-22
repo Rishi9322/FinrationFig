@@ -10,7 +10,7 @@ type SavedDrawingPowerCalculation = {
   inputs?: {
     eligibleStock?: number
     eligibleReceivables?: number
-    marginPercent?: number
+    creditors?: number
   }
   results?: CalculationResult & Record<string, unknown>
 }
@@ -20,7 +20,7 @@ export default function DrawingPowerPage() {
   const savedCalculation = (location.state as { calculation?: SavedDrawingPowerCalculation } | null)?.calculation
   const [eligibleStock, setEligibleStock] = useState("")
   const [eligibleReceivables, setEligibleReceivables] = useState("")
-  const [marginPercent, setMarginPercent] = useState("25")
+  const [creditors, setCreditors] = useState("")
   const [result, setResult] = useState<CalculationResult | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -36,8 +36,8 @@ export default function DrawingPowerPage() {
     if (inputs?.eligibleReceivables !== undefined) {
       setEligibleReceivables(String(inputs.eligibleReceivables))
     }
-    if (inputs?.marginPercent !== undefined) {
-      setMarginPercent(String(inputs.marginPercent))
+    if (inputs?.creditors !== undefined) {
+      setCreditors(String(inputs.creditors))
     }
 
     if (savedCalculation.results) {
@@ -52,11 +52,11 @@ export default function DrawingPowerPage() {
 
     const stock = parseFloat(eligibleStock)
     const receivables = parseFloat(eligibleReceivables)
-    const margin = parseFloat(marginPercent)
+    const creditorsValue = parseFloat(creditors)
 
-    if (!isNaN(stock) && !isNaN(receivables) && !isNaN(margin) && stock >= 0 && receivables >= 0 && margin >= 0 && margin <= 100) {
+    if (!isNaN(stock) && !isNaN(receivables) && !isNaN(creditorsValue)) {
       try {
-        setResult(calculateDrawingPower(stock, receivables, margin))
+        setResult(calculateDrawingPower(stock, receivables, creditorsValue))
         setError(null)
       } catch (e) {
         setError((e as Error).message)
@@ -66,19 +66,19 @@ export default function DrawingPowerPage() {
       setResult(null)
       setError(null)
     }
-  }, [eligibleStock, eligibleReceivables, marginPercent, savedCalculation])
+  }, [eligibleStock, eligibleReceivables, creditors, savedCalculation])
 
   return (
     <CalculatorShell
       title="Drawing Power"
       description="Calculates the maximum working capital limit a business can draw against pledged collateral."
-      explainerText="Drawing Power (DP) is the maximum amount a business can withdraw from its cash credit or overdraft account at any given time, calculated against the value of pledged stock and debtors after applying the bank's prescribed margin. Banks recalculate DP every month based on the latest stock and debtor statements submitted by the borrower. Staying within DP limits is a key compliance requirement - exceeding them triggers irregular account flags in credit monitoring reports."
+      explainerText="Drawing Power (DP) is the maximum amount a business can withdraw from its cash credit or overdraft account at any given time, calculated against the value of pledged stock and debtors after deducting creditors and applying 75%. Banks recalculate DP every month based on the latest stock and debtor statements submitted by the borrower. Staying within DP limits is a key compliance requirement - exceeding them triggers irregular account flags in credit monitoring reports."
       result={
         result ? (
           <ResultCard
             result={result}
             calculatorType="drawing-power"
-            inputs={{ eligibleStock: parseFloat(eligibleStock), eligibleReceivables: parseFloat(eligibleReceivables), marginPercent: parseFloat(marginPercent) }}
+            inputs={{ eligibleStock: parseFloat(eligibleStock), eligibleReceivables: parseFloat(eligibleReceivables), creditors: parseFloat(creditors) }}
           />
         ) : null
       }
@@ -100,24 +100,15 @@ export default function DrawingPowerPage() {
           helperText="Value of receivables eligible as collateral"
         />
 
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-foreground">Margin Percentage</label>
-          <div className="relative">
-            <input
-              type="number"
-              value={marginPercent}
-              onChange={(e) => setMarginPercent(e.target.value)}
-              placeholder="25"
-              min="0"
-              max="100"
-              step="0.1"
-              className="w-full px-4 py-2.5 pr-10 bg-background border border-foreground/10 rounded-lg text-foreground text-sm font-['Geist_Mono'] placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-colors"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-['Geist_Mono']">%</span>
-          </div>
-          <p className="text-xs text-muted-foreground">Bank's margin requirement (typically 20–25%)</p>
-          {error && <p className="text-xs text-destructive">{error}</p>}
-        </div>
+        <CurrencyInput
+          label="Creditors"
+          value={creditors}
+          onChange={setCreditors}
+          placeholder="Enter creditors"
+          helperText="Trade creditors, deducted before applying 75%"
+        />
+        {error && <p className="text-xs text-destructive">{error}</p>}
+        <p className="text-xs text-muted-foreground">Drawing Power = (Stock + Debtors − Creditors) × 75%</p>
       </div>
     </CalculatorShell>
   )

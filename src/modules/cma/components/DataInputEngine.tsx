@@ -442,6 +442,14 @@ export function DataInputEngine() {
             if (!balanceCheck.isBalanced) {
               reviewItems.push('Balance sheet does not tie out for one or more years.');
             }
+            const sourceCheck = (parsedData as any).sourceCheck as { status: string; detail: string } | undefined;
+            if (sourceCheck?.status === 'mismatch') {
+              reviewItems.push(sourceCheck.detail);
+            }
+            const signals = (parsedData as any).injectionSignals as string[] | undefined;
+            if (signals?.length) {
+              reviewItems.push(`This document contains text that looks aimed at an AI (${signals.join('; ')}). It was treated as data only, but check every extracted figure against the source.`);
+            }
             if (classification && classification.confidence < 0.6) {
               reviewItems.push(`Document type detection confidence is low (${Math.round(classification.confidence * 100)}%) - verify this is the intended statement.`);
             }

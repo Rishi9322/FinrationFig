@@ -30,6 +30,7 @@ import MacroRatiosPage from "./pages/calculators/MacroRatiosPage"
 import BalanceSheetAnalysisPage from "./pages/BalanceSheetAnalysisPage"
 import CmaGeneratorPage from "../modules/cma/pages/CmaGeneratorPage"
 import TestPdfPage from "./pages/TestPdfPage"
+import ReportSamplePage from "./pages/dev/ReportSamplePage"
 import ProfilePage from "./pages/ProfilePage"
 import FeedbackPage from "./pages/FeedbackPage"
 import AdminFeedbackPage from "./pages/admin/AdminFeedbackPage"
@@ -63,6 +64,8 @@ export const router = createBrowserRouter([
     path: "/",
     element: <HomePage />,
   },
+  // Preview of the assessment report with made-up figures; not part of the production build.
+  ...(import.meta.env.DEV ? [{ path: "/dev/report-sample", element: <ReportSamplePage /> }] : []),
   {
     path: "/test-pdf",
     element: (

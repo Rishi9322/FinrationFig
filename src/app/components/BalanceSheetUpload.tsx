@@ -52,7 +52,7 @@ function runCalculator(calculator: CalculatorType, inputs: Record<string, any>):
     case "net-working-capital":
       return calc.calculateNetWorkingCapital(Number(inputs.currentAssets) || 0, Number(inputs.currentLiabilities) || 0)
     case "drawing-power":
-      return calc.calculateDrawingPower(Number(inputs.eligibleStock) || 0, Number(inputs.eligibleReceivables) || 0, Number(inputs.marginPercent) || 0)
+      return calc.calculateDrawingPower(Number(inputs.eligibleStock) || 0, Number(inputs.eligibleReceivables) || 0, Number(inputs.creditors) || 0)
     case "ageing":
       return calc.calculateAgeing(inputs.receivables || [])
     case "pid":
@@ -71,6 +71,11 @@ export default function BalanceSheetUpload({ userId }: Props) {
   const [mapped, setMapped] = useState<any | null>(null)
   const [showDebug, setShowDebug] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  // Latest drop wins: a slow earlier parse must not overwrite a newer file's report. A file is also
+  // never sent to storage twice in a session (a double click or a re-pick would otherwise store it again).
+  const runRef = useRef(0)
+  const parsingRef = useRef<string | null>(null)
+  const uploadedRef = useRef<Set<string>>(new Set())
 
   // Re-map from the parsed statement whenever the file or calculator choice changes.
   useEffect(() => {
@@ -95,27 +100,40 @@ export default function BalanceSheetUpload({ userId }: Props) {
 
   async function handleFile(f: File | null) {
     if (!f) return
+    const signature = `${f.name}:${f.size}:${f.lastModified}`
+    if (parsingRef.current === signature) return // the same file picked twice while it is still being read
+    const run = ++runRef.current
     if (f.size > MAX_UPLOAD_BYTES) {
+      parsingRef.current = null
       setStatus("error")
       setErrorMsg(`File exceeds the ${MAX_UPLOAD_BYTES / (1024 * 1024)} MB limit`)
       return
     }
+    parsingRef.current = signature
     setFile(f)
     setStatus("parsing")
     setErrorMsg(null)
     try {
       const p = await parseFile(f)
+      if (run !== runRef.current) return // a newer file was chosen meanwhile
       setParsed(p)
       setStatus("parsed")
-      if (userId) {
+      if (userId && !uploadedRef.current.has(signature)) {
+        uploadedRef.current.add(signature)
         uploadBalanceSheetFile(f)
           .then(() => toast.success("Saved to your uploads"))
-          .catch((err) => toast.error("Upload failed: " + String(err?.message || err)))
+          .catch((err) => {
+            uploadedRef.current.delete(signature) // let a later attempt retry it
+            toast.error("Upload failed: " + String(err?.message || err))
+          })
       }
     } catch (err: any) {
+      if (run !== runRef.current) return
       setStatus("error")
       setErrorMsg(String(err?.message || err))
       setParsed(null)
+    } finally {
+      if (run === runRef.current) parsingRef.current = null
     }
   }
 
@@ -124,6 +142,23 @@ export default function BalanceSheetUpload({ userId }: Props) {
     handleFile(e.dataTransfer.files?.[0] ?? null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // A report with both consolidated and standalone statements: re-read the file for the other set.
+  async function switchBasis(basis: "consolidated" | "standalone") {
+    if (!file) return
+    const run = ++runRef.current
+    setStatus("parsing")
+    try {
+      const p = await parseFile(file, { basis })
+      if (run !== runRef.current) return
+      setParsed(p)
+      setStatus("parsed")
+    } catch (err: any) {
+      if (run !== runRef.current) return
+      setStatus("error")
+      setErrorMsg(String(err?.message || err))
+    }
+  }
 
   function updateMappedInput(key: string, value: string) {
     setMapped((prev: any) => ({ ...prev, inputs: { ...prev.inputs, [key]: value === "" ? "" : Number(value) } }))
@@ -196,6 +231,25 @@ export default function BalanceSheetUpload({ userId }: Props) {
           </>
         )}
       </label>
+
+      {parsed?.metadata?.bases && (
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground" role="group" aria-label="Statements to read">
+          This file has both sets of statements. Reading:
+          {parsed.metadata.bases.map((b: "consolidated" | "standalone") => (
+            <button
+              key={b}
+              type="button"
+              aria-pressed={parsed.metadata.basis === b}
+              onClick={() => switchBasis(b)}
+              className={`px-3 py-1 rounded-full border capitalize transition-colors ${
+                parsed.metadata.basis === b ? "bg-primary/10 text-primary border-primary/30" : "border-foreground/10 hover:bg-foreground/5"
+              }`}
+            >
+              {b}
+            </button>
+          ))}
+        </div>
+      )}
 
       {parsed && (
         <BalanceSheetReport parsed={parsed} businessConstitution={getCurrentUser()?.businessConstitution} userId={userId} />

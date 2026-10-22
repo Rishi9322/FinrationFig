@@ -90,7 +90,7 @@ function runCalculator(calcType, inputs) {
       case "net-working-capital":
         return calculateNetWorkingCapital(Number(inputs.currentAssets) || 0, Number(inputs.currentLiabilities) || 0)
       case "drawing-power":
-        return calculateDrawingPower(Number(inputs.eligibleStock) || 0, Number(inputs.eligibleReceivables) || 0, Number(inputs.marginPercent) || 25)
+        return calculateDrawingPower(Number(inputs.eligibleStock) || 0, Number(inputs.eligibleReceivables) || 0, Number(inputs.creditors) || 0)
       case "ageing":
         return calculateAgeing(inputs.receivables || [])
       case "pid":

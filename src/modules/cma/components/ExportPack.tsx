@@ -101,7 +101,7 @@ export function ExportPack() {
         </h3>
         {creditOpinion ? (
           <div style={{ color: 'var(--cma-text)', lineHeight: 1.6, fontSize: '0.95rem' }}>
-            <Markdown remarkPlugins={[remarkGfm]}>{creditOpinion}</Markdown>
+            <Markdown remarkPlugins={[remarkGfm]} disallowedElements={["a", "img"]} unwrapDisallowed>{creditOpinion}</Markdown>
           </div>
         ) : (
           <p style={{ color: 'var(--cma-text-faint)', fontStyle: 'italic' }}>

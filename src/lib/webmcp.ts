@@ -67,9 +67,9 @@ const TOOLS: Tool[] = [
   },
   {
     name: "calculate-drawing-power",
-    description: "Drawing power for a cash-credit limit from eligible stock and receivables after margin.",
-    args: [["eligibleStock", "Eligible stock"], ["eligibleReceivables", "Eligible receivables"], ["marginPercent", "Margin percent (0-100)"]],
-    run: (a) => calculateDrawingPower(a.eligibleStock, a.eligibleReceivables, a.marginPercent),
+    description: "Drawing power for a cash-credit limit: (stock + debtors − creditors) × 75%.",
+    args: [["eligibleStock", "Eligible stock"], ["eligibleReceivables", "Eligible receivables (debtors)"], ["creditors", "Creditors"]],
+    run: (a) => calculateDrawingPower(a.eligibleStock, a.eligibleReceivables, a.creditors),
   },
   {
     name: "calculate-working-capital-cycle",

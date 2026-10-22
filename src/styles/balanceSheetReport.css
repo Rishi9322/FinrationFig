@@ -1,4 +1,17 @@
+.print-only {
+  display: none;
+}
+
+@page {
+  size: A4;
+  margin: 14mm;
+}
+
 @media print {
+  html,
+  body {
+    background: #fff !important;
+  }
   body * {
     visibility: hidden;
   }
@@ -12,9 +25,45 @@
     border: none !important;
     background: white !important;
     color: black !important;
+    /* The page is white whatever theme the screen is in: use the light palette, or a dark-theme
+       session prints pale text on white. */
+    color-scheme: light;
+    --background: #F8FAFC;
+    --foreground: #0F172A;
+    --card: #FFFFFF;
+    --card-foreground: #0F172A;
+    --muted: #EEF2F7;
+    --muted-foreground: #56667A;
+    --primary: #2563EB;
+    --primary-hover: #1D4ED8;
+    --accent: #059669;
+    --warning: #B45309;
+    --destructive: #DC2626;
+    --link: #2563EB;
+    --border: rgba(15, 23, 42, 0.12);
   }
   .bs-report .no-print {
     display: none !important;
+  }
+  .bs-report .print-only {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #111;
+  }
+  .bs-report,
+  .bs-report * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .bs-report .print-logo {
+    height: 36px;
+    width: auto;
+  }
+  .bs-report table,
+  .bs-report li {
+    page-break-inside: avoid;
   }
   .bs-report-section {
     page-break-inside: avoid;

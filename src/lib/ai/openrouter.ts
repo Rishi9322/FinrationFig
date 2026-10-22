@@ -1,5 +1,16 @@
 import { aiChat } from "../ai";
 import { selectFinancialExcerpt, selectExtractionText, parseModelConfidence, parseBool } from "../confidence";
+import { CMA_EXTRACTION_PROMPT } from "./cmaPrompt";
+import { crossCheckAgainstSource } from "./sourceCheck";
+import { fenceUntrusted, scanForInjection, sanitizeCmaStrings, safeFilename, INJECTION_GUARD } from "./promptSafety";
+
+type ChatBody = Parameters<typeof aiChat>[0];
+/** Every model call here carries outside text somewhere (a document, a label read from one), so every one gets the guard. */
+const aiChatGuarded = (body: ChatBody, opts?: Parameters<typeof aiChat>[1]) =>
+  aiChat(
+    { ...body, messages: body.messages.map((m, i) => (i === 0 && m.role === "system" ? { ...m, content: `${m.content}\n\n${INJECTION_GUARD}` } : m)) },
+    opts,
+  );
 
 // Model identity is decided server-side; this label is only used in exports.
 const OPENROUTER_MODEL_NAME = "server-configured";
@@ -103,7 +114,7 @@ function buildLearningContext(rawText: string, sourceFormat?: string) {
       const parsedPreview = JSON.stringify(shape, null, 2);
       return [
         `Example ${index + 1} (${example.sourceFormat}, model: ${example.model}):`,
-        `Source preview: ${example.rawPreview}`,
+        `Source preview:\n${fenceUntrusted(example.rawPreview, "EARLIER DOCUMENT")}`,
         `Confirmed output: ${parsedPreview}`,
       ].join("\n");
     }),
@@ -199,7 +210,7 @@ export async function classifyFinancialDocument(rawText: string, sourceName?: st
   const excerpt = selectFinancialExcerpt(rawText, 4000);
   const startedAt = performance.now();
 
-  const response = await aiChat({
+  const response = await aiChatGuarded({
       response_format: { type: "json_object" },
       temperature: 0,
       max_tokens: 200,
@@ -217,7 +228,7 @@ A document is a financial document if it contains balance sheet, P&L, trial bala
         },
         {
           role: "user",
-          content: [sourceName ? `Filename: ${sourceName}` : "", "Extracted text:", excerpt].filter(Boolean).join("\n")
+          content: [sourceName ? `Filename: ${safeFilename(sourceName)}` : "", "Extracted text:", fenceUntrusted(excerpt)].filter(Boolean).join("\n")
         }
       ]
   }, { retry: false });
@@ -247,108 +258,17 @@ export async function parseCmaFinancialData(rawText: string, options: ParseOptio
   const learningContext = buildLearningContext(rawText, options.sourceFormat);
   const sourceExcerpt = selectExtractionText(rawText);
   const sourceDescriptor = [
-    options.sourceName ? `Source file: ${options.sourceName}` : null,
+    options.sourceName ? `Source file: ${safeFilename(options.sourceName)}` : null,
     options.sourceFormat ? `Source format: ${options.sourceFormat}` : null,
   ].filter(Boolean).join("\n");
 
-  const response = await aiChat({
+  const response = await aiChatGuarded({
       response_format: { type: "json_object" },
       temperature: 0,
       messages: [
         {
           role: "system",
-          content: `You are a senior banking CMA analyst in India. Extract financial data from the user's input and return ONLY valid JSON (no markdown, no explanation) with this exact structure:
-{
-  "company": "string - the name as it literally appears in the primary source content. If the document does not name a company, return an empty string. Never take it from an example.",
-  "unit": "Rs. Lakhs",
-  "years": ["2024-25","2025-26","2026-27"],
-  "yearTypes": ["Actual","Provisional","Projected"],
-  "operatingStatement": {
-    "grossSales": [],
-    "exportSales": [],
-    "exciseDuty": [],
-    "netSales": [],
-    "rawMaterials": { "imported": [], "indigenous": [] },
-    "otherSpares": [],
-    "powerFuel": [],
-    "directLabour": [],
-    "otherManufacturingExpenses": [],
-    "depreciationManufacturing": [],
-    "costOfProduction": [],
-    "openingStockFinishedGoods": [],
-    "closingStockFinishedGoods": [],
-    "totalCostOfSales": [],
-    "sellingAdminExpenses": [],
-    "operatingProfitBeforeInterest": [],
-    "interestOnTL": [],
-    "interestOnWC": [],
-    "totalInterest": [],
-    "otherNonOperatingIncome": [],
-    "profitBeforeTax": [],
-    "provisionForTax": [],
-    "netProfit": [],
-    "dividend": [],
-    "retainedProfit": []
-  },
-  "balanceSheet": {
-    "currentLiabilities": {
-      "bankBorrowingsCC": [],
-      "bankBorrowingsOther": [],
-      "totalBankBorrowings": [],
-      "shortTermOthers": [],
-      "sundryCreditors": [],
-      "advanceFromCustomers": [],
-      "provisionTaxGratuity": [],
-      "dividendPayable": [],
-      "tlInstalmentsWithin1Yr": [],
-      "otherCurrentLiabilities": [],
-      "totalCurrentLiabilitiesExclBank": [],
-      "totalCurrentLiabilities": []
-    },
-    "termLiabilities": {
-      "debentures": [],
-      "termLoansExclInstalment": [],
-      "deferredPaymentCredits": [],
-      "unsecuredLoans": [],
-      "totalTermLiabilities": []
-    },
-    "totalOutsideLiabilities": [],
-    "netWorth": {
-      "ordinaryShareCapital": [],
-      "preferenceShareCapital": [],
-      "generalReserve": [],
-      "otherReserves": [],
-      "surplusDeficitPL": [],
-      "totalNetWorth": []
-    },
-    "totalLiabilities": [],
-    "currentAssets": {
-      "cashAndBank": [],
-      "shortTermInvestments": [],
-      "tradeReceivablesDomestic": [],
-      "tradeReceivablesExport": [],
-      "instalmentsOfDeferredReceivables": [],
-      "rawMaterialStock": { "imported": [], "indigenous": [] },
-      "stockInProcess": [],
-      "finishedGoodsStock": [],
-      "advanceToSuppliers": [],
-      "advancePaymentOfTaxes": [],
-      "otherCurrentAssets": [],
-      "totalCurrentAssets": []
-    },
-    "fixedAssets": {
-      "grossBlock": [],
-      "depreciationToDate": [],
-      "netBlock": []
-    },
-    "otherNonCurrentAssets": [],
-    "totalNonCurrentAssets": [],
-    "totalAssets": [],
-    "tangibleNetWorth": [],
-    "netWorkingCapital": []
-  }
-}
-Auto-compute any missing fields using standard accounting relationships. Verify Total Assets = Total Liabilities. Flag imbalance with a "balanceCheck" key.`
+          content: CMA_EXTRACTION_PROMPT
         },
         {
           role: "user",
@@ -356,7 +276,7 @@ Auto-compute any missing fields using standard accounting relationships. Verify 
             sourceDescriptor,
             learningContext ? `\n${learningContext}` : "",
             "\nPrimary source content:",
-            sourceExcerpt,
+            fenceUntrusted(sourceExcerpt),
           ].join("\n")
         }
       ]
@@ -377,8 +297,10 @@ Auto-compute any missing fields using standard accounting relationships. Verify 
 
   const durationMs = Math.round(performance.now() - startedAt);
   console.log(`[openrouter] parseCmaFinancialData took ${durationMs}ms`);
-  const verified = verifyCompanyAgainstSource(validateCmaShape(parsed), rawText);
-  return { ...verified, _parseDurationMs: durationMs };
+  const verified = sanitizeCmaStrings(crossCheckAgainstSource(verifyCompanyAgainstSource(validateCmaShape(parsed), rawText), rawText));
+  // Not blocked - a statement may quote odd text - but a person should read this document with care.
+  const injectionSignals = scanForInjection(rawText);
+  return { ...verified, ...(injectionSignals.length ? { injectionSignals } : {}), _parseDurationMs: durationMs };
 }
 
 /**
@@ -446,7 +368,7 @@ export async function generateFinancialPrognosis(
   sectorBenchmark: Record<string, unknown> | null
 ): Promise<FinancialPrognosis> {
   const startedAt = performance.now();
-  const response = await aiChat({
+  const response = await aiChatGuarded({
     response_format: { type: "json_object" },
     temperature: 0.3,
     max_tokens: 500,
@@ -494,7 +416,7 @@ export async function generateFinancialPrognosis(
  */
 export async function generateCreditRecommendation(cmaData: any): Promise<CreditRecommendation> {
   const startedAt = performance.now();
-  const response = await aiChat({
+  const response = await aiChatGuarded({
     response_format: { type: "json_object" },
     temperature: 0,
     max_tokens: 900,
@@ -513,7 +435,7 @@ export async function generateCreditRecommendation(cmaData: any): Promise<Credit
 }
 Limits are in ₹ Lakhs. Use exact numbers from the CMA - do not invent figures. If a limit doesn't apply, use null.`,
       },
-      { role: "user", content: JSON.stringify(cmaData) },
+      { role: "user", content: JSON.stringify(sanitizeCmaStrings(cmaData ?? {})) },
     ],
   });
 
@@ -602,7 +524,7 @@ Use exact numbers from the CMA. Do not invent figures or ratios. If a required n
       },
       {
         role: "user",
-        content: JSON.stringify(cmaData)
+        content: JSON.stringify(sanitizeCmaStrings(cmaData ?? {}))
       }
     ]
   };
@@ -610,7 +532,7 @@ Use exact numbers from the CMA. Do not invent figures or ratios. If a required n
   for (let attempt = 0; attempt < 3; attempt++) {
     let response: Response;
     try {
-      response = await aiChat(requestBody);
+      response = await aiChatGuarded(requestBody);
     } catch (error) {
       // Retry only on the server's rate-limit signal, with a bounded backoff.
       if (attempt < 2 && (error as { status?: number })?.status === 429) {

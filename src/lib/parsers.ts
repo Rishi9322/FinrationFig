@@ -1,7 +1,10 @@
 import type ParsedBalanceSheet from "./parsedBalanceSheet"
 import type { LineItem, ReceivableItem, SourceFormat } from "./parsedBalanceSheet"
-import { parseAmount, parseStatementLines, pdfItemsToRows, buildSections, scoreExtraction, splitCsvLine, itemsFromRows } from "./statementParsing"
+import { parseAmount, parseStatementLines, pdfItemsToRows, buildSections, buildIncomeStatement, statementRegion, statementBases, statementUnit, principalRepayments, type Basis, scoreExtraction, splitCsvLine, itemsFromRows } from "./statementParsing"
 import { docxToText } from "./docxText"
+import { looksParsed, sanitizeParsed } from "./sanitizeParsed"
+
+const MAX_PDF_PAGES = 300
 
 function parseCSVText(text: string): LineItem[] {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean)
@@ -12,14 +15,12 @@ function parseCSVText(text: string): LineItem[] {
 /** An explicit "Name, Amount" header picks those columns; otherwise statement rules apply. */
 function itemsFromRowsWithHeader(rows: string[][]): LineItem[] {
   const headers = rows[0].map((h) => h.toLowerCase())
-  const idxName = headers.findIndex((h) => /name|account|description/.test(h))
+  const idxName = headers.findIndex((h) => /name|account|description|particulars|head|item/.test(h))
   const idxValue = headers.findIndex((h) => /value|amount|balance|amt/.test(h))
-  if (idxName === -1 || idxValue === -1) return itemsFromRows(rows)
+  if (idxName === -1 || idxValue === -1 || idxName === idxValue) return itemsFromRows(rows)
 
-  return rows
-    .slice(1)
-    .map((cols) => ({ name: (cols[idxName] || cols[0] || "").trim(), value: parseAmount(cols[idxValue]) }))
-    .filter((it) => it.name)
+  // An explicit Name/Amount layout: still honour section rows ("Current Assets" with no amount).
+  return itemsFromRows(rows.slice(1).map((cols) => [cols[idxName] || cols[0] || "", cols[idxValue] ?? ""]))
 }
 
 async function parseXLSXBuffer(buffer: ArrayBuffer): Promise<{ items: LineItem[]; sheetNames: string[] }> {
@@ -53,33 +54,41 @@ function fromItems(
       equity: sections.equity,
       totals: sections.totals,
     },
+    incomeStatement: buildIncomeStatement(sections.income),
     metadata: { confidence: score.confidence, notes: [note, ...score.notes].join(" ") },
   }
 }
 
-export async function parseFile(file: File): Promise<ParsedBalanceSheet> {
+export async function parseFile(file: File, options: { basis?: Basis } = {}): Promise<ParsedBalanceSheet> {
   const name = file.name || "upload"
   const lower = name.toLowerCase()
   const parsedAt = new Date().toISOString()
+
+  // Nothing to read. Also keeps the PDF / Word readers away from a zero-byte buffer, which they can stall on.
+  if (file.size === 0) {
+    return {
+      sourceFilename: name, originalFormat: "other", parsedAt, accounts: [],
+      balanceSheet: { assets: [], liabilities: [], equity: [] },
+      metadata: { confidence: 0, notes: "This file is empty." },
+    }
+  }
 
   try {
     if (lower.endsWith(".json")) {
       const text = await file.text()
       const obj = JSON.parse(text)
-      // If already in parsed shape, trust it
-      if (obj && obj.balanceSheet) {
-          return { ...obj, sourceFilename: name, originalFormat: "json", parsedAt }
-        }
+      // Already in parsed shape: rebuild it from scratch - a JSON upload is user input like any other.
+      if (looksParsed(obj)) return sanitizeParsed(obj, { name, parsedAt })
 
       // try to turn arrays into line items
       const items: LineItem[] = []
       if (Array.isArray(obj)) {
         for (const row of obj) {
-          if (typeof row === "object") {
+          if (typeof row === "object" && row !== null && !Array.isArray(row)) {
             const keys = Object.keys(row)
             const nameKey = keys.find((k) => /name|account|description/i.test(k))
             const valueKey = keys.find((k) => /value|amount|balance|amt/i.test(k))
-            const nameV = nameKey ? String(row[nameKey]) : JSON.stringify(row)
+            const nameV = (nameKey ? String(row[nameKey]) : JSON.stringify(row)).slice(0, 300)
             const valueV = valueKey ? Number(row[valueKey]) : NaN
             items.push({ name: nameV, value: isNaN(valueV) ? 0 : valueV })
           }
@@ -111,6 +120,7 @@ export async function parseFile(file: File): Promise<ParsedBalanceSheet> {
     if (lower.endsWith(".pdf") || lower.match(/\.png$|\.jpg$|\.jpeg$/) || lower.endsWith(".docx") || lower.endsWith(".doc")) {
       try {
         let extracted = ""
+        let pageCapNote = ""
 
         if (lower.endsWith(".docx")) {
           // Table rows stay together as "label | amount" lines (raw text split every cell onto its own line).
@@ -123,7 +133,9 @@ export async function parseFile(file: File): Promise<ParsedBalanceSheet> {
           const uint8 = new Uint8Array(buffer)
           const loadingTask = pdfjs.getDocument({ data: uint8 })
           const doc = await loadingTask.promise
-          const maxPages = doc.numPages
+          // A statement pack is dozens of pages, not thousands: stop there rather than lock the tab for minutes.
+          const maxPages = Math.min(doc.numPages, MAX_PDF_PAGES)
+          if (doc.numPages > MAX_PDF_PAGES) pageCapNote = ` Only the first ${MAX_PDF_PAGES} of ${doc.numPages} pages were read.`
           const textParts: string[] = []
           for (let i = 1; i <= maxPages; i++) {
             try {
@@ -169,12 +181,21 @@ export async function parseFile(file: File): Promise<ParsedBalanceSheet> {
         }
 
         // parse extracted text into label/amount line items
-        const items = extracted ? parseStatementLines(extracted) : []
+        const bases = statementBases(extracted)
+        const region = statementRegion(extracted, options.basis)
+        const items = extracted ? parseStatementLines(region) : []
+        const unit = statementUnit(extracted)
         const format = (lower.endsWith(".pdf") ? "pdf" : lower.endsWith(".docx") ? "docx" : "other") as SourceFormat
         const note = extracted.trim()
-          ? "Text read from the document; please verify the classification."
+          ? `Text read from the document${region.length < extracted.length ? " (statements only - notes and cash flow skipped)" : ""}; please verify the classification.${unit ? ` Amounts are in ${unit}.` : ""}`
           : "No text could be read - this looks like a scanned document."
-        return fromItems({ name, format, parsedAt }, items, note, false)
+        const result = fromItems({ name, format, parsedAt }, items, note + pageCapNote, false)
+        if (unit) result.metadata = { ...result.metadata, unit }
+        // A report with both consolidated and standalone statements: say which was read, so the user can switch.
+        if (bases.length > 1) result.metadata = { ...result.metadata, bases, basis: options.basis && bases.includes(options.basis) ? options.basis : bases[0] }
+        const repaid = principalRepayments(extracted)
+        if (repaid !== undefined) result.incomeStatement = { ...(result.incomeStatement ?? {}), principalRepayment: repaid }
+        return result
       } catch (err: any) {
         return {
           sourceFilename: name,

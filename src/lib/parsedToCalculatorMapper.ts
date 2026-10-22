@@ -1,5 +1,6 @@
 import { CalculatorType } from "./financialCalculations"
 import type ParsedBalanceSheet from "./parsedBalanceSheet"
+import { isCurrentAsset, isCurrentLiability } from "./statementParsing"
 
 export type MapperResult = {
   inputs: Record<string, unknown>
@@ -38,7 +39,7 @@ function findIncomeValue(income: Record<string, any>, patterns: RegExp[]): numbe
 
 // Bank borrowings under any of their Indian names - missing cash credit made a
 // leveraged firm look debt-free.
-const DEBT_PATTERNS = [/loan/, /borrow/, /debt/, /overdraft/, /bond/, /debenture/, /cash\s*credit/, /working\s*capital/, /bills?\s*(?:payable|discounted)/]
+const DEBT_PATTERNS = [/loan/, /borrow/, /debt/, /overdraft/, /\bod\b/, /\bcc\b/, /\bwcdl\b/, /bond/, /debenture/, /cash\s*credit/, /working\s*capital/, /bills?\s*(?:payable|discounted)/, /acceptances?/, /hire\s*purchase/, /finance\s+lease/, /lease\s+liabilit/, /deferred\s+payment/, /\bncd\b/]
 
 /**
  * Liabilities excluding equity, for when no debt line matched. Indian balance
@@ -61,6 +62,9 @@ function sumSections(items: { amount: number }[] | undefined) {
   return items.reduce((s, it) => s + (Number(it.amount) || 0), 0)
 }
 
+/** Debt by the line's own words, or by sitting under a "Secured/Unsecured Loans" heading ("Bajaj Finance", "Axis Bank P/L"). */
+const isDebt = (s: { name?: string; group?: string }) => s.group === "borrowing" || DEBT_PATTERNS.some((p) => p.test((s.name || "").toLowerCase()))
+
 function findAndSumByName(sections: { name?: string; amount: number }[] | undefined, patterns: RegExp[]) {
   if (!sections) return { sum: 0, matched: 0 }
   let sum = 0
@@ -72,6 +76,13 @@ function findAndSumByName(sections: { name?: string; amount: number }[] | undefi
       matched++
     }
   }
+  return { sum, matched }
+}
+
+function sumWhere<T extends { amount: number }>(items: T[] | undefined, pick: (s: T) => boolean) {
+  let sum = 0
+  let matched = 0
+  for (const s of items ?? []) if (pick(s)) { sum += Number(s.amount) || 0; matched++ }
   return { sum, matched }
 }
 
@@ -107,7 +118,7 @@ export function mapToCalculator(
   switch (calculatorType) {
     case "debt-equity": {
       // Try to pick only debt-like liabilities first
-      const { sum: debtSum, matched } = findAndSumByName(parsed.balanceSheet.liabilities, DEBT_PATTERNS)
+      const { sum: debtSum, matched } = sumWhere(parsed.balanceSheet.liabilities, isDebt)
             const totalEquity = getTotalEquity(parsed)
 
       const totalDebt = matched > 0 ? debtSum : liabilitiesExcludingEquity(parsed)
@@ -135,7 +146,7 @@ export function mapToCalculator(
       const nonQuasiLiabilities = (parsed.balanceSheet.liabilities || []).filter(
         (s) => !quasiNames.some((p) => p.test((s.name || "").toLowerCase()))
       )
-      const { sum: debtSum, matched: debtMatched } = findAndSumByName(nonQuasiLiabilities, DEBT_PATTERNS)
+      const { sum: debtSum, matched: debtMatched } = sumWhere(nonQuasiLiabilities, isDebt)
       const totalDebt = debtMatched > 0 ? debtSum : liabilitiesExcludingEquity(parsed) - quasiSum
 
       const equity = getTotalEquity(parsed)
@@ -149,9 +160,9 @@ export function mapToCalculator(
 
     case "current-ratio":
     case "net-working-capital": {
-      // heuristic: look for 'current' in section names
-      const currentAssets = findAndSumByName(parsed.balanceSheet.assets, [/current/, /cash/, /bank/, /receivable/, /debtor/, /inventory/, /\bstock/, /advance/, /prepaid/])
-      const currentLiabilities = findAndSumByName(parsed.balanceSheet.liabilities, [/current/, /payable/, /creditors/, /overdraft/, /cash\s*credit/, /bills?\s*(?:payable|discounted)/, /provision/, /outstanding/, /short[-\s]?term/])
+      // A "Current Assets" heading in the file decides; otherwise the line's own words do.
+      const currentAssets = sumWhere(parsed.balanceSheet.assets, isCurrentAsset)
+      const currentLiabilities = sumWhere(parsed.balanceSheet.liabilities, isCurrentLiability)
 
       // fallback to totals
       const ca = currentAssets.matched > 0 ? currentAssets.sum : getTotalAssets(parsed).value
@@ -177,13 +188,21 @@ export function mapToCalculator(
         income,
         category === "individual" ? [/net\s*profit/, /profit\s*after\s*tax/, /^pat$/] : [/profit\s*before\s*tax/, /^pbt$/]
       )
+      let addBacks = { depreciation: 0, financeCost: 0 }
       if (typeof constitutionProfit === "number") {
         ebitda = constitutionProfit
+        // profit is after depreciation and interest: add back the ones the file shows
+        addBacks = { depreciation: Math.max(0, Number(income.depreciation) || 0), financeCost: Math.max(0, Number(income.interestExpense) || 0) }
         notes.push(
           category === "individual"
             ? "EBITDA base taken from Net Profit (Proprietorship/Partnership)"
             : "EBITDA base taken from Profit Before Tax"
         )
+      }
+
+      if (ebitda === undefined && typeof income.ebitda === "number") {
+        ebitda = income.ebitda
+        notes.push("EBITDA read directly from the file")
       }
 
       // Prefer explicit gross profit from balance sheet equity if present (some CMA reports use this as EBITDA)
@@ -229,20 +248,34 @@ export function mapToCalculator(
       // the derived figure is already an add-back total, so it maps onto `profit`
       // with the other add-backs at zero
       return {
-        inputs: { profit: ebitda ?? 0, depreciation: 0, financeCost: 0, sales: revenue || 0 },
+        inputs: { profit: ebitda ?? 0, ...addBacks, sales: revenue || 0 },
         confidence: conf,
         notes: notes.join("; "),
       }
     }
 
     case "dscr": {
+      // cash available for debt service ~ EBIT + depreciation
       const netOperatingIncome =
         income.netOperatingIncome ??
-        income.ebit ??
+        (typeof income.ebit === "number" ? income.ebit + (Number(income.depreciation) || 0) : undefined) ??
         ((income.revenue && income.operatingExpenses) ? (income.revenue - (income.operatingExpenses || 0)) : undefined)
-      const totalDebtService = income.totalDebtService ?? income["debt service"] ?? 0
-      const conf = netOperatingIncome && totalDebtService ? 0.85 : 0.45
-      return { inputs: { netOperatingIncome: netOperatingIncome ?? 0, totalDebtService }, confidence: conf }
+      // Debt service = interest + principal repaid. The principal comes from the cash flow statement when the
+      // file has one; a balance sheet alone shows interest only.
+      const principal = Number(income.principalRepayment) || 0
+      const explicit = income.totalDebtService ?? income["debt service"]
+      const totalDebtService = explicit ?? ((Number(income.interestExpense) || 0) + principal)
+      const conf = netOperatingIncome && totalDebtService ? (explicit !== undefined ? 0.85 : principal ? 0.75 : 0.5) : 0.45
+      return {
+        inputs: { netOperatingIncome: netOperatingIncome ?? 0, totalDebtService },
+        confidence: conf,
+        notes:
+          explicit !== undefined || !totalDebtService
+            ? undefined
+            : principal
+              ? "Debt service = interest + principal repayments read from the cash flow statement"
+              : "Debt service is interest only - add principal repayments for a true DSCR",
+      }
     }
 
     case "iscr": {
@@ -252,7 +285,7 @@ export function mapToCalculator(
         income,
         category === "individual" ? [/net\s*profit/, /profit\s*after\s*tax/, /^pat$/] : [/profit\s*before\s*tax/, /^pbt$/]
       )
-      const ebit = constitutionProfit ?? income.ebit ?? income["operating profit"] ?? 0
+      const ebit = income.ebit ?? constitutionProfit ?? income["operating profit"] ?? 0
       const interestExpense = income.interestExpense ?? income.interest ?? 0
       const conf = ebit && interestExpense ? 0.8 : 0.45
       return { inputs: { ebit, interestExpense }, confidence: conf }
@@ -260,12 +293,14 @@ export function mapToCalculator(
 
     case "drawing-power": {
       // inventory/stock + eligible receivables
-      const inventoryMatch = findAndSumByName(parsed.balanceSheet.assets, [/inventory/, /stock/, /stores/])
+      const inventoryMatch = findAndSumByName(parsed.balanceSheet.assets, [/inventor/, /stock/, /stores/, /spares/, /raw\s*material/, /finished\s*goods/, /work[-\s]in/, /consumable/])
       const eligibleStock = inventoryMatch.matched > 0 ? inventoryMatch.sum : 0
-      const eligibleReceivables = parsed.receivables ? parsed.receivables.reduce((s, r) => s + (Number(r.amount) || 0), 0) : 0
-      // marginPercent should be collected from user; set placeholder 25
-      const marginPercent = 25
-      return { inputs: { eligibleStock, eligibleReceivables, marginPercent }, confidence: 0.6, notes: "marginPercent defaulted to 25%" }
+      // Uploaded statements carry no ageing list, so take the debtors line when there is no receivables list.
+      const eligibleReceivables = parsed.receivables
+        ? parsed.receivables.reduce((s, r) => s + (Number(r.amount) || 0), 0)
+        : findAndSumByName(parsed.balanceSheet.assets, [/debtor/, /receivable/]).sum
+      const creditors = findAndSumByName(parsed.balanceSheet.liabilities, [/creditor/, /trade\s*payable/, /accounts?\s*payable/, /suppliers?/, /bills?\s*payable/, /acceptances?/]).sum
+      return { inputs: { eligibleStock, eligibleReceivables, creditors }, confidence: 0.6 }
     }
 
     case "ageing": {

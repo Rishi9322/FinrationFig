@@ -114,6 +114,9 @@ app.use("/*", async (c, next) => {
   await next();
 });
 
+// A saved calculation is a handful of numbers. Without a bound, one request can park megabytes in the database.
+const smallJson = (v: unknown) => JSON.stringify(v).length <= 200_000;
+
 const Schemas = {
   adminCreateUser: z.object({
     name: z.string().trim().min(1).max(120),
@@ -166,12 +169,12 @@ const Schemas = {
   }),
   calculation: z.object({
     calculatorType: z.string().trim().min(1).max(64),
-    inputs: z.record(z.string(), z.unknown()).default({}),
-    results: z.record(z.string(), z.unknown()).default({}),
+    inputs: z.record(z.string(), z.unknown()).refine(smallJson, "Too large").default({}),
+    results: z.record(z.string(), z.unknown()).refine(smallJson, "Too large").default({}),
   }),
   calculationUpdate: z.object({
-    inputs: z.record(z.string(), z.unknown()).optional(),
-    results: z.record(z.string(), z.unknown()).optional(),
+    inputs: z.record(z.string(), z.unknown()).refine(smallJson, "Too large").optional(),
+    results: z.record(z.string(), z.unknown()).refine(smallJson, "Too large").optional(),
   }),
   upload: z.object({
     filename: z.string().trim().min(1).max(255),
@@ -723,8 +726,13 @@ app.post(`${API_PREFIX}/auth/phone/send-otp`, async (c) => {
   const phone = normalizePhone(parsed.data.phone);
   if (!phone) return c.json({ error: "Enter a valid phone number" }, 400);
 
-  const allowed = await validateRateLimit(`phone-otp:${phone}`, 3, 10 * 60 * 1000);
-  if (!allowed) return c.json({ error: "Too many requests. Try again later." }, 429);
+  // Per number stops hammering one phone; per address stops sweeping many numbers (each send is a paid,
+  // unsolicited WhatsApp message to someone else, from an endpoint that needs no sign-in).
+  const [phoneOk, ipOk] = await Promise.all([
+    validateRateLimit(`phone-otp:${phone}`, 3, 10 * 60 * 1000),
+    validateRateLimit(`phone-otp-ip:${requestIp(c)}`, 15, 60 * 60 * 1000),
+  ]);
+  if (!phoneOk || !ipOk) return c.json({ error: "Too many requests. Try again later." }, 429);
 
   const whatsappUrl = Deno.env.get("WHATSAPP_API_URL");
   const whatsappKey = Deno.env.get("WHATSAPP_API_KEY");
@@ -1112,8 +1120,14 @@ app.post(`${API_PREFIX}/ai/chat`, async (c) => {
   const providers = chatProviders();
   if (providers.length === 0) return c.json({ error: "AI is not configured" }, 503);
 
-  const allowed = await validateRateLimit(`ai:${auth.uid}`, 60, 60 * 60 * 1000);
-  if (!allowed) return c.json({ error: "AI request quota exceeded. Try again later." }, 429);
+  // Per account (hour and day) and per address: invites make accounts scarce, but a few accounts from
+  // one place should still not multiply the allowance.
+  const [hourOk, dayOk, ipOk] = await Promise.all([
+    validateRateLimit(`ai:${auth.uid}`, 60, 60 * 60 * 1000),
+    validateRateLimit(`ai-day:${auth.uid}`, 300, 24 * 60 * 60 * 1000),
+    validateRateLimit(`ai-ip:${requestIp(c)}`, 200, 60 * 60 * 1000),
+  ]);
+  if (!hourOk || !dayOk || !ipOk) return c.json({ error: "AI request quota exceeded. Try again later." }, 429);
 
   if (Number(c.req.header("Content-Length") ?? 0) > MAX_AI_REQUEST_BYTES) {
     return c.json({ error: "Request too large" }, 413);
@@ -1122,6 +1136,10 @@ app.post(`${API_PREFIX}/ai/chat`, async (c) => {
   const parsed = await parseBody(c, Schemas.aiChat);
   if (!parsed.ok) return parsed.response;
   const body = parsed.data;
+  // The Content-Length check above is skipped by a request that omits the header; count what actually arrived.
+  if (body.messages.reduce((n, m) => n + m.content.length, 0) > MAX_AI_REQUEST_BYTES) {
+    return c.json({ error: "Request too large" }, 413);
+  }
 
   const payload = {
     messages: body.messages,
@@ -1200,6 +1218,9 @@ app.put(`${API_PREFIX}/me`, async (c) => {
 app.post(`${API_PREFIX}/feedback`, async (c) => {
   const auth = await requireAuth(c);
   if (!auth) return c.res;
+  if (!(await validateRateLimit(`feedback:${auth.uid}`, 20, 60 * 60 * 1000))) {
+    return c.json({ error: "Too many feedback messages. Try again later." }, 429);
+  }
   const parsed = await parseBody(c, Schemas.feedback);
   if (!parsed.ok) return parsed.response;
   const admin = getSupabaseAdminClient();
@@ -1263,6 +1284,10 @@ app.get(`${API_PREFIX}/calculations`, async (c) => {
 app.post(`${API_PREFIX}/calculations`, async (c) => {
   const auth = await requireAuth(c);
   if (!auth) return c.res;
+  // "Save all" on a report writes about eight rows at once, so this allows dozens of clicks an hour.
+  if (!(await validateRateLimit(`calc-save:${auth.uid}`, 600, 60 * 60 * 1000))) {
+    return c.json({ error: "Too many saves. Try again later." }, 429);
+  }
   const parsed = await parseBody(c, Schemas.calculation);
   if (!parsed.ok) return parsed.response;
   const admin = getSupabaseAdminClient();
@@ -1303,6 +1328,12 @@ app.put(`${API_PREFIX}/calculations/:id`, async (c) => {
 app.post(`${API_PREFIX}/uploads`, async (c) => {
   const auth = await requireAuth(c);
   if (!auth) return c.res;
+  // Each upload is stored as text in the database (up to 10 MB), so it is the costliest write here:
+  // refuse an oversize body and a flood before reading the body at all.
+  if (Number(c.req.header("Content-Length") ?? 0) > 14 * 1024 * 1024) return c.json({ error: "File exceeds the 10 MB limit" }, 413);
+  if (!(await validateRateLimit(`upload:${auth.uid}`, 40, 60 * 60 * 1000))) {
+    return c.json({ error: "Too many uploads. Try again later." }, 429);
+  }
   const parsed = await parseBody(c, Schemas.upload);
   if (!parsed.ok) return parsed.response;
   const decoded = Math.floor((parsed.data.fileBase64.length * 3) / 4);

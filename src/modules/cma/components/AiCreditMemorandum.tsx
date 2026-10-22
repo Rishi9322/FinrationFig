@@ -282,7 +282,7 @@ export function AiCreditMemorandum() {
           {creditOpinion ? (
             // The model replies in Markdown. react-markdown escapes HTML by
             // default, which matters because this is untrusted model output.
-            <Markdown remarkPlugins={[remarkGfm]}>{creditOpinion}</Markdown>
+            <Markdown remarkPlugins={[remarkGfm]} disallowedElements={["a", "img"]} unwrapDisallowed>{creditOpinion}</Markdown>
           ) : (
             <div style={{ color: 'var(--cma-text-faint)', fontStyle: 'italic', display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
               Click "Generate Opinion" to stream a credit memorandum from the cloud AI.

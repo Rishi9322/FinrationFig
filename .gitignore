@@ -112,3 +112,18 @@ __pycache__/
 
 # Test fixtures for the Word statement reader
 !src/lib/__fixtures__/*.docx
+
+# Throwaway files from local experiments and test runs
+zz_*
+*.profile/
+.vite/
+*.tsbuildinfo
+
+# Credentials and downloaded datasets must never be committed
+.kaggle/
+kaggle.json
+access_token
+**/kaggle_fs/
+
+# Per-machine Claude Code settings
+.claude/settings.local.json
