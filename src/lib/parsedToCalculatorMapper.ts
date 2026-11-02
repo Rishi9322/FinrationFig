@@ -63,7 +63,7 @@ function sumSections(items: { amount: number }[] | undefined) {
 }
 
 /** Debt by the line's own words, or by sitting under a "Secured/Unsecured Loans" heading ("Bajaj Finance", "Axis Bank P/L"). */
-const isDebt = (s: { name?: string; group?: string }) => s.group === "borrowing" || DEBT_PATTERNS.some((p) => p.test((s.name || "").toLowerCase()))
+const isDebt = (s: { name?: string; group?: string; amount?: number }) => s.group === "borrowing" || DEBT_PATTERNS.some((p) => p.test((s.name || "").toLowerCase()))
 
 function findAndSumByName(sections: { name?: string; amount: number }[] | undefined, patterns: RegExp[]) {
   if (!sections) return { sum: 0, matched: 0 }
@@ -331,6 +331,5 @@ export function mapToCalculator(
   }
 }
 
-export type { MapperResult }
 
 export default mapToCalculator

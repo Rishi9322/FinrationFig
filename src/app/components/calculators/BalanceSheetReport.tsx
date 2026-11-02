@@ -36,12 +36,27 @@ const GRADE_STYLE: Record<Grade, string> = {
 }
 const RISK_WORD = { low: "Low risk", moderate: "Moderate risk", high: "High risk", "n/a": "n/a" } as const
 
+/** Debt against a net worth that is zero or negative is not "missing data" - it is the worst leverage case. */
+function noNetWorth(debt: number, netWorth: number): CalculationResult | null {
+  if (netWorth > 0 || debt <= 0) return null
+  return {
+    value: null,
+    formatted: netWorth < 0 ? "Negative net worth" : "No net worth",
+    interpretation: netWorth < 0
+      ? "Liabilities exceed assets, so there is no equity behind the debt - the highest leverage risk."
+      : "Net worth is zero, so there is no equity behind the debt - the highest leverage risk.",
+    risk: "high",
+  }
+}
+
 function runCalculator(calculator: CalculatorType, inputs: Record<string, any>): CalculationResult {
   switch (calculator) {
     case "debt-equity":
-      return calc.calculateDebtEquity(Number(inputs.totalDebt) || 0, Number(inputs.totalEquity) || 0)
+      return noNetWorth(Number(inputs.totalDebt) || 0, Number(inputs.totalEquity) || 0)
+        ?? calc.calculateDebtEquity(Number(inputs.totalDebt) || 0, Number(inputs.totalEquity) || 0)
     case "quasi-debt-equity":
-      return calc.calculateQuasiDebtEquity(Number(inputs.totalDebt) || 0, Number(inputs.quasiDebt) || 0, Number(inputs.equity) || 0)
+      return noNetWorth((Number(inputs.totalDebt) || 0) + (Number(inputs.quasiDebt) || 0), Number(inputs.equity) || 0)
+        ?? calc.calculateQuasiDebtEquity(Number(inputs.totalDebt) || 0, Number(inputs.quasiDebt) || 0, Number(inputs.equity) || 0)
     case "current-ratio":
       return calc.calculateCurrentRatio(Number(inputs.currentAssets) || 0, Number(inputs.currentLiabilities) || 0)
     case "dscr":
@@ -89,7 +104,7 @@ export function BalanceSheetReport({ parsed, businessConstitution, userId }: Pro
     })
   }, [parsed, businessConstitution])
 
-  const rowsByCalculator = new Map(rows.map((r) => [r.calculator, r]))
+  const rowsByCalculator = new Map<CalculatorType, ReportRow>(rows.map((r) => [r.calculator, r] as const))
   // Extraction confidence is about how well the file was read, so calculators with
   // no automatic mapping at all must not drag it down.
   const mappedRows = rows.filter((r) => !r.unmapped)

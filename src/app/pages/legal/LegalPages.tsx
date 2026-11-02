@@ -23,11 +23,19 @@ export function PrivacyPage() {
         <><strong>Account data:</strong> your name, email address, and your password (held and hashed by Google Firebase Authentication — we never see it). If you sign in with Google we receive your Google name and email. If you sign in with a WhatsApp one-time code we process your phone number.</>,
         <><strong>Profile data:</strong> your role, account status, calculator access, and the business constitution (e.g. proprietorship, company) you choose during onboarding.</>,
         <><strong>Financial data you provide:</strong> the figures you enter into calculators, the results you save, and files you upload (such as balance sheets, up to 10 MB each).</>,
+        <><strong>Information about other people or businesses:</strong> documents you upload (for example a borrower's financial statements) may contain personal or business information about someone else. You are responsible for having the right to share it (see our <L to="/terms">Terms of Use</L>).</>,
         <><strong>Invite data:</strong> the invite code you redeem and the email it was redeemed with.</>,
         <><strong>Feedback:</strong> reviews, feature requests and bug reports you send, with your email.</>,
         <><strong>Security and technical data:</strong> IP address, request and audit-log entries (for example sign-ups, role changes and file downloads by administrators), used to prevent abuse and keep the Service secure.</>,
+        <><strong>Usage limits and diagnostics:</strong> to keep the Service fair and protect it from abuse we count requests (for example AI requests, uploads and sign-in codes) per account and, for some actions, per IP address over a short window. When you upload a document we may record technical details such as file type, size, timings and whether it worked — not the file name or its contents. Records of AI requests keep the provider used, timing and size, not the text sent.</>,
         <><strong>Analytics (only if you accept cookies):</strong> page views and interaction data from Google Analytics and Microsoft Clarity. See the <L to="/cookies">Cookie Policy</L>.</>,
       ]} />
+
+      <P>
+        Reading a financial statement, grading it and comparing it with peers happen in your browser. If you are signed in,
+        the original file is also stored with your account. Text from a document is sent to an AI provider only when you
+        use an AI feature, such as the CMA generator, and only the text needed for that analysis is sent.
+      </P>
 
       <H>2. Why we use it</H>
       <UL items={[
@@ -132,7 +140,10 @@ export function TermsPage() {
         "upload malware, or attempt to probe, disrupt, overload or bypass security or rate limits;",
         "scrape, copy, resell or reverse-engineer the Service except as the law allows;",
         "use the Service to mislead lenders, auditors or authorities, or to produce documents you know to be false;",
-        "share your account or invite codes with people we have not approved.",
+        "share your account or invite codes with people we have not approved;",
+        "use automated means to send requests, or create or use several accounts, to get round usage limits;",
+        "write text into documents or other content meant to make the AI features ignore their instructions or behave differently, or use the AI features for purposes unrelated to the Service;",
+        "upload files built to crash, overload or exploit software, such as malformed or deliberately oversized files.",
       ]} />
 
       <H>3. Your content</H>
@@ -142,12 +153,22 @@ export function TermsPage() {
         providers), solely to operate and improve the Service for you. You are responsible for the accuracy and legality of
         Your Content.
       </P>
+      <P>
+        If Your Content includes information about another person or business — for example a borrower's or customer's
+        financial statements — you confirm that you have the authority, and any consent the law requires, to upload it and
+        have it processed as described in our <L to="/privacy">Privacy Policy</L>.
+      </P>
 
       <H>4. Results and AI output</H>
       <P>
         Calculator results, reports and AI analysis are indicative and depend entirely on the inputs you provide. They can
         contain errors or omissions. They are not financial, credit, investment, tax, accounting or legal advice — please read
         the <L to="/disclaimer">Disclaimer</L>. You are solely responsible for decisions you make using the Service.
+      </P>
+      <P>
+        The assessment grade (A to D), key figures and peer comparison are automated indicators worked out from the figures
+        read from your document. They are not a credit rating issued by a rating agency and not a lending decision. Peer
+        figures come from public data on listed companies, which may be out of date or not comparable to your business.
       </P>
 
       <H>5. Our intellectual property</H>
@@ -167,7 +188,8 @@ export function TermsPage() {
       <H>7. Availability</H>
       <P>
         We aim to keep the Service running but do not promise uninterrupted or error-free operation. Planned or unplanned
-        downtime, third-party outages and data loss can occur; keep your own copies of important documents.
+        downtime, third-party outages and data loss can occur; keep your own copies of important documents. Fair-use limits
+        apply (for example on AI requests and uploads per hour), and we may change them.
       </P>
 
       <H>8. Disclaimer of warranties</H>
@@ -229,6 +251,8 @@ export function DisclaimerPage() {
         "Outputs are only as good as the data you enter or upload. Typing errors, wrong units and mis-read documents change the answer.",
         "Document parsing and OCR may misread figures. Always check extracted values against the source.",
         "Valuation outputs are indicative estimates and are not a formal valuation.",
+        "The assessment grade (A to D) and peer comparison are automated indicators, not a credit rating by a rating agency and not a lending decision. Peer figures come from public data on listed companies, mostly mid-size and large, so a small business will often compare unfavourably, and the data may be out of date.",
+        "Statements are read in the unit printed on them (rupees, lakhs, crore). Check the unit shown in the report against your document.",
         "Benchmarks, thresholds and ratings are general guides; they may not match your lender's own policy.",
       ]} />
 

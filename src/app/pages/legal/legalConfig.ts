@@ -15,7 +15,7 @@ export const LEGAL = {
   // business can actually meet the new numbers.
   grievanceAckHours: 48,
   grievanceResolveDays: 30,
-  lastUpdated: "1 October 2026",
+  lastUpdated: "22 October 2026",
 } as const
 
 export const LEGAL_PAGES = [

@@ -464,7 +464,7 @@ Limits are in ₹ Lakhs. Use exact numbers from the CMA - do not invent figures.
 export async function* streamCmaCreditOpinion(cmaData: any) {
   const startedAt = performance.now();
   let firstChunkAt: number | null = null;
-  const requestBody = {
+  const requestBody: ChatBody = {
     temperature: 0.2,
     stream: true,
     max_tokens: 1100,
