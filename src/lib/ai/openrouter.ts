@@ -371,7 +371,7 @@ export async function generateFinancialPrognosis(
   const response = await aiChatGuarded({
     response_format: { type: "json_object" },
     temperature: 0.3,
-    max_tokens: 500,
+    max_tokens: 1500, // 500 truncated the JSON mid-string (reasoning tokens count too) -> "no valid JSON"
     messages: [
       {
         role: "system",
@@ -419,7 +419,7 @@ export async function generateCreditRecommendation(cmaData: any): Promise<Credit
   const response = await aiChatGuarded({
     response_format: { type: "json_object" },
     temperature: 0,
-    max_tokens: 900,
+    max_tokens: 1500,
     messages: [
       {
         role: "system",
@@ -549,17 +549,16 @@ Use exact numbers from the CMA. Do not invent figures or ratios. If a required n
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
 
-    let isFinished = false;
-    while (!isFinished) {
+    let buffer = "";
+    while (true) {
       const { done, value } = await reader.read();
-      if (done) {
-        isFinished = true;
-        break;
-      }
+      if (done) break;
 
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n');
-      
+      // SSE lines can straddle network chunks; keep the unfinished tail for the next read.
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() ?? "";
+
       for (const line of lines) {
         if (line.startsWith('data: ') && line !== 'data: [DONE]') {
           try {

@@ -225,19 +225,19 @@ export function AiCreditMemorandum() {
               AI-estimated outlook, not a statistical forecast - optionally benchmarked against sector medians from ~4,400 Indian listed companies.
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', flex: '1 1 260px', minWidth: 0 }}>
             <select
               value={sector}
               onChange={(e) => setSector(e.target.value)}
               className="cma-btn"
-              style={{ backgroundColor: 'var(--cma-panel-bg)', color: 'var(--cma-text)', border: '1px solid var(--cma-border)' }}
+              style={{ flex: '1 1 180px', minWidth: 0, backgroundColor: 'var(--cma-panel-bg)', color: 'var(--cma-text)', border: '1px solid var(--cma-border)' }}
             >
               <option value="">No sector benchmark</option>
               {listBenchmarkSectors().map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
-            <button className="cma-btn" onClick={handlePrognosis} disabled={isPrognosing || !computedData}>
+            <button className="cma-btn" style={{ flex: '1 1 auto', whiteSpace: 'nowrap' }} onClick={handlePrognosis} disabled={isPrognosing || !computedData}>
               {isPrognosing ? 'Estimating…' : (prognosis ? 'Re-estimate' : 'Estimate Prognosis')}
             </button>
           </div>
@@ -275,7 +275,7 @@ export function AiCreditMemorandum() {
           className="cma-memo"
           style={{
             backgroundColor: 'var(--cma-panel-bg)', border: '1px solid var(--cma-border)', borderRadius: '8px',
-            padding: '2rem', minHeight: '400px', maxHeight: '600px', overflowY: 'auto',
+            padding: 'clamp(1rem, 4vw, 2rem)', minHeight: '400px', maxHeight: '600px', overflowY: 'auto',
             lineHeight: '1.6', color: 'var(--cma-text)', fontSize: '0.95rem',
           }}
         >
