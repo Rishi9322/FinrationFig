@@ -35,6 +35,9 @@ export function CurrencyInput({
         <input
           id={label}
           type="text"
+          inputMode="decimal"
+          enterKeyHint="done"
+          autoComplete="off"
           value={displayValue}
           onChange={(e) => {
             const val = e.target.value.replace(/[^0-9.]/g, "")

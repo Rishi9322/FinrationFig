@@ -79,7 +79,7 @@ export function Navbar() {
   return (
     <>
       <nav
-        className={`sticky top-0 z-50 h-16 flex items-center transition-all duration-300 ${
+        className={`sticky top-0 z-50 h-[calc(4rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] flex items-center transition-all duration-300 ${
           scrolled ? "bg-background/95 backdrop-blur-md border-b border-foreground/8 shadow-lg" : "bg-background border-b border-foreground/8"
         } font-['DM_Sans',sans-serif]`}
       >
@@ -245,7 +245,7 @@ export function Navbar() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="md:hidden absolute top-16 left-0 right-0 bg-card border-b border-foreground/8 max-h-[80vh] overflow-y-auto z-50">
+          <div className="md:hidden absolute top-full left-0 right-0 bg-card border-b border-foreground/8 max-h-[80vh] overflow-y-auto z-50">
             <div className="px-4 py-4 space-y-1">
               <div className="flex items-center justify-between px-3 py-1.5">
                 <span className="text-xs font-['Geist_Mono'] text-muted-foreground uppercase tracking-widest">Appearance</span>

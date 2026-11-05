@@ -127,3 +127,6 @@ access_token
 
 # Per-machine Claude Code settings
 .claude/settings.local.json
+
+# FinRatio launch film (local render project, screenshots, fonts, renders)
+launch-film/

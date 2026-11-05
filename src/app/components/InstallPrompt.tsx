@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { Download, Share, X } from "lucide-react"
 import { isIos, isStandalone, readDismissed, recentlyDismissed, writeDismissed } from "../../lib/pwa"
+import { isNative } from "../../lib/native"
 
 // Chromium's install event is not in lib.dom.
 interface BeforeInstallPromptEvent extends Event {
@@ -18,7 +19,7 @@ export function InstallPrompt() {
   const [iosHint, setIosHint] = useState(false)
 
   useEffect(() => {
-    if (isStandalone() || recentlyDismissed(readDismissed())) return
+    if (isNative() || isStandalone() || recentlyDismissed(readDismissed())) return   // already an app: never offer to install it
 
     const onPrompt = (e: Event) => {
       e.preventDefault() // keep the event so the user can trigger it from our button

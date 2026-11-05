@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from "react-router"
 import { ProtectedRoute } from "./components/ProtectedRoute"
 import { Navbar } from "./components/Navbar"
 import HomePage from "./pages/HomePage"
+import HomePagePreview from "./pages/HomePagePreview"
 import SignupPage from "./pages/auth/SignupPage"
 import SigninPage from "./pages/auth/SigninPage"
 import VerifyOtpPage from "./pages/auth/VerifyOtpPage"
@@ -65,6 +66,8 @@ export const router = createBrowserRouter([
     path: "/",
     element: <HomePage />,
   },
+  // Homepage experiments (WebGL hero, live gauge); dev only, never part of the production build.
+  ...(import.meta.env.DEV ? [{ path: "/preview", element: <HomePagePreview /> }] : []),
   // Preview of the assessment report with made-up figures; not part of the production build.
   ...(import.meta.env.DEV ? [{ path: "/dev/report-sample", element: <ReportSamplePage /> }] : []),
   {

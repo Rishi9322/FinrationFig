@@ -1,0 +1,18 @@
+{
+  "appId": "site.finratio.app",
+  "appName": "FinRatio",
+  "webDir": "dist",
+  "backgroundColor": "#050A14",
+  "server": {
+    "hostname": "app.finratio.site",
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 1200,
+      "backgroundColor": "#050A14",
+      "showSpinner": false
+    }
+  }
+}

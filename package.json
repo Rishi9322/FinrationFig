@@ -9,9 +9,15 @@
     "test": "vitest",
     "ocr:compare": "node tools/ocr/compare.mjs",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "app:sync": "vite build && cap sync",
+    "app:android": "vite build && cap sync android && cap open android"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4",
     "@emotion/react": "11.14.0",
     "@emotion/styled": "11.14.1",
     "@mui/icons-material": "7.3.5",
@@ -85,6 +91,8 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/cli": "^8.6.0",
     "@tailwindcss/vite": "4.1.12",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.1",

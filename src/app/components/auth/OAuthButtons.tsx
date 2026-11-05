@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useNavigate, useSearchParams } from "react-router"
 import { toast } from "sonner"
 import { ENABLED_OAUTH_PROVIDERS, signInWithOAuth, type OAuthProvider } from "../../../lib/auth"
+import { isNative } from "../../../lib/native"
 
 // One button per enabled provider. A successful Google popup resolves in-page
 // (no redirect), so we navigate to the app ourselves once it completes.
@@ -22,7 +23,8 @@ export function OAuthButtons() {
     }
   }
 
-  if (ENABLED_OAUTH_PROVIDERS.length === 0) return null
+  // The popup flow does not work inside an app webview. Hidden there until native Google / Apple sign-in is added.
+  if (isNative() || ENABLED_OAUTH_PROVIDERS.length === 0) return null
 
   return (
     <div className="space-y-2">

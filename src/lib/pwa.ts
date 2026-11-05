@@ -1,3 +1,4 @@
+import { isNative } from "./native";
 // Helpers for the installable (add-to-home-screen) app. Pure where possible so
 // they can be tested without a browser.
 
@@ -63,7 +64,7 @@ export function recoverFromStaleChunks(): void {
 
 /** Production only: a worker in `vite dev` would cache stale modules. */
 export function registerServiceWorker(): void {
-  if (!import.meta.env.PROD || !("serviceWorker" in navigator)) return;
+  if (!import.meta.env.PROD || !("serviceWorker" in navigator) || isNative()) return;   // the app ships its own files
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").catch(() => {
       // Installability and offline fallback are enhancements; never break the app.

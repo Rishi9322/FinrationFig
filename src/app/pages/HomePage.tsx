@@ -109,7 +109,7 @@ export default function HomePage() {
     >
       {/* Sticky Navbar */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 h-16 flex items-center transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-50 h-[calc(4rem+env(safe-area-inset-top))] pt-[env(safe-area-inset-top)] flex items-center transition-all duration-300 ${
           scrolled ? "bg-background/90 backdrop-blur-md border-b border-foreground/8 shadow-lg" : ""
         }`}
       >
@@ -126,13 +126,13 @@ export default function HomePage() {
             <ThemeToggle />
             <Link
               to="/auth/signin"
-              className="text-sm text-foreground sm:text-muted-foreground hover:text-foreground transition-colors px-3 sm:px-4 py-2 rounded-lg border border-foreground/20 sm:border-transparent hover:bg-foreground/5 whitespace-nowrap"
+              className="text-sm text-foreground sm:text-muted-foreground hover:text-foreground transition-colors px-3 sm:px-4 py-2 pointer-coarse:py-3 rounded-lg border border-foreground/20 sm:border-transparent hover:bg-foreground/5 whitespace-nowrap"
             >
               Sign In
             </Link>
             <Link
               to="/auth/signup"
-              className="text-sm bg-primary hover:bg-primary-hover text-white px-3 sm:px-5 py-2 rounded-lg font-medium transition-colors whitespace-nowrap"
+              className="text-sm bg-primary hover:bg-primary-hover text-white px-3 sm:px-5 py-2 pointer-coarse:py-3 rounded-lg font-medium transition-colors whitespace-nowrap"
             >
               <span className="hidden min-[400px]:inline">Get </span>Started
             </Link>
@@ -141,7 +141,7 @@ export default function HomePage() {
       </header>
 
       {/* Hero */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center pt-16 px-6">
+      <section className="relative min-h-screen flex flex-col items-center justify-center pt-[calc(4rem+env(safe-area-inset-top))] px-6">
         {/* Radial glow */}
         <div
           className="absolute inset-0 pointer-events-none"
@@ -487,7 +487,7 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-foreground/8 py-10 px-6">
+      <footer className="border-t border-foreground/8 py-10 px-6" style={{ paddingBottom: "calc(2.5rem + env(safe-area-inset-bottom))" }}>
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-2 mb-1">
@@ -501,7 +501,7 @@ export default function HomePage() {
             </div>
             <p className="text-xs text-muted-foreground">Financial Intelligence for Indian Business</p>
           </div>
-          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
+          <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground [&_a]:pointer-coarse:inline-block [&_a]:pointer-coarse:py-2.5">
             <Link to="/" className="hover:text-foreground transition-colors">Home</Link>
             <a href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</a>
             <Link to="/auth/signin" className="hover:text-foreground transition-colors">Sign In</Link>
