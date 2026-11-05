@@ -7,6 +7,13 @@ export interface SavedCalculation {
   calculatorType: CalculatorType
   inputs: Record<string, unknown>
   results: Record<string, unknown>
+  caseId?: string | null
+  createdAt: string
+}
+
+export interface Case {
+  id: string
+  name: string
   createdAt: string
 }
 
@@ -17,10 +24,11 @@ export async function saveCalculation(
   calculatorType: CalculatorType,
   inputs: Record<string, unknown>,
   results: Record<string, unknown>,
+  caseId?: string | null,
 ): Promise<SavedCalculation> {
   const data = await apiCall("/calculations", {
     method: "POST",
-    body: JSON.stringify({ calculatorType, inputs, results }),
+    body: JSON.stringify({ calculatorType, inputs, results, caseId }),
   })
   return {
     id: data.id,
@@ -28,6 +36,7 @@ export async function saveCalculation(
     calculatorType,
     inputs,
     results,
+    caseId: caseId ?? null,
     createdAt: data.createdAt || new Date().toISOString(),
   }
 }
@@ -42,10 +51,22 @@ export async function getUserCalculations(_userId: string): Promise<SavedCalcula
 // column update rather than a JSON merge.
 export async function updateCalculation(
   id: string,
-  patch: { inputs?: Record<string, unknown>; results?: Record<string, unknown> },
+  patch: { inputs?: Record<string, unknown>; results?: Record<string, unknown>; caseId?: string | null },
 ): Promise<void> {
   await apiCall(`/calculations/${id}`, {
     method: "PUT",
     body: JSON.stringify(patch),
   })
+}
+
+export async function getCases(): Promise<Case[]> {
+  return (await apiCall("/cases")).cases || []
+}
+
+export async function createCase(name: string): Promise<Case> {
+  return apiCall("/cases", { method: "POST", body: JSON.stringify({ name }) })
+}
+
+export async function deleteCase(id: string): Promise<void> {
+  await apiCall(`/cases/${id}`, { method: "DELETE" })
 }

@@ -45,6 +45,9 @@ const ALLOWED_ORIGINS = [
   "https://finrat-git-main-rishis-projects-1c080e6c.vercel.app",
   "https://finrat-git-deploy-supabase-secr-82a4ba-rishis-projects-1c080e6c.vercel.app",
   "https://finration-fig.vercel.app",
+  // The installed iOS / Android app (Capacitor serves its files from this host).
+  "https://app.finratio.site",
+  "capacitor://app.finratio.site",
   ...(APP_ORIGIN ? APP_ORIGIN.split(",").map((o) => o.trim()).filter(Boolean) : []),
 ];
 const allowDevOrigins = Deno.env.get("ALLOW_DEV_ORIGINS") === "true";
@@ -171,8 +174,11 @@ const Schemas = {
     calculatorType: z.string().trim().min(1).max(64),
     inputs: z.record(z.string(), z.unknown()).refine(smallJson, "Too large").default({}),
     results: z.record(z.string(), z.unknown()).refine(smallJson, "Too large").default({}),
+    caseId: z.string().uuid().nullish(),
   }),
+  caseCreate: z.object({ name: z.string().trim().min(1).max(120) }),
   calculationUpdate: z.object({
+    caseId: z.string().uuid().nullish(),
     inputs: z.record(z.string(), z.unknown()).refine(smallJson, "Too large").optional(),
     results: z.record(z.string(), z.unknown()).refine(smallJson, "Too large").optional(),
   }),
@@ -1276,7 +1282,7 @@ app.get(`${API_PREFIX}/calculations`, async (c) => {
   return c.json({
     calculations: (data ?? []).map((r: any) => ({
       id: r.id, userId: r.user_id, calculatorType: r.calculator_type,
-      inputs: r.inputs, results: r.results, createdAt: r.created_at,
+      inputs: r.inputs, results: r.results, caseId: r.case_id, createdAt: r.created_at,
     })),
   });
 });
@@ -1291,14 +1297,17 @@ app.post(`${API_PREFIX}/calculations`, async (c) => {
   const parsed = await parseBody(c, Schemas.calculation);
   if (!parsed.ok) return parsed.response;
   const admin = getSupabaseAdminClient();
+  if (parsed.data.caseId && !(await ownsCase(admin, auth.uid, parsed.data.caseId))) {
+    return c.json({ error: "Case not found" }, 404);
+  }
   const { data, error } = await admin.from("calculations").insert({
     user_id: auth.uid, calculator_type: parsed.data.calculatorType,
-    inputs: parsed.data.inputs, results: parsed.data.results,
+    inputs: parsed.data.inputs, results: parsed.data.results, case_id: parsed.data.caseId ?? null,
   }).select("*").single();
   if (error || !data) return c.json({ error: "Could not save calculation" }, 500);
   return c.json({
     id: data.id, userId: data.user_id, calculatorType: data.calculator_type,
-    inputs: data.inputs, results: data.results, createdAt: data.created_at,
+    inputs: data.inputs, results: data.results, caseId: data.case_id, createdAt: data.created_at,
   }, 201);
 });
 
@@ -1307,11 +1316,17 @@ app.put(`${API_PREFIX}/calculations/:id`, async (c) => {
   if (!auth) return c.res;
   const parsed = await parseBody(c, Schemas.calculationUpdate);
   if (!parsed.ok) return parsed.response;
-  if (!parsed.data.inputs && !parsed.data.results) {
+  if (!parsed.data.inputs && !parsed.data.results && parsed.data.caseId === undefined) {
     return c.json({ error: "Nothing to update" }, 400);
   }
   const admin = getSupabaseAdminClient();
   const patch: Record<string, unknown> = {};
+  if (parsed.data.caseId !== undefined) {
+    if (parsed.data.caseId && !(await ownsCase(admin, auth.uid, parsed.data.caseId))) {
+      return c.json({ error: "Case not found" }, 404);
+    }
+    patch.case_id = parsed.data.caseId;
+  }
   if (parsed.data.inputs) patch.inputs = parsed.data.inputs;
   if (parsed.data.results) patch.results = parsed.data.results;
   // Scoped by user_id, not just id, so a caller can't patch another user's
@@ -1321,8 +1336,48 @@ app.put(`${API_PREFIX}/calculations/:id`, async (c) => {
   if (error || !data) return c.json({ error: "Calculation not found" }, 404);
   return c.json({
     id: data.id, userId: data.user_id, calculatorType: data.calculator_type,
-    inputs: data.inputs, results: data.results, createdAt: data.created_at,
+    inputs: data.inputs, results: data.results, caseId: data.case_id, createdAt: data.created_at,
   });
+});
+
+// ---- Cases: named groups of saved calculations (one per borrower) ----
+// A caseId is only accepted if the caller owns that case, so rows can't be filed under someone else's.
+async function ownsCase(admin: any, uid: string, caseId: string) {
+  const { data } = await admin.from("cases").select("id").eq("id", caseId).eq("user_id", uid).maybeSingle();
+  return !!data;
+}
+
+app.get(`${API_PREFIX}/cases`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.res;
+  const admin = getSupabaseAdminClient();
+  const { data } = await admin.from("cases").select("id, name, created_at")
+    .eq("user_id", auth.uid).order("created_at", { ascending: false });
+  return c.json({ cases: (data ?? []).map((r: any) => ({ id: r.id, name: r.name, createdAt: r.created_at })) });
+});
+
+app.post(`${API_PREFIX}/cases`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.res;
+  if (!(await validateRateLimit(`case-create:${auth.uid}`, 100, 60 * 60 * 1000))) {
+    return c.json({ error: "Too many cases. Try again later." }, 429);
+  }
+  const parsed = await parseBody(c, Schemas.caseCreate);
+  if (!parsed.ok) return parsed.response;
+  const admin = getSupabaseAdminClient();
+  const { data, error } = await admin.from("cases")
+    .insert({ user_id: auth.uid, name: parsed.data.name }).select("id, name, created_at").single();
+  if (error || !data) return c.json({ error: "Could not create case" }, 500);
+  return c.json({ id: data.id, name: data.name, createdAt: data.created_at }, 201);
+});
+
+app.delete(`${API_PREFIX}/cases/:id`, async (c) => {
+  const auth = await requireAuth(c);
+  if (!auth) return c.res;
+  const admin = getSupabaseAdminClient();
+  const { error } = await admin.from("cases").delete().eq("id", c.req.param("id")).eq("user_id", auth.uid);
+  if (error) return c.json({ error: "Could not delete case" }, 500);
+  return c.json({ ok: true });
 });
 
 app.post(`${API_PREFIX}/uploads`, async (c) => {

@@ -16,6 +16,7 @@ import { ThemeToggle } from "./ThemeToggle"
 /** Desktop and mobile render from this one list so they can't drift apart. */
 const PRIMARY_LINKS = [
   { to: "/dashboard", label: "Dashboard" },
+  { to: "/cases", label: "Cases" },
   { to: "/dashboard/cma-generator", label: "CMA Engine" },
   { to: "/doc-parser", label: "Doc Parser" },
   { to: "/blog", label: "Blog" },

@@ -9,6 +9,7 @@ import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage"
 import ResetPasswordPage from "./pages/auth/ResetPasswordPage"
 import OnboardingPage from "./pages/auth/OnboardingPage"
 import DashboardPage from "./pages/DashboardPage"
+import CasesPage from "./pages/CasesPage"
 import AccessDeniedPage from "./pages/AccessDeniedPage"
 import UsersAdminPage from "./pages/admin/UsersAdminPage"
 import { AdminDashboardPage } from "./pages/admin/AdminDashboardPage"
@@ -116,6 +117,14 @@ export const router = createBrowserRouter([
     element: (
       <ProtectedLayout>
         <DashboardPage />
+      </ProtectedLayout>
+    ),
+  },
+  {
+    path: "/cases",
+    element: (
+      <ProtectedLayout>
+        <CasesPage />
       </ProtectedLayout>
     ),
   },

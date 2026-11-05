@@ -1,0 +1,13 @@
+/* Prints only the element marked .print-area (a result card or a case report). */
+@media print {
+  html, body { background: #fff !important; }
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area {
+    position: absolute; inset: 0; background: #fff !important; color: #000 !important;
+    color-scheme: light; --foreground: #0F172A; --card: #FFFFFF; --muted-foreground: #56667A; --accent: #059669;
+    print-color-adjust: exact; -webkit-print-color-adjust: exact;
+  }
+  .print-area .no-print { display: none !important; }
+  .print-area table, .print-area tr { page-break-inside: avoid; }
+}

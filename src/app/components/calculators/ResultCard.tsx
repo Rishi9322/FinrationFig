@@ -1,9 +1,10 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { CalculationResult, CalculatorType } from "../../../lib/financialCalculations"
 import { RiskBadge } from "../ui/RiskBadge"
-import { Loader2, BookmarkPlus, CheckCircle2, Sparkles } from "lucide-react"
+import { Loader2, BookmarkPlus, CheckCircle2, Sparkles, Printer } from "lucide-react"
 import { toast } from "sonner"
-import { saveCalculation } from "../../../lib/calculationStorage"
+import { Case, createCase, getCases, saveCalculation } from "../../../lib/calculationStorage"
+import "../../../styles/print.css"
 import { getCurrentUser } from "../../../lib/auth"
 import { fetchAIAnalysis } from "../../../lib/ai"
 
@@ -19,6 +20,23 @@ export function ResultCard({ result, calculatorType, inputs }: ResultCardProps) 
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null)
 
+  const [cases, setCases] = useState<Case[]>([])
+  const [caseId, setCaseId] = useState("")
+  useEffect(() => { if (getCurrentUser()) getCases().then(setCases).catch(() => {}) }, [])
+
+  const handleCaseChange = async (value: string) => {
+    if (value !== "__new") return setCaseId(value)
+    const name = window.prompt("Case / borrower name")?.trim()
+    if (!name) return
+    try {
+      const c = await createCase(name)
+      setCases((prev) => [c, ...prev])
+      setCaseId(c.id)
+    } catch {
+      toast.error("Could not create case")
+    }
+  }
+
   const handleSave = async () => {
     const user = getCurrentUser()
     if (!user) {
@@ -33,7 +51,7 @@ export function ResultCard({ result, calculatorType, inputs }: ResultCardProps) 
         interpretation: result.interpretation,
         risk: result.risk,
         details: result.details,
-      })
+      }, caseId || null)
       toast.success("Result saved successfully")
       setSaved(true)
       setTimeout(() => setSaved(false), 3000)
@@ -68,7 +86,7 @@ Provide a short, actionable paragraph explaining what this means for the busines
 
   return (
     <div
-      className="bg-card rounded-xl border border-foreground/8 p-6 space-y-5"
+      className="print-area bg-card rounded-xl border border-foreground/8 p-6 space-y-5"
       style={{ fontFamily: "'DM Sans', sans-serif" }}
     >
       {/* Header */}
@@ -77,6 +95,13 @@ Provide a short, actionable paragraph explaining what this means for the busines
           <div className="w-1.5 h-5 rounded-full" style={{ background: accentColor }} />
           <h3 className="text-sm font-medium text-foreground">Result</h3>
         </div>
+        <button
+          onClick={() => window.print()}
+          className="no-print flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground px-2 py-1.5 rounded-lg"
+          aria-label="Export as PDF"
+        >
+          <Printer className="w-3.5 h-3.5" /> PDF
+        </button>
         <button
           onClick={handleAnalyze}
           disabled={isAnalyzing}
@@ -120,10 +145,20 @@ Provide a short, actionable paragraph explaining what this means for the busines
       )}
 
       {/* Save button */}
+      <select
+        value={caseId}
+        onChange={(e) => handleCaseChange(e.target.value)}
+        aria-label="Save to case"
+        className="no-print w-full bg-foreground/5 text-foreground text-sm rounded-xl px-3 py-2.5 border border-foreground/8"
+      >
+        <option value="">No case</option>
+        {cases.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        <option value="__new">+ New case...</option>
+      </select>
       <button
         onClick={handleSave}
         disabled={isSaving || saved}
-        className={`w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all ${
+        className={`no-print w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium transition-all ${
           saved
             ? "bg-accent/15 border border-accent/30 text-accent"
             : "bg-foreground/5 hover:bg-foreground/10 text-foreground disabled:opacity-60"

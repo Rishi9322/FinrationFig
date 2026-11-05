@@ -21,7 +21,7 @@ vi.mock("../../lib/uploadStorage", () => ({
   MAX_UPLOAD_BYTES: 1024,
 }))
 const save = vi.fn().mockResolvedValue({ id: "calc-1" })
-vi.mock("../../lib/calculationStorage", () => ({ saveCalculation: (...a: unknown[]) => save(...a) }))
+vi.mock("../../lib/calculationStorage", () => ({ saveCalculation: (...a: unknown[]) => save(...a), getCases: async () => [], createCase: vi.fn() }))
 
 const parsedFor = (name: string) => ({ ...sampleParsed, sourceFilename: name })
 const drop = (...files: File[]) => {
